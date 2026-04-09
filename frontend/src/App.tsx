@@ -30,7 +30,7 @@ export default function App() {
           <Route path="/:userId/tasks" element={<PublicTasksPage />} />
         </Routes>
         <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #eee', fontSize: 12, color: '#aaa', textAlign: 'center' }}>
-          v1.0.0
+          v1.1.0
         </div>
       </BrowserRouter>
     </AuthProvider>
