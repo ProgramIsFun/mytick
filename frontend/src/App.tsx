@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import PublicTasksPage from './pages/PublicTasksPage';
 import SharedTaskPage from './pages/SharedTaskPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
           <Route path="/tasks/:id" element={<PrivateRoute><TaskDetailPage /></PrivateRoute>} />
           <Route path="/share/:token" element={<SharedTaskPage />} />
+          <Route path="/:userId/tasks" element={<PublicTasksPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -37,6 +37,8 @@ export const api = {
     request(`/tasks/${id}`, { method: 'DELETE' }),
   getSharedTask: (token: string) =>
     request(`/tasks/share/${token}`),
+  getPublicTasks: (userId: string) =>
+    request(`/tasks/user/${userId}`),
 
   // Groups
   getGroups: () => request('/groups'),
