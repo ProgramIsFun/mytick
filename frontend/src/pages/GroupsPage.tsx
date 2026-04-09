@@ -108,7 +108,7 @@ export default function GroupsPage() {
           {isOwner && addMemberGroupId === group._id && (
             <form onSubmit={handleAddMember} style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <input
-                placeholder="User ID"
+                placeholder="User ID or email"
                 value={memberUserId}
                 onChange={e => setMemberUserId(e.target.value)}
                 style={{ flex: 1, padding: 6 }}

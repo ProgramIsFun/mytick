@@ -44,8 +44,10 @@ export const api = {
   getGroups: () => request('/groups'),
   createGroup: (name: string) =>
     request('/groups', { method: 'POST', body: JSON.stringify({ name }) }),
-  addMember: (groupId: string, userId: string, role: string = 'viewer') =>
-    request(`/groups/${groupId}/members`, { method: 'POST', body: JSON.stringify({ userId, role }) }),
+  addMember: (groupId: string, identifier: string, role: string = 'viewer') => {
+    const body = identifier.includes('@') ? { email: identifier, role } : { userId: identifier, role };
+    return request(`/groups/${groupId}/members`, { method: 'POST', body: JSON.stringify(body) });
+  },
   removeMember: (groupId: string, userId: string) =>
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
   deleteGroup: (groupId: string) =>

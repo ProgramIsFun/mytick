@@ -38,16 +38,24 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 // Add member (owner only)
 router.post('/:id/members', async (req: AuthRequest, res: Response) => {
   try {
-    const { userId, role } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const { userId, email, role } = req.body;
+    if (!userId && !email) return res.status(400).json({ error: 'userId or email required' });
+
+    let targetId = userId;
+    if (!targetId) {
+      const User = (await import('../models/User')).default;
+      const user = await User.findOne({ email });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      targetId = user._id.toString();
+    }
 
     const group = await Group.findOne({ _id: req.params.id, ownerId: req.userId });
     if (!group) return res.status(404).json({ error: 'Not found' });
 
-    const already = group.members.some(m => m.userId.toString() === userId);
+    const already = group.members.some(m => m.userId.toString() === targetId);
     if (already) return res.status(409).json({ error: 'Already a member' });
 
-    group.members.push({ userId, role: role || 'viewer' });
+    group.members.push({ userId: targetId, role: role || 'viewer' });
     await group.save();
 
     res.json(group);
