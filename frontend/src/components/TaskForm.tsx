@@ -27,7 +27,7 @@ export default function TaskForm({ groups, onCreate }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+    <form onSubmit={handleSubmit} style={{ marginBottom: 24, border: '2px dashed #ccc', borderRadius: 8, padding: 16 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         <input
           placeholder="Add a new task..."

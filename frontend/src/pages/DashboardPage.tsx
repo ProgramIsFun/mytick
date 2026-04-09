@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [tab, setTab] = useState<'tasks' | 'groups'>('tasks');
+  const [showGroupTasks, setShowGroupTasks] = useState(false);
   const [error, setError] = useState('');
 
   const loadTasks = async () => {
@@ -78,11 +79,15 @@ export default function DashboardPage() {
       {tab === 'tasks' ? (
         <>
           <TaskForm groups={groups} onCreate={handleCreate} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 14 }}>
+            <input type="checkbox" checked={showGroupTasks} onChange={() => setShowGroupTasks(!showGroupTasks)} />
+            Show group tasks
+          </label>
           {error && <p style={{ color: 'red' }}>{error}</p>}
           {tasks.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#888', marginTop: 40 }}>No tasks yet. Create one above!</p>
           ) : (
-            tasks.map(task => (
+            tasks.filter(t => showGroupTasks || t.userId === user?.id).map(task => (
               <TaskItem
                 key={task._id}
                 task={task}
