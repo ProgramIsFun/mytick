@@ -25,9 +25,9 @@ export default function PublicTasksPage() {
 
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
-      <h1>Public Tasks</h1>
+      <h1>Tasks</h1>
       {tasks.length === 0 ? (
-        <p style={{ color: '#888' }}>No public tasks found.</p>
+        <p style={{ color: '#888' }}>No tasks found.</p>
       ) : (
         tasks.map(t => (
           <div key={t._id} style={{ padding: 12, borderBottom: '1px solid #eee' }}>
