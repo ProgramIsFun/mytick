@@ -86,10 +86,36 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
     if (!task) return res.status(404).json({ error: 'Not found' });
 
+    if (req.body.description !== undefined && req.body.description !== task.description) {
+      task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
+    }
+
     const allowed = ['title', 'description', 'status', 'visibility', 'groupIds'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (task as any)[key] = req.body[key];
     }
+    await task.save();
+
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Rollback description to a history version (owner only)
+router.post('/:id/rollback/:index', async (req: AuthRequest, res: Response) => {
+  try {
+    const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
+    if (!task) return res.status(404).json({ error: 'Not found' });
+
+    const idx = parseInt(req.params.index as string);
+    if (isNaN(idx) || idx < 0 || idx >= task.descriptionHistory.length) {
+      return res.status(400).json({ error: 'Invalid history index' });
+    }
+
+    // Save current description before rolling back
+    task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
+    task.description = task.descriptionHistory[idx].description;
     await task.save();
 
     res.json(task);

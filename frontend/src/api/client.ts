@@ -31,6 +31,8 @@ export const api = {
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, data: Record<string, unknown>) =>
     request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  rollbackDescription: (id: string, index: number) =>
+    request(`/tasks/${id}/rollback/${index}`, { method: 'POST' }),
   deleteTask: (id: string) =>
     request(`/tasks/${id}`, { method: 'DELETE' }),
   getSharedTask: (token: string) =>

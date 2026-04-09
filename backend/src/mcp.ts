@@ -77,6 +77,10 @@ function createServer() {
     const task = await Task.findById(taskId);
     if (!task) return { content: [{ type: 'text', text: 'Task not found' }] };
 
+    if (updates.description !== undefined && updates.description !== task.description) {
+      task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
+    }
+
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) (task as any)[key] = value;
     }
