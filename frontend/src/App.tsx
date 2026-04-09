@@ -6,12 +6,14 @@ import SharedTaskPage from './pages/SharedTaskPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
+  const { token, loading } = useAuth();
+  if (loading) return null;
   return token ? <>{children}</> : <Navigate to="/login" />;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
+  const { token, loading } = useAuth();
+  if (loading) return null;
   return token ? <Navigate to="/" /> : <>{children}</>;
 }
 
