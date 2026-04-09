@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface Task {
   _id: string;
@@ -25,6 +26,7 @@ interface Props {
 export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: Props) {
   const [copied, setCopied] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
+  const navigate = useNavigate();
   const isDone = task.status === 'done';
 
   const toggleDone = () => onUpdate(task._id, { status: isDone ? 'pending' : 'done' });
@@ -52,7 +54,10 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
     <div style={{ padding: 12, borderBottom: '1px solid #eee', opacity: isDone ? 0.5 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <input type="checkbox" checked={isDone} onChange={toggleDone} disabled={!isOwner} />
-        <span style={{ flex: 1, textDecoration: isDone ? 'line-through' : 'none' }}>{task.title}</span>
+        <span
+          onClick={() => navigate(`/tasks/${task._id}`)}
+          style={{ flex: 1, textDecoration: isDone ? 'line-through' : 'none', cursor: 'pointer' }}
+        >{task.title}</span>
 
         {isOwner && (
           <>

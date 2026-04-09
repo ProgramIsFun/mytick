@@ -26,6 +26,7 @@ export const api = {
 
   // Tasks
   getTasks: () => request('/tasks'),
+  getTask: (id: string) => request(`/tasks/${id}`),
   createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[] }) =>
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, data: Record<string, unknown>) =>

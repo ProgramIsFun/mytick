@@ -39,6 +39,26 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get single task by ID
+router.get('/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
+    const groupIds = userGroups.map(g => g._id);
+
+    const task = await Task.findOne({
+      _id: req.params.id,
+      $or: [
+        { userId: req.userId },
+        { visibility: 'group', groupIds: { $in: groupIds } },
+      ],
+    });
+    if (!task) return res.status(404).json({ error: 'Not found' });
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Create task
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
