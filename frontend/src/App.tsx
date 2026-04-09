@@ -29,6 +29,9 @@ export default function App() {
           <Route path="/share/:token" element={<SharedTaskPage />} />
           <Route path="/:userId/tasks" element={<PublicTasksPage />} />
         </Routes>
+        <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #eee', fontSize: 12, color: '#aaa', textAlign: 'center' }}>
+          v1.0.0
+        </div>
       </BrowserRouter>
     </AuthProvider>
   );
