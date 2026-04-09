@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 interface Member {
   userId: string;
@@ -20,6 +21,7 @@ export default function GroupsPage() {
   const [memberUserId, setMemberUserId] = useState('');
   const [memberRole, setMemberRole] = useState('viewer');
   const [error, setError] = useState('');
+  const { user } = useAuth();
 
   const load = async () => {
     try { setGroups(await api.getGroups()); } catch (e: any) { setError(e.message); }
@@ -72,10 +74,13 @@ export default function GroupsPage() {
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {groups.map(group => (
+      {groups.map(group => {
+        const isOwner = group.ownerId === user?.id;
+        return (
         <div key={group._id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>{group.name}</strong>
+            {isOwner && (
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setAddMemberGroupId(addMemberGroupId === group._id ? null : group._id)} style={{ fontSize: 12, padding: '4px 8px' }}>
                 + Member
@@ -84,20 +89,23 @@ export default function GroupsPage() {
                 Delete
               </button>
             </div>
+            )}
           </div>
 
           <div style={{ marginTop: 8 }}>
             {group.members.map(m => (
               <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 14 }}>
                 <span>{m.userId} ({m.role})</span>
+                {isOwner && (
                 <button onClick={() => handleRemoveMember(group._id, m.userId)} style={{ fontSize: 11, padding: '2px 6px', color: 'red' }}>
                   Remove
                 </button>
+                )}
               </div>
             ))}
           </div>
 
-          {addMemberGroupId === group._id && (
+          {isOwner && addMemberGroupId === group._id && (
             <form onSubmit={handleAddMember} style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <input
                 placeholder="User ID"
@@ -113,7 +121,8 @@ export default function GroupsPage() {
             </form>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
