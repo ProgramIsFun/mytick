@@ -15,6 +15,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/groups', groupRoutes);
+app.get('/api/version', (_req, res) => res.json({ version: '1.0.0' }));
 
 const PORT = process.env.PORT || 4000;
 
