@@ -109,6 +109,17 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     const { title, description, visibility, groupIds } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
 
+    // Verify user is editor in all assigned groups
+    if (groupIds?.length) {
+      const groups = await Group.find({ _id: { $in: groupIds } });
+      for (const g of groups) {
+        const member = g.members.find(m => m.userId.toString() === req.userId);
+        if (!member || member.role !== 'editor') {
+          return res.status(403).json({ error: `Not an editor in group ${g.name}` });
+        }
+      }
+    }
+
     const task = await Task.create({
       userId: req.userId,
       title,

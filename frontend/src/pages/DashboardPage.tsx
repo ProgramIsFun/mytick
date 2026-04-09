@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
       {tab === 'tasks' ? (
         <>
-          <TaskForm groups={groups} onCreate={handleCreate} />
+          <TaskForm groups={groups.filter(g => g.members.some(m => m.userId === user?.id && m.role === 'editor'))} onCreate={handleCreate} />
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 14 }}>
             <input type="checkbox" checked={showGroupTasks} onChange={() => setShowGroupTasks(!showGroupTasks)} />
             Show group tasks
