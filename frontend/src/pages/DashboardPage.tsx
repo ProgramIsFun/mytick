@@ -40,8 +40,8 @@ export default function DashboardPage() {
 
   useEffect(() => { loadTasks(); loadGroups(); }, []);
 
-  const handleCreate = async (title: string) => {
-    await api.createTask({ title });
+  const handleCreate = async (title: string, groupIds: string[]) => {
+    await api.createTask({ title, groupIds, visibility: groupIds.length > 0 ? 'group' : 'private' });
     loadTasks();
   };
 
@@ -77,7 +77,7 @@ export default function DashboardPage() {
 
       {tab === 'tasks' ? (
         <>
-          <TaskForm onCreate={handleCreate} />
+          <TaskForm groups={groups} onCreate={handleCreate} />
           {error && <p style={{ color: 'red' }}>{error}</p>}
           {tasks.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#888', marginTop: 40 }}>No tasks yet. Create one above!</p>
