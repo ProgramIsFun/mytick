@@ -29,6 +29,8 @@ export default function TaskDetailPage() {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -51,6 +53,13 @@ export default function TaskDetailPage() {
     setEditing(false);
   };
 
+  const saveTitle = async () => {
+    if (!titleDraft.trim() || titleDraft === task.title) { setEditingTitle(false); return; }
+    const updated = await api.updateTask(task._id, { title: titleDraft.trim() });
+    setTask(updated);
+    setEditingTitle(false);
+  };
+
   const rollback = async (index: number) => {
     const updated = await api.rollbackDescription(task._id, index);
     setTask(updated);
@@ -61,7 +70,18 @@ export default function TaskDetailPage() {
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
       <button onClick={() => navigate('/')} style={{ marginBottom: 16 }}>← Back</button>
-      <h1 style={{ textDecoration: task.status === 'done' ? 'line-through' : 'none' }}>{task.title}</h1>
+      {editingTitle ? (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input value={titleDraft} onChange={e => setTitleDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') setEditingTitle(false); }} autoFocus style={{ flex: 1, fontSize: 24, fontWeight: 'bold', padding: 4 }} />
+          <button onClick={saveTitle}>Save</button>
+          <button onClick={() => setEditingTitle(false)}>Cancel</button>
+        </div>
+      ) : (
+        <h1 style={{ textDecoration: task.status === 'done' ? 'line-through' : 'none' }}>
+          {task.title}
+          {isOwner && <button onClick={() => { setTitleDraft(task.title); setEditingTitle(true); }} style={{ marginLeft: 8, fontSize: 14, verticalAlign: 'middle' }}>✏️</button>}
+        </h1>
+      )}
       <p style={{ color: '#666', fontSize: 14 }}>ID: {task._id}</p>
       <p><strong>Status:</strong> {task.status}</p>
       <p><strong>Visibility:</strong> {visibilityLabel}</p>
