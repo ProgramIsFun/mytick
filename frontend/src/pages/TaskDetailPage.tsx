@@ -18,7 +18,14 @@ interface Task {
   shareToken: string;
   userId: string;
   descriptionHistory: DescriptionVersion[];
+  blockedBy: string[];
   createdAt: string;
+}
+
+interface BlockerTask {
+  _id: string;
+  title: string;
+  status: string;
 }
 
 export default function TaskDetailPage() {
@@ -26,6 +33,7 @@ export default function TaskDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
+  const [blockers, setBlockers] = useState<BlockerTask[]>([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -36,6 +44,12 @@ export default function TaskDetailPage() {
     if (!id) return;
     api.getTask(id).then(setTask).catch((err: any) => setError(err.message));
   }, [id]);
+
+  useEffect(() => {
+    if (!task?.blockedBy?.length) { setBlockers([]); return; }
+    Promise.all(task.blockedBy.map(bid => api.getTask(bid).catch(() => null)))
+      .then(results => setBlockers(results.filter(Boolean) as BlockerTask[]));
+  }, [task?.blockedBy]);
 
   if (error) return <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
     <p style={{ color: 'red' }}>{error}</p>
@@ -85,6 +99,20 @@ export default function TaskDetailPage() {
       <p style={{ color: '#666', fontSize: 14 }}>ID: {task._id}</p>
       <p><strong>Status:</strong> {task.status}</p>
       <p><strong>Visibility:</strong> {visibilityLabel}</p>
+
+      {blockers.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <strong>Blocked by:</strong>
+          {blockers.map(b => (
+            <div key={b._id} style={{ margin: '4px 0 4px 12px', fontSize: 14 }}>
+              <span style={{ marginRight: 6 }}>{b.status === 'done' ? '✅' : '🔴'}</span>
+              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ color: '#1a73e8', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
+                {b.title}
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ marginTop: 16 }}>
         <strong>Description:</strong>
