@@ -39,6 +39,7 @@ export default function TaskDetailPage() {
   const [draft, setDraft] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [subtaskTitle, setSubtaskTitle] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -79,6 +80,19 @@ export default function TaskDetailPage() {
     setTask(updated);
   };
 
+  const addSubtask = async () => {
+    if (!subtaskTitle.trim()) return;
+    const sub = await api.createTask({ title: subtaskTitle.trim(), blockedBy: [] });
+    const updated = await api.updateTask(task._id, { blockedBy: [...(task.blockedBy || []), sub._id] });
+    setTask(updated);
+    setSubtaskTitle('');
+  };
+
+  const removeBlocker = async (blockerId: string) => {
+    const updated = await api.updateTask(task._id, { blockedBy: task.blockedBy.filter(id => id !== blockerId) });
+    setTask(updated);
+  };
+
   const visibilityLabel = { private: '🔒 Private', group: '👥 Group', public: '🌐 Public' }[task.visibility] || '';
 
   return (
@@ -104,13 +118,23 @@ export default function TaskDetailPage() {
         <div style={{ marginTop: 12 }}>
           <strong>Blocked by:</strong>
           {blockers.map(b => (
-            <div key={b._id} style={{ margin: '4px 0 4px 12px', fontSize: 14 }}>
-              <span style={{ marginRight: 6 }}>{b.status === 'done' ? '✅' : '🔴'}</span>
-              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ color: '#1a73e8', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
+            <div key={b._id} style={{ margin: '4px 0 4px 12px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{b.status === 'done' ? '✅' : '🔴'}</span>
+              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ flex: 1, color: '#1a73e8', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
                 {b.title}
               </a>
+              {isOwner && <button onClick={() => removeBlocker(b._id)} style={{ fontSize: 11, padding: '2px 6px', color: 'red' }}>✕</button>}
             </div>
           ))}
+        </div>
+      )}
+
+      {isOwner && (
+        <div style={{ marginTop: 12 }}>
+          <form onSubmit={e => { e.preventDefault(); addSubtask(); }} style={{ display: 'flex', gap: 8 }}>
+            <input placeholder="Add a subtask..." value={subtaskTitle} onChange={e => setSubtaskTitle(e.target.value)} style={{ flex: 1, padding: 6 }} />
+            <button type="submit" style={{ padding: '6px 12px' }}>+ Subtask</button>
+          </form>
         </div>
       )}
 
