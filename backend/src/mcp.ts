@@ -136,7 +136,9 @@ function createServer() {
 const MCP_PORT = Number(process.env.MCP_PORT) || 3100;
 
 async function main() {
-  await mongoose.connect(process.env.MONGODB_URI!);
+  const uri = process.env.MONGODB_URI;
+  console.log('MONGODB_URI:', uri ? uri.replace(/\/\/.*@/, '//<credentials>@') : 'NOT SET');
+  await mongoose.connect(uri!);
   console.log('Connected to MongoDB');
 
   const app = express();

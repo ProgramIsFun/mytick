@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
-    "mcp": "ts-node src/mcp.ts",
+    "mcp": "ts-node --transpile-only src/mcp.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
