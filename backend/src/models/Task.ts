@@ -14,6 +14,7 @@ export interface ITask extends Document {
   groupIds: Types.ObjectId[];
   shareToken: string;
   descriptionHistory: IDescriptionVersion[];
+  blockedBy: Types.ObjectId[];
   createdAt: Date;
 }
 
@@ -25,6 +26,7 @@ const taskSchema = new Schema<ITask>({
   visibility: { type: String, enum: ['private', 'group', 'public'], default: 'private' },
   groupIds: [{ type: Schema.Types.ObjectId, ref: 'Group' }],
   shareToken: { type: String, required: true, unique: true },
+  blockedBy: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
   descriptionHistory: [{
     description: { type: String },
     savedAt: { type: Date, default: Date.now },
