@@ -65,13 +65,14 @@ function createServer() {
     title: z.string().describe('Task title'),
     description: z.string().optional().describe('Task description'),
     visibility: z.enum(['private', 'group', 'public']).optional().describe('Task visibility'),
-  }, async ({ userEmail, title, description, visibility }) => {
+    blockedBy: z.array(z.string()).optional().describe('Array of task IDs this task is blocked by'),
+  }, async ({ userEmail, title, description, visibility, blockedBy }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
       const task = await api('/tasks', {
         method: 'POST',
         headers: { 'x-admin-user-id': id } as any,
-        body: JSON.stringify({ title, description, visibility }),
+        body: JSON.stringify({ title, description, visibility, blockedBy }),
       });
       return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
     } catch (e: any) {

@@ -106,7 +106,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create task
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, visibility, groupIds } = req.body;
+    const { title, description, visibility, groupIds, blockedBy } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
 
     // Verify user is editor in all assigned groups
@@ -126,6 +126,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       description: description || '',
       visibility: visibility || 'private',
       groupIds: groupIds || [],
+      blockedBy: blockedBy || [],
       shareToken: nanoid(12),
     });
 
