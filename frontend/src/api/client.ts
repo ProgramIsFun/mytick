@@ -27,6 +27,7 @@ export const api = {
   // Tasks
   getTasks: () => request('/tasks'),
   getTask: (id: string) => request(`/tasks/${id}`),
+  getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[] }) =>
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, data: Record<string, unknown>) =>

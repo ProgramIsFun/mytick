@@ -34,6 +34,7 @@ export default function TaskDetailPage() {
   const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [blockers, setBlockers] = useState<BlockerTask[]>([]);
+  const [blocking, setBlocking] = useState<BlockerTask[]>([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -44,6 +45,7 @@ export default function TaskDetailPage() {
   useEffect(() => {
     if (!id) return;
     api.getTask(id).then(setTask).catch((err: any) => setError(err.message));
+    api.getBlocking(id).then(setBlocking).catch(() => setBlocking([]));
   }, [id]);
 
   useEffect(() => {
@@ -135,6 +137,20 @@ export default function TaskDetailPage() {
             <input placeholder="Add a subtask..." value={subtaskTitle} onChange={e => setSubtaskTitle(e.target.value)} style={{ flex: 1, padding: 6 }} />
             <button type="submit" style={{ padding: '6px 12px' }}>+ Subtask</button>
           </form>
+        </div>
+      )}
+
+      {blocking.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <strong>Blocking:</strong>
+          {blocking.map(b => (
+            <div key={b._id} style={{ margin: '4px 0 4px 12px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{b.status === 'done' ? '✅' : '⏳'}</span>
+              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ color: '#1a73e8', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
+                {b.title}
+              </a>
+            </div>
+          ))}
         </div>
       )}
 

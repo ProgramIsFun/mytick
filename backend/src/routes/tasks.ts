@@ -83,6 +83,18 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get tasks that are blocked by a specific task
+router.get('/:id/blocking', async (req: AuthRequest, res: Response) => {
+  try {
+    const tasks = await Task.find({ blockedBy: req.params.id as any, userId: req.userId })
+      .select('_id title status')
+      .sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get single task by ID
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
