@@ -40,7 +40,7 @@ function createServer() {
   }, async ({ userEmail }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
-      const tasks = await api(`/tasks/user/${id}`, { headers: { 'x-admin-user-id': id } as any });
+      const tasks = await api('/tasks', { headers: { 'x-admin-user-id': id } as any });
       return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
     } catch (e: any) {
       return { content: [{ type: 'text', text: e.message }] };
