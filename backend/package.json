@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "mcp": "ts-node --transpile-only src/mcp.ts",
+    "migrate": "ts-node --transpile-only src/migrations/run.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },

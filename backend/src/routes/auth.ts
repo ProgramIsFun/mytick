@@ -5,6 +5,15 @@ import User from '../models/User';
 
 const router = Router();
 
+function signToken(userId: unknown) {
+  return jwt.sign({ userId: String(userId) }, process.env.JWT_SECRET!, { expiresIn: '7d' });
+}
+
+function userResponse(user: any) {
+  return { id: user._id, email: user.email, name: user.name };
+}
+
+// Local register
 router.post('/register', async (req, res: Response) => {
   try {
     const { email, password, name } = req.body;
@@ -13,16 +22,20 @@ router.post('/register', async (req, res: Response) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'Email already registered' });
 
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashed, name });
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      email,
+      name,
+      providers: [{ type: 'local', providerId: email, passwordHash }],
+    });
 
-    res.status(201).json({ token, user: { id: user._id, email: user.email, name: user.name } });
+    res.status(201).json({ token: signToken(user._id), user: userResponse(user) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
+// Local login
 router.post('/login', async (req, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -31,11 +44,44 @@ router.post('/login', async (req, res: Response) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const valid = await bcrypt.compare(password, user.password);
+    const localProvider = user.providers.find(p => p.type === 'local');
+    if (!localProvider?.passwordHash) return res.status(401).json({ error: 'No local login. Use OAuth.' });
+
+    const valid = await bcrypt.compare(password, localProvider.passwordHash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
-    res.json({ token, user: { id: user._id, email: user.email, name: user.name } });
+    res.json({ token: signToken(user._id), user: userResponse(user) });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// OAuth callback (Google, GitHub, etc.)
+router.post('/oauth', async (req, res: Response) => {
+  try {
+    const { provider, providerId, email, name } = req.body;
+    if (!provider || !providerId || !email) return res.status(400).json({ error: 'Missing fields' });
+
+    // Check if this OAuth account is already linked
+    let user = await User.findOne({ 'providers.type': provider, 'providers.providerId': providerId });
+
+    if (!user) {
+      // Check if email exists — link the provider
+      user = await User.findOne({ email });
+      if (user) {
+        user.providers.push({ type: provider, providerId });
+        await user.save();
+      } else {
+        // New user
+        user = await User.create({
+          email,
+          name: name || email,
+          providers: [{ type: provider, providerId }],
+        });
+      }
+    }
+
+    res.json({ token: signToken(user._id), user: userResponse(user) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -52,7 +98,7 @@ router.get('/lookup', async (req, res: Response) => {
     if (!email) return res.status(400).json({ error: 'Email required' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ id: user._id, email: user.email, name: user.name });
+    res.json(userResponse(user));
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
