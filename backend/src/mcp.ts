@@ -2,48 +2,62 @@ import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { nanoid } from 'nanoid';
-import Task from './models/Task';
-import Group from './models/Group';
-import User from './models/User';
 
 dotenv.config();
 
-function createServer() {
-  const server = new McpServer({
-    name: 'mytick',
-    version: '1.0.0',
-  });
+const API_URL = process.env.API_URL || 'http://localhost:4000/api';
+const ADMIN_KEY = process.env.ADMIN_API_KEY!;
 
-  // --- Tasks ---
+async function api(path: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-key': ADMIN_KEY,
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function getUserId(email: string): Promise<string> {
+  // Use the user tasks endpoint which looks up by userId, so we need a lookup endpoint
+  // For now, use a dedicated admin endpoint
+  const users = await api(`/auth/lookup?email=${encodeURIComponent(email)}`);
+  return users.id;
+}
+
+function createServer() {
+  const server = new McpServer({ name: 'mytick', version: '1.0.0' });
 
   server.tool('list_tasks', 'List tasks for a user', {
     userEmail: z.string().describe('Email of the user'),
   }, async ({ userEmail }) => {
-    const user = await User.findOne({ email: userEmail });
-    if (!user) return { content: [{ type: 'text', text: 'User not found' }] };
-
-    const userGroups = await Group.find({ 'members.userId': user._id }).select('_id');
-    const groupIds = userGroups.map(g => g._id);
-
-    const tasks = await Task.find({
-      $or: [
-        { userId: user._id },
-        { visibility: 'group', groupIds: { $in: groupIds } },
-      ],
-    }).sort({ createdAt: -1 });
-
-    return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const tasks = await api(`/tasks/user/${id}`, { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
   });
 
   server.tool('get_task', 'Get a task by ID', {
     taskId: z.string().describe('Task ID'),
-  }, async ({ taskId }) => {
-    const task = await Task.findById(taskId);
-    if (!task) return { content: [{ type: 'text', text: 'Task not found' }] };
-    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    userEmail: z.string().describe('Email of the requesting user'),
+  }, async ({ taskId, userEmail }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const task = await api(`/tasks/${taskId}`, { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
   });
 
   server.tool('create_task', 'Create a new task', {
@@ -52,94 +66,90 @@ function createServer() {
     description: z.string().optional().describe('Task description'),
     visibility: z.enum(['private', 'group', 'public']).optional().describe('Task visibility'),
   }, async ({ userEmail, title, description, visibility }) => {
-    const user = await User.findOne({ email: userEmail });
-    if (!user) return { content: [{ type: 'text', text: 'User not found' }] };
-
-    const task = await Task.create({
-      userId: user._id,
-      title,
-      description: description || '',
-      visibility: visibility || 'private',
-      groupIds: [],
-      shareToken: nanoid(12),
-    });
-
-    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const task = await api('/tasks', {
+        method: 'POST',
+        headers: { 'x-admin-user-id': id } as any,
+        body: JSON.stringify({ title, description, visibility }),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
   });
 
   server.tool('update_task', 'Update a task', {
     taskId: z.string().describe('Task ID'),
+    userEmail: z.string().describe('Email of the task owner'),
     title: z.string().optional().describe('New title'),
     description: z.string().optional().describe('New description'),
     status: z.enum(['pending', 'in_progress', 'done']).optional().describe('New status'),
     visibility: z.enum(['private', 'group', 'public']).optional().describe('New visibility'),
-  }, async ({ taskId, ...updates }) => {
-    const task = await Task.findById(taskId);
-    if (!task) return { content: [{ type: 'text', text: 'Task not found' }] };
-
-    if (updates.description !== undefined && updates.description !== task.description) {
-      task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
+  }, async ({ taskId, userEmail, ...updates }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const task = await api(`/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'x-admin-user-id': id } as any,
+        body: JSON.stringify(updates),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
     }
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) (task as any)[key] = value;
-    }
-    await task.save();
-
-    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
   });
 
   server.tool('delete_task', 'Delete a task', {
     taskId: z.string().describe('Task ID'),
-  }, async ({ taskId }) => {
-    const task = await Task.findByIdAndDelete(taskId);
-    if (!task) return { content: [{ type: 'text', text: 'Task not found' }] };
-    return { content: [{ type: 'text', text: 'Deleted' }] };
+    userEmail: z.string().describe('Email of the task owner'),
+  }, async ({ taskId, userEmail }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      await api(`/tasks/${taskId}`, { method: 'DELETE', headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: 'Deleted' }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
   });
-
-  // --- Groups ---
 
   server.tool('list_groups', 'List groups for a user', {
     userEmail: z.string().describe('Email of the user'),
   }, async ({ userEmail }) => {
-    const user = await User.findOne({ email: userEmail });
-    if (!user) return { content: [{ type: 'text', text: 'User not found' }] };
-
-    const groups = await Group.find({
-      $or: [{ ownerId: user._id }, { 'members.userId': user._id }],
-    });
-
-    return { content: [{ type: 'text', text: JSON.stringify(groups, null, 2) }] };
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const groups = await api('/groups', { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(groups, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
   });
 
   server.tool('create_group', 'Create a new group', {
     userEmail: z.string().describe('Email of the group owner'),
     name: z.string().describe('Group name'),
   }, async ({ userEmail, name }) => {
-    const user = await User.findOne({ email: userEmail });
-    if (!user) return { content: [{ type: 'text', text: 'User not found' }] };
-
-    const group = await Group.create({
-      name,
-      ownerId: user._id,
-      members: [{ userId: user._id, role: 'editor' }],
-    });
-
-    return { content: [{ type: 'text', text: JSON.stringify(group, null, 2) }] };
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const group = await api('/groups', {
+        method: 'POST',
+        headers: { 'x-admin-user-id': id } as any,
+        body: JSON.stringify({ name }),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(group, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
   });
 
   return server;
 }
 
-// --- HTTP Start ---
-
 const MCP_PORT = Number(process.env.MCP_PORT) || 3100;
 
 async function main() {
-  const uri = process.env.MONGODB_URI;
-  console.log('MONGODB_URI:', uri ? uri.replace(/\/\/.*@/, '//<credentials>@') : 'NOT SET');
-  await mongoose.connect(uri!);
-  console.log('Connected to MongoDB');
+  console.log('API_URL:', API_URL);
+  console.log('ADMIN_API_KEY:', ADMIN_KEY ? '***set***' : 'NOT SET');
 
   const app = express();
 
@@ -151,11 +161,11 @@ async function main() {
     await transport.handleRequest(req, res);
   });
 
-  app.get('/mcp', async (req, res) => {
+  app.get('/mcp', async (_req, res) => {
     res.writeHead(405).end(JSON.stringify({ error: 'Method not allowed. Use POST.' }));
   });
 
-  app.delete('/mcp', async (req, res) => {
+  app.delete('/mcp', async (_req, res) => {
     res.writeHead(405).end(JSON.stringify({ error: 'Method not allowed.' }));
   });
 

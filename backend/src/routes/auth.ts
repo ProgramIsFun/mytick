@@ -41,4 +41,21 @@ router.post('/login', async (req, res: Response) => {
   }
 });
 
+// Lookup user by email (admin only)
+router.get('/lookup', async (req, res: Response) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (!adminKey || adminKey !== process.env.ADMIN_API_KEY) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const email = req.query.email as string;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ id: user._id, email: user.email, name: user.name });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;

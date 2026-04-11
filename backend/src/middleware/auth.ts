@@ -6,6 +6,13 @@ export interface AuthRequest extends Request {
 }
 
 export function auth(req: AuthRequest, res: Response, next: NextFunction) {
+  // Admin API key bypass
+  const adminKey = req.headers['x-admin-key'];
+  if (adminKey && adminKey === process.env.ADMIN_API_KEY) {
+    req.userId = req.headers['x-admin-user-id'] as string;
+    return next();
+  }
+
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
 
