@@ -86,6 +86,7 @@ function createServer() {
     description: z.string().optional().describe('New description'),
     status: z.enum(['pending', 'in_progress', 'done']).optional().describe('New status'),
     visibility: z.enum(['private', 'group', 'public']).optional().describe('New visibility'),
+    blockedBy: z.array(z.string()).optional().describe('Array of task IDs this task is blocked by'),
   }, async ({ taskId, userEmail, ...updates }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
