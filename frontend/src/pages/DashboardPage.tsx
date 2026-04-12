@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useDeadlineAlerts } from '../hooks/useDeadlineAlerts';
 import { api } from '../api/client';
 import TaskItem from '../components/TaskItem';
 import TaskForm from '../components/TaskForm';
@@ -29,6 +30,7 @@ interface Group {
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  useDeadlineAlerts();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [tab, setTab] = useState<'tasks' | 'calendar' | 'groups'>('tasks');
