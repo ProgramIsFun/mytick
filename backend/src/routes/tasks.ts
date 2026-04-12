@@ -169,7 +169,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create task
 router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, visibility, groupIds, blockedBy } = req.body;
+    const { title, description, visibility, groupIds, blockedBy, deadline } = req.body;
 
     // Verify user is editor in all assigned groups
     if (groupIds?.length) {
@@ -189,6 +189,7 @@ router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Respo
       visibility: visibility || 'private',
       groupIds: groupIds || [],
       blockedBy: blockedBy || [],
+      deadline: deadline || null,
       shareToken: nanoid(12),
     });
 
