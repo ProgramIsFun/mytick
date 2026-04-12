@@ -13,6 +13,8 @@ function userResponse(user: any) {
   return { id: user._id, email: user.email, username: user.username, name: user.name };
 }
 
+const RESERVED_USERNAMES = ['admin', 'api', 'login', 'register', 'settings', 'profile', 'share', 'tasks', 'groups', 'public', 'about', 'help', 'support'];
+
 // Local register
 router.post('/register', async (req, res: Response) => {
   try {
@@ -22,8 +24,7 @@ router.post('/register', async (req, res: Response) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'Email already registered' });
 
-    const RESERVED = ['admin', 'api', 'login', 'register', 'settings', 'profile', 'share', 'tasks', 'groups', 'public', 'about', 'help', 'support'];
-    if (RESERVED.includes(username.toLowerCase())) return res.status(400).json({ error: 'Username is reserved' });
+    if (RESERVED_USERNAMES.includes(username.toLowerCase())) return res.status(400).json({ error: 'Username is reserved' });
 
     const usernameTaken = await User.findOne({ username: username.toLowerCase() });
     if (usernameTaken) return res.status(409).json({ error: 'Username already taken' });
@@ -107,6 +108,31 @@ router.get('/me', async (req, res: Response) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     const user = await User.findById(decoded.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(userResponse(user));
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Update profile
+router.patch('/me', async (req, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (req.body.username !== undefined) {
+      const u = req.body.username.toLowerCase();
+      if (RESERVED_USERNAMES.includes(u)) return res.status(400).json({ error: 'Username is reserved' });
+      const taken = await User.findOne({ username: u, _id: { $ne: user._id } });
+      if (taken) return res.status(409).json({ error: 'Username already taken' });
+      user.username = u;
+    }
+    if (req.body.name !== undefined) user.name = req.body.name;
+
+    await user.save();
     res.json(userResponse(user));
   } catch {
     res.status(401).json({ error: 'Invalid token' });

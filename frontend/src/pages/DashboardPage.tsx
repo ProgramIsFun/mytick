@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import TaskItem from '../components/TaskItem';
@@ -25,6 +26,7 @@ interface Group {
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [tab, setTab] = useState<'tasks' | 'groups'>('tasks');
@@ -62,7 +64,7 @@ export default function DashboardPage() {
         <h1>MyTick</h1>
         <div>
           <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/@${user?.username}/tasks`); }} style={{ marginRight: 8 }} title="Copy public tasks link">🔗 Public Link</button>
-          <span style={{ marginRight: 12 }}>{user?.name} (@{user?.username})</span>
+          <span style={{ marginRight: 12, cursor: 'pointer' }} onClick={() => navigate('/settings')}>{user?.name} (@{user?.username}) ⚙️</span>
           <button onClick={logout}>Logout</button>
         </div>
       </div>

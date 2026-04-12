@@ -8,10 +8,26 @@ router.use(auth);
 // List my groups (owned + member of)
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
+    const User = (await import('../models/User')).default;
     const groups = await Group.find({
       $or: [{ ownerId: req.userId }, { 'members.userId': req.userId }],
-    });
-    res.json(groups);
+    }).lean();
+
+    // Resolve member usernames
+    const userIds = [...new Set(groups.flatMap(g => g.members.map(m => m.userId.toString())))];
+    const users = await User.find({ _id: { $in: userIds } }).select('_id username name').lean();
+    const userMap = Object.fromEntries(users.map(u => [u._id.toString(), { username: u.username, name: u.name }]));
+
+    const enriched = groups.map(g => ({
+      ...g,
+      members: g.members.map(m => ({
+        ...m,
+        username: userMap[m.userId.toString()]?.username,
+        name: userMap[m.userId.toString()]?.name,
+      })),
+    }));
+
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

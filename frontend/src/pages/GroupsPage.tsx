@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 
 interface Member {
   userId: string;
+  username?: string;
+  name?: string;
   role: string;
 }
 
@@ -95,7 +97,7 @@ export default function GroupsPage() {
           <div style={{ marginTop: 8 }}>
             {group.members.map(m => (
               <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 14 }}>
-                <span>{m.userId} ({m.role})</span>
+                <span>@{m.username || m.userId} · {m.role}</span>
                 {isOwner && (
                 <button onClick={() => handleRemoveMember(group._id, m.userId)} style={{ fontSize: 11, padding: '2px 6px', color: 'red' }}>
                   Remove
