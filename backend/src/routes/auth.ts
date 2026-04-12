@@ -138,6 +138,20 @@ router.patch('/me', async (req, res: Response) => {
   }
 });
 
+// List all users (admin only)
+router.get('/users', async (req, res: Response) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (!adminKey || adminKey !== process.env.ADMIN_API_KEY) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const users = await User.find().select('_id email username name');
+    res.json(users.map(u => ({ id: u._id, email: u.email, username: u.username, name: u.name })));
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Lookup user by email (admin only)
 router.get('/lookup', async (req, res: Response) => {
   try {

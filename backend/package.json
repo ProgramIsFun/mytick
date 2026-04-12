@@ -7,6 +7,8 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "mcp": "ts-node --transpile-only src/mcp.ts",
     "mcp:dev": "nodemon --exec ts-node --transpile-only src/mcp.ts",
+    "notify": "ts-node --transpile-only src/notify.ts",
+    "notify:dev": "nodemon --exec ts-node --transpile-only src/notify.ts",
     "migrate": "ts-node --transpile-only src/migrations/run.ts",
     "build": "tsc",
     "test": "jest",
