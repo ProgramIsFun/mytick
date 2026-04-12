@@ -21,21 +21,21 @@ export default function PublicTasksPage() {
     api.getPublicTasksByUsername(username).then(setTasks).catch((err: any) => setError(err.message));
   }, [username]);
 
-  if (error) return <div style={{ maxWidth: 600, margin: '40px auto', padding: 24, color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ maxWidth: 600, margin: '40px auto', padding: 24, color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
       <h1>@{username}'s Tasks</h1>
       {tasks.length === 0 ? (
-        <p style={{ color: '#888' }}>No tasks found.</p>
+        <p style={{ color: 'var(--text-muted)' }}>No tasks found.</p>
       ) : (
         tasks.map(t => (
           <div key={t._id} style={{ padding: 12, borderBottom: '1px solid #eee' }}>
             <div style={{ fontWeight: 'bold', textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>
               {t.title}
             </div>
-            {t.description && <p style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: '#555' }}>{t.description}</p>}
-            <div style={{ fontSize: 12, color: '#999' }}>
+            {t.description && <p style={{ margin: '4px 0', whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>{t.description}</p>}
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {t.status} · {new Date(t.createdAt).toLocaleDateString()}
             </div>
           </div>

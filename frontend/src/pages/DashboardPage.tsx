@@ -99,9 +99,9 @@ export default function DashboardPage() {
             <input type="checkbox" checked={showGroupTasks} onChange={() => setShowGroupTasks(!showGroupTasks)} />
             Show group tasks
           </label>
-          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
           {tasks.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#888', marginTop: 40 }}>No tasks yet. Create one above!</p>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>No tasks yet. Create one above!</p>
           ) : (
             tasks.filter(t => showGroupTasks || t.userId === user?.id).map(task => (
               <TaskItem

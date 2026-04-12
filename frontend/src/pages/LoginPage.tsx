@@ -63,12 +63,12 @@ export default function LoginPage() {
           required
           style={{ display: 'block', width: '100%', marginBottom: 8, padding: 8 }}
         />
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
         <button type="submit" style={{ width: '100%', padding: 10, marginBottom: 8 }}>
           {isRegister ? 'Register' : 'Login'}
         </button>
       </form>
-      <button onClick={() => setIsRegister(!isRegister)} style={{ background: 'none', border: 'none', color: '#646cff', cursor: 'pointer' }}>
+      <button onClick={() => setIsRegister(!isRegister)} style={{ background: 'none', border: 'none', color: 'var(--link)', cursor: 'pointer' }}>
         {isRegister ? 'Already have an account? Login' : "Don't have an account? Register"}
       </button>
     </div>

@@ -74,12 +74,12 @@ export default function GroupsPage() {
         <button type="submit" style={{ padding: '10px 20px' }}>Create</button>
       </form>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
       {groups.map(group => {
         const isOwner = group.ownerId === user?.id;
         return (
-        <div key={group._id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16, marginBottom: 12 }}>
+        <div key={group._id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>{group.name}</strong>
             {isOwner && (
@@ -87,7 +87,7 @@ export default function GroupsPage() {
               <button onClick={() => setAddMemberGroupId(addMemberGroupId === group._id ? null : group._id)} style={{ fontSize: 12, padding: '4px 8px' }}>
                 + Member
               </button>
-              <button onClick={() => handleDelete(group._id)} style={{ fontSize: 12, padding: '4px 8px', color: 'red' }}>
+              <button onClick={() => handleDelete(group._id)} style={{ fontSize: 12, padding: '4px 8px', color: 'var(--danger)' }}>
                 Delete
               </button>
             </div>
@@ -99,7 +99,7 @@ export default function GroupsPage() {
               <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 14 }}>
                 <span>@{m.username || m.userId} · {m.role}</span>
                 {isOwner && (
-                <button onClick={() => handleRemoveMember(group._id, m.userId)} style={{ fontSize: 11, padding: '2px 6px', color: 'red' }}>
+                <button onClick={() => handleRemoveMember(group._id, m.userId)} style={{ fontSize: 11, padding: '2px 6px', color: 'var(--danger)' }}>
                   Remove
                 </button>
                 )}

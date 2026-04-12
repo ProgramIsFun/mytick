@@ -55,7 +55,7 @@ export default function SettingsPage() {
         style={{ display: 'block', width: '100%', padding: 8, marginBottom: 16, boxSizing: 'border-box' }}
       />
 
-      {error && <p style={{ color: 'red', fontSize: 14 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)', fontSize: 14 }}>{error}</p>}
       {success && <p style={{ color: 'green', fontSize: 14 }}>{success}</p>}
 
       <button onClick={handleSave} style={{ padding: '10px 20px' }}>Save</button>

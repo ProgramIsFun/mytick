@@ -55,7 +55,7 @@ export default function TaskDetailPage() {
   }, [task?.blockedBy]);
 
   if (error) return <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
-    <p style={{ color: 'red' }}>{error}</p>
+    <p style={{ color: 'var(--danger)' }}>{error}</p>
     <button onClick={() => navigate('/')}>← Back</button>
   </div>;
 
@@ -112,7 +112,7 @@ export default function TaskDetailPage() {
           {isOwner && <button onClick={() => { setTitleDraft(task.title); setEditingTitle(true); }} style={{ marginLeft: 8, fontSize: 14, verticalAlign: 'middle' }}>✏️</button>}
         </h1>
       )}
-      <p style={{ color: '#666', fontSize: 14 }}>ID: {task._id}</p>
+      <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>ID: {task._id}</p>
       <p><strong>Status:</strong> {task.status}</p>
       <p><strong>Visibility:</strong> {visibilityLabel}</p>
 
@@ -122,10 +122,10 @@ export default function TaskDetailPage() {
           {blockers.map(b => (
             <div key={b._id} style={{ margin: '4px 0 4px 12px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{b.status === 'done' ? '✅' : '🔴'}</span>
-              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ flex: 1, color: '#1a73e8', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
+              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ flex: 1, color: 'var(--link)', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
                 {b.title}
               </a>
-              {isOwner && <button onClick={() => removeBlocker(b._id)} style={{ fontSize: 11, padding: '2px 6px', color: 'red' }}>✕</button>}
+              {isOwner && <button onClick={() => removeBlocker(b._id)} style={{ fontSize: 11, padding: '2px 6px', color: 'var(--danger)' }}>✕</button>}
             </div>
           ))}
         </div>
@@ -146,7 +146,7 @@ export default function TaskDetailPage() {
           {blocking.map(b => (
             <div key={b._id} style={{ margin: '4px 0 4px 12px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{b.status === 'done' ? '✅' : '⏳'}</span>
-              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ color: '#1a73e8', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
+              <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }} style={{ color: 'var(--link)', textDecoration: b.status === 'done' ? 'line-through' : 'none' }}>
                 {b.title}
               </a>
             </div>
@@ -176,8 +176,8 @@ export default function TaskDetailPage() {
         <div style={{ marginTop: 24 }}>
           <strong>Description History:</strong>
           {task.descriptionHistory.map((v, i) => (
-            <div key={i} style={{ padding: 8, margin: '6px 0', background: '#f5f5f5', borderRadius: 4, fontSize: 14 }}>
-              <div style={{ color: '#888', fontSize: 12 }}>{new Date(v.savedAt).toLocaleString()}</div>
+            <div key={i} style={{ padding: 8, margin: '6px 0', background: 'var(--bg-secondary)', borderRadius: 4, fontSize: 14 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{new Date(v.savedAt).toLocaleString()}</div>
               <div style={{ whiteSpace: 'pre-wrap', margin: '4px 0' }}>{v.description || <em>(empty)</em>}</div>
               {isOwner && <button onClick={() => rollback(i)} style={{ fontSize: 12 }}>↩ Rollback</button>}
             </div>
@@ -185,8 +185,8 @@ export default function TaskDetailPage() {
         </div>
       )}
 
-      <p style={{ color: '#888', fontSize: 13, marginTop: 16 }}>Created: {new Date(task.createdAt).toLocaleString()}</p>
-      {isOwner && <p style={{ color: '#888', fontSize: 13 }}>You own this task</p>}
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 16 }}>Created: {new Date(task.createdAt).toLocaleString()}</p>
+      {isOwner && <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>You own this task</p>}
     </div>
   );
 }

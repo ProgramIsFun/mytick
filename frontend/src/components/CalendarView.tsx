@@ -42,12 +42,12 @@ export default function CalendarView({ tasks }: Props) {
     const dayTasks = tasksByDate.get(key) || [];
     const isToday = new Date().toDateString() === new Date(year, mon, d).toDateString();
     cells.push(
-      <div key={d} style={{ border: '1px solid #eee', minHeight: 70, padding: 4, background: isToday ? '#f0f7ff' : 'white' }}>
-        <div style={{ fontSize: 12, fontWeight: isToday ? 'bold' : 'normal', color: isToday ? '#1a73e8' : '#666' }}>{d}</div>
+      <div key={d} style={{ border: '1px solid var(--border)', minHeight: 70, padding: 4, background: isToday ? 'var(--today-bg)' : 'var(--btn-bg)' }}>
+        <div style={{ fontSize: 12, fontWeight: isToday ? 'bold' : 'normal', color: isToday ? 'var(--link)' : 'var(--text-secondary)' }}>{d}</div>
         {dayTasks.map(t => (
           <div key={t._id} onClick={() => navigate(`/tasks/${t._id}`)}
             style={{ fontSize: 11, padding: '2px 4px', margin: '1px 0', borderRadius: 3, cursor: 'pointer', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-              background: t.status === 'done' ? '#e8f5e9' : '#fff3e0', textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>
+              background: t.status === 'done' ? 'var(--task-done)' : 'var(--task-pending)', textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>
             {t.title}
           </div>
         ))}
@@ -64,7 +64,7 @@ export default function CalendarView({ tasks }: Props) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, fontSize: 13 }}>
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-          <div key={d} style={{ textAlign: 'center', fontWeight: 'bold', padding: 4, color: '#888' }}>{d}</div>
+          <div key={d} style={{ textAlign: 'center', fontWeight: 'bold', padding: 4, color: 'var(--text-muted)' }}>{d}</div>
         ))}
         {cells}
       </div>

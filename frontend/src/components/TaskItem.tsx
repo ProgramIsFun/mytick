@@ -74,7 +74,7 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
                 {copied ? '✅' : '🔗'}
               </button>
             )}
-            <button onClick={() => onDelete(task._id)} style={{ fontSize: 12, padding: '4px 8px', color: 'red' }}>
+            <button onClick={() => onDelete(task._id)} style={{ fontSize: 12, padding: '4px 8px', color: 'var(--danger)' }}>
               ✕
             </button>
           </>
@@ -93,7 +93,7 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
               {g.name}
             </label>
           ))}
-          {groups.length === 0 && <span style={{ fontSize: 13, color: '#888' }}>No groups yet</span>}
+          {groups.length === 0 && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No groups yet</span>}
         </div>
       )}
     </div>
