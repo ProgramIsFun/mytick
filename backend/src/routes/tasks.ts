@@ -200,6 +200,15 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
 // Detect cycles in blockedBy
 async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
+  // Fetch all tasks' blockedBy in one query
+  const allTasks = await Task.find({ blockedBy: { $exists: true, $ne: [] } }).select('_id blockedBy').lean();
+  const graph = new Map<string, string[]>();
+  for (const t of allTasks) {
+    graph.set(t._id.toString(), t.blockedBy.map(b => b.toString()));
+  }
+  // Also include the proposed update
+  graph.set(taskId, blockedBy);
+
   const visited = new Set<string>();
   const queue = [...blockedBy];
   while (queue.length) {
@@ -207,8 +216,8 @@ async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
     if (id === taskId) return true;
     if (visited.has(id)) continue;
     visited.add(id);
-    const t = await Task.findById(id).select('blockedBy').lean();
-    if (t?.blockedBy) queue.push(...t.blockedBy.map(b => b.toString()));
+    const deps = graph.get(id);
+    if (deps) queue.push(...deps);
   }
   return false;
 }
