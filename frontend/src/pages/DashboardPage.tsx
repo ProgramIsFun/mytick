@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import TaskItem from '../components/TaskItem';
 import TaskForm from '../components/TaskForm';
+import CalendarView from '../components/CalendarView';
 import GroupsPage from './GroupsPage';
 
 interface Task {
@@ -15,6 +16,7 @@ interface Task {
   groupIds: string[];
   shareToken: string;
   userId: string;
+  deadline: string | null;
 }
 
 interface Group {
@@ -29,7 +31,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [tab, setTab] = useState<'tasks' | 'groups'>('tasks');
+  const [tab, setTab] = useState<'tasks' | 'calendar' | 'groups'>('tasks');
   const [showGroupTasks, setShowGroupTasks] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
@@ -80,6 +82,9 @@ export default function DashboardPage() {
         <button onClick={() => setTab('tasks')} style={{ fontWeight: tab === 'tasks' ? 'bold' : 'normal', padding: '8px 16px' }}>
           Tasks
         </button>
+        <button onClick={() => setTab('calendar')} style={{ fontWeight: tab === 'calendar' ? 'bold' : 'normal', padding: '8px 16px' }}>
+          Calendar
+        </button>
         <button onClick={() => setTab('groups')} style={{ fontWeight: tab === 'groups' ? 'bold' : 'normal', padding: '8px 16px' }}>
           Groups
         </button>
@@ -115,6 +120,8 @@ export default function DashboardPage() {
             </div>
           )}
         </>
+      ) : tab === 'calendar' ? (
+        <CalendarView tasks={tasks} />
       ) : (
         <GroupsPage />
       )}
