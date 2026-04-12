@@ -67,27 +67,26 @@ router.post('/login', validate(loginSchema), async (req, res: Response) => {
 router.post('/oauth', validate(oauthSchema), async (req, res: Response) => {
   try {
     const { provider, providerId, email, name } = req.body;
-    if (!provider || !providerId || !email) return res.status(400).json({ error: 'Missing fields' });
 
     // Check if this OAuth account is already linked
     let user = await User.findOne({ 'providers.type': provider, 'providers.providerId': providerId });
 
     if (!user) {
       // Check if email exists — link the provider
-      user = await User.findOne({ email });
+      if (email) user = await User.findOne({ email });
       if (user) {
         user.providers.push({ type: provider, providerId });
         await user.save();
       } else {
-        // New user — generate username from email prefix
-        let base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16);
-        let username = base || 'user';
+        // New user — generate username
+        const base = (email ? email.split('@')[0] : name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16) || 'user';
+        let username = base;
         let i = 1;
         while (await User.findOne({ username })) { username = `${base}-${i++}`; }
         user = await User.create({
-          email,
+          email: email || undefined,
           username,
-          name: name || email,
+          name: name || email || username,
           providers: [{ type: provider, providerId }],
         });
       }
@@ -130,6 +129,25 @@ router.patch('/me', async (req, res: Response) => {
       user.username = u;
     }
     if (req.body.name !== undefined) user.name = req.body.name;
+
+    if (req.body.newPassword !== undefined) {
+      // TODO: add req.body.oldPassword check here when needed
+      if (req.body.newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      if (!user.email) return res.status(400).json({ error: 'Email required to set a password. Update your email first.' });
+      const localProvider = user.providers.find(p => p.type === 'local');
+      const hash = await bcrypt.hash(req.body.newPassword, 10);
+      if (localProvider) {
+        localProvider.passwordHash = hash;
+      } else {
+        user.providers.push({ type: 'local', providerId: user.email, passwordHash: hash });
+      }
+    }
+
+    if (req.body.email !== undefined) {
+      const taken = await User.findOne({ email: req.body.email, _id: { $ne: user._id } });
+      if (taken) return res.status(409).json({ error: 'Email already taken' });
+      user.email = req.body.email;
+    }
 
     await user.save();
     res.json(userResponse(user));

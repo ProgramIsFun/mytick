@@ -28,7 +28,7 @@ export const loginSchema = z.object({
 export const oauthSchema = z.object({
   provider: z.enum(['google', 'github']),
   providerId: z.string().min(1),
-  email: z.string().email(),
+  email: z.string().email().optional(),
   name: z.string().optional(),
 });
 

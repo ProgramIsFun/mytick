@@ -8,15 +8,19 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState(user?.username || '');
   const [name, setName] = useState(user?.name || '');
+  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const handleSave = async () => {
     setError(''); setSuccess('');
     try {
-      const updated = await api.updateMe({ username, name });
+      const data: any = { username, name };
+      if (newPassword) data.newPassword = newPassword;
+      const updated = await api.updateMe(data);
       const token = localStorage.getItem('token')!;
       setUser(token, updated);
+      setNewPassword('');
       setSuccess('Profile updated');
     } catch (e: any) {
       setError(e.message);
@@ -39,6 +43,15 @@ export default function SettingsPage() {
       <input
         value={name}
         onChange={e => setName(e.target.value)}
+        style={{ display: 'block', width: '100%', padding: 8, marginBottom: 16, boxSizing: 'border-box' }}
+      />
+
+      <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 'bold' }}>New Password</label>
+      <input
+        type="password"
+        placeholder="Leave blank to keep current"
+        value={newPassword}
+        onChange={e => setNewPassword(e.target.value)}
         style={{ display: 'block', width: '100%', padding: 8, marginBottom: 16, boxSizing: 'border-box' }}
       />
 

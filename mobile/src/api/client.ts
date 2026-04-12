@@ -27,10 +27,15 @@ export const api = {
   getMe: () => request('/auth/me'),
   getTasks: (page = 1) => request(`/tasks?page=${page}&limit=20`),
   getTask: (id: string) => request(`/tasks/${id}`),
+  getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   createTask: (data: { title: string; description?: string; deadline?: string }) =>
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, data: Record<string, unknown>) =>
     request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteTask: (id: string) =>
     request(`/tasks/${id}`, { method: 'DELETE' }),
+  rollbackDescription: (id: string, index: number) =>
+    request(`/tasks/${id}/rollback/${index}`, { method: 'POST' }),
+  updateMe: (data: { username?: string; name?: string; newPassword?: string }) =>
+    request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
 };

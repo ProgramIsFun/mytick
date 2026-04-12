@@ -24,7 +24,7 @@ export const api = {
   login: (data: { email: string; password: string }) =>
     request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request('/auth/me'),
-  updateMe: (data: { username?: string; name?: string }) =>
+  updateMe: (data: { username?: string; name?: string; newPassword?: string }) =>
     request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Tasks
