@@ -4,6 +4,8 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
+import { logger } from './utils/logger';
+
 dotenv.config();
 
 const API_URL = process.env.API_URL || 'http://localhost:4000/api';
@@ -150,8 +152,7 @@ function createServer() {
 const MCP_PORT = Number(process.env.MCP_PORT) || 3100;
 
 async function main() {
-  console.log('API_URL:', API_URL);
-  console.log('ADMIN_API_KEY:', ADMIN_KEY ? '***set***' : 'NOT SET');
+  logger.info({ apiUrl: API_URL, adminKey: ADMIN_KEY ? '***set***' : 'NOT SET' }, 'MCP config');
 
   const app = express();
 

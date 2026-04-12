@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import app from './app';
 import { validateEnv } from './utils/validateEnv';
+import { logger } from './utils/logger';
 
 dotenv.config();
 validateEnv();
@@ -14,6 +15,6 @@ const PORT = process.env.PORT || 4000;
 
 mongoose.connect(process.env.MONGODB_URI!, { autoIndex: false })
   .then(() => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    app.listen(PORT, () => logger.info({ port: PORT }, 'Server running'));
   })
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch(err => logger.fatal({ err }, 'MongoDB connection error'));
