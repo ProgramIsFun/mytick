@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, Switch, StyleSheet, Alert, Share } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
+import { useTheme } from '../src/context/ThemeContext';
 import { api } from '../src/api/client';
 import { Redirect, useRouter } from 'expo-router';
 import CalendarView from '../src/components/CalendarView';
@@ -17,6 +18,7 @@ interface Task {
 
 export default function Tasks() {
   const { user, loading, logout } = useAuth();
+  const { c, theme, toggle: toggleTheme } = useTheme();
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState('');
@@ -36,7 +38,7 @@ export default function Tasks() {
 
   useEffect(() => { if (user) loadTasks(); }, [user, loadTasks]);
 
-  if (loading) return <View style={s.center}><Text>Loading...</Text></View>;
+  if (loading) return <View style={[s.center, { backgroundColor: c.bg }]}><Text style={{ color: c.text }}>Loading...</Text></View>;
   if (!user) return <Redirect href="/" />;
 
   const handleCreate = async () => {
@@ -70,12 +72,15 @@ export default function Tasks() {
   const filtered = tasks.filter(t => showGroupTasks || t.userId === user?.id);
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, { backgroundColor: c.bg }]}>
       <View style={s.header}>
-        <Text style={s.title}>MyTick</Text>
-        <TouchableOpacity onPress={logout}><Text style={s.logout}>Logout</Text></TouchableOpacity>
+        <Text style={[s.title, { color: c.text }]}>MyTick</Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity onPress={toggleTheme}><Text style={{ fontSize: 20 }}>{theme === 'light' ? '🌙' : '☀️'}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={logout}><Text style={s.logout}>Logout</Text></TouchableOpacity>
+        </View>
       </View>
-      <Text style={s.subtitle}>@{user.username}</Text>
+      <Text style={[s.subtitle, { color: c.textMuted }]}>@{user.username}</Text>
 
       <View style={s.tabs}>
         {(['tasks', 'calendar', 'groups', 'settings'] as const).map(t => (
@@ -87,8 +92,8 @@ export default function Tasks() {
 
       {tab === 'tasks' && (
         <>
-          <View style={s.form}>
-            <TextInput style={s.input} placeholder="Add a task..." value={title} onChangeText={setTitle} onSubmitEditing={handleCreate} />
+          <View style={[s.form, { borderColor: c.inputBorder }]}>
+            <TextInput style={[s.input, { borderColor: c.inputBorder, backgroundColor: c.btnBg, color: c.text }]} placeholder="Add a task..." placeholderTextColor={c.textMuted} value={title} onChangeText={setTitle} onSubmitEditing={handleCreate} />
             <TouchableOpacity style={s.addBtn} onPress={handleCreate}>
               <Text style={s.addBtnText}>+</Text>
             </TouchableOpacity>
@@ -103,12 +108,12 @@ export default function Tasks() {
             data={filtered}
             keyExtractor={t => t._id}
             renderItem={({ item }) => (
-              <View style={s.task}>
+              <View style={[s.task, { borderBottomColor: c.border }]}>
                 <TouchableOpacity onPress={() => toggleDone(item)} style={s.check}>
                   <Text>{item.status === 'done' ? '✅' : '⬜'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.taskBody} onPress={() => router.push(`/task/${item._id}`)}>
-                  <Text style={[s.taskTitle, item.status === 'done' && s.done]}>{item.title}</Text>
+                  <Text style={[s.taskTitle, item.status === 'done' && s.done, { color: item.status === 'done' ? c.textMuted : c.text }]}>{item.title}</Text>
                   {item.deadline && <Text style={s.deadline}>📅 {new Date(item.deadline).toLocaleDateString()}</Text>}
                 </TouchableOpacity>
                 {item.userId === user?.id && (

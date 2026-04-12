@@ -51,7 +51,7 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
   const visibilityLabel = { private: '🔒', group: '👥', public: '🌐' }[task.visibility] || '';
 
   return (
-    <div style={{ padding: 12, borderBottom: '1px solid #eee', opacity: isDone ? 0.5 : 1 }}>
+    <div style={{ padding: 12, borderBottom: '1px solid var(--border)', opacity: isDone ? 0.5 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <input type="checkbox" checked={isDone} onChange={toggleDone} disabled={!isOwner} />
         <span

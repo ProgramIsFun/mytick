@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
+import { useTheme } from '../src/context/ThemeContext';
 import { api } from '../src/api/client';
 import { Redirect, useRouter } from 'expo-router';
 
 export default function Login() {
   const { user, loading, login } = useAuth();
+  const { c } = useTheme();
   const router = useRouter();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
@@ -13,7 +15,7 @@ export default function Login() {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
 
-  if (loading) return <View style={s.center}><Text>Loading...</Text></View>;
+  if (loading) return <View style={[s.center, { backgroundColor: c.bg }]}><Text style={{ color: c.text }}>Loading...</Text></View>;
   if (user) return <Redirect href="/tasks" />;
 
   const handleSubmit = async () => {
@@ -28,8 +30,8 @@ export default function Login() {
   };
 
   return (
-    <View style={s.container}>
-      <Text style={s.title}>MyTick</Text>
+    <View style={[s.container, { backgroundColor: c.bg }]}>
+      <Text style={[s.title, { color: c.text }]}>MyTick</Text>
       {isRegister && (
         <>
           <TextInput style={s.input} placeholder="Name" value={name} onChangeText={setName} />

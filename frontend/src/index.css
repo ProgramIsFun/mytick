@@ -4,27 +4,66 @@
   padding: 0;
 }
 
+:root {
+  --bg: #fafafa;
+  --bg-secondary: #f5f5f5;
+  --text: #222;
+  --text-secondary: #666;
+  --text-muted: #888;
+  --border: #eee;
+  --input-border: #ccc;
+  --btn-bg: #fff;
+  --btn-hover: #f0f0f0;
+  --link: #1a73e8;
+  --danger: red;
+  --task-pending: #fff3e0;
+  --task-done: #e8f5e9;
+  --today-bg: #f0f7ff;
+}
+
+[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --bg-secondary: #2a2a2a;
+  --text: #e0e0e0;
+  --text-secondary: #aaa;
+  --text-muted: #777;
+  --border: #333;
+  --input-border: #555;
+  --btn-bg: #2a2a2a;
+  --btn-hover: #3a3a3a;
+  --link: #6db3f2;
+  --danger: #f44;
+  --task-pending: #3a2a00;
+  --task-done: #1a3a1a;
+  --today-bg: #1a2a3a;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #fafafa;
-  color: #222;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.2s, color 0.2s;
 }
 
 button {
   cursor: pointer;
-}
-
-input {
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
-}
-
-button {
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
+  background: var(--btn-bg);
+  color: var(--text);
 }
 
 button:hover {
-  background: #f0f0f0;
+  background: var(--btn-hover);
+}
+
+input, textarea, select {
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--btn-bg);
+  color: var(--text);
+}
+
+a {
+  color: var(--link);
 }
