@@ -32,9 +32,16 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<'tasks' | 'groups'>('tasks');
   const [showGroupTasks, setShowGroupTasks] = useState(false);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const loadTasks = async () => {
-    try { setTasks(await api.getTasks()); } catch (err: any) { setError(err.message); }
+  const loadTasks = async (p = page) => {
+    try {
+      const res = await api.getTasks(p);
+      setTasks(res.tasks);
+      setTotalPages(res.totalPages);
+      setPage(res.page);
+    } catch (err: any) { setError(err.message); }
   };
 
   const loadGroups = async () => {
@@ -99,6 +106,13 @@ export default function DashboardPage() {
                 onDelete={handleDelete}
               />
             ))
+          )}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+              <button disabled={page <= 1} onClick={() => loadTasks(page - 1)}>← Prev</button>
+              <span style={{ fontSize: 14, lineHeight: '32px' }}>{page} / {totalPages}</span>
+              <button disabled={page >= totalPages} onClick={() => loadTasks(page + 1)}>Next →</button>
+            </div>
           )}
         </>
       ) : (

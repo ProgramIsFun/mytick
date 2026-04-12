@@ -28,7 +28,7 @@ export const api = {
     request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Tasks
-  getTasks: () => request('/tasks'),
+  getTasks: (page = 1, limit = 20) => request(`/tasks?page=${page}&limit=${limit}`),
   getTask: (id: string) => request(`/tasks/${id}`),
   getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[] }) =>

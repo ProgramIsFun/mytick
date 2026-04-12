@@ -108,17 +108,26 @@ router.use(auth);
 // List my tasks + tasks shared to my groups
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
+
     const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
     const groupIds = userGroups.map(g => g._id);
 
-    const tasks = await Task.find({
+    const filter = {
       $or: [
         { userId: req.userId },
         { visibility: 'group', groupIds: { $in: groupIds } },
       ],
-    }).sort({ createdAt: -1 });
+    };
 
-    res.json(tasks);
+    const [tasks, total] = await Promise.all([
+      Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Task.countDocuments(filter),
+    ]);
+
+    res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -189,11 +198,35 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Detect cycles in blockedBy
+async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
+  const visited = new Set<string>();
+  const queue = [...blockedBy];
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (id === taskId) return true;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    const t = await Task.findById(id).select('blockedBy').lean();
+    if (t?.blockedBy) queue.push(...t.blockedBy.map(b => b.toString()));
+  }
+  return false;
+}
+
 // Update task (owner only)
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
     if (!task) return res.status(404).json({ error: 'Not found' });
+
+    if (req.body.blockedBy?.length) {
+      if (req.body.blockedBy.includes(req.params.id)) {
+        return res.status(400).json({ error: 'A task cannot block itself' });
+      }
+      if (await hasCycle(req.params.id as string, req.body.blockedBy)) {
+        return res.status(400).json({ error: 'Circular dependency detected' });
+      }
+    }
 
     if (req.body.description !== undefined && req.body.description !== task.description) {
       task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
