@@ -1,4 +1,4 @@
-import { hasCycleInGraph } from '../src/utils/cycle';
+import { hasCycleInGraph } from '../../src/utils/cycle';
 
 describe('hasCycleInGraph', () => {
   it('no cycle — simple chain A→B→C', () => {
