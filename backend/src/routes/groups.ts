@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import Group from '../models/Group';
 import { auth, AuthRequest } from '../middleware/auth';
+import { validate, createGroupSchema, addMemberSchema } from '../utils/validation';
 
 const router = Router();
 router.use(auth);
@@ -34,10 +35,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // Create group
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', validate(createGroupSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { name } = req.body;
-    if (!name) return res.status(400).json({ error: 'Name required' });
 
     const group = await Group.create({
       name,
@@ -52,10 +52,9 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // Add member (owner only)
-router.post('/:id/members', async (req: AuthRequest, res: Response) => {
+router.post('/:id/members', validate(addMemberSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { userId, email, role } = req.body;
-    if (!userId && !email) return res.status(400).json({ error: 'userId or email required' });
 
     let targetId = userId;
     if (!targetId) {

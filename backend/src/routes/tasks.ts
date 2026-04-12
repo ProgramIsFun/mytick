@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import Task from '../models/Task';
 import Group from '../models/Group';
 import { auth, AuthRequest } from '../middleware/auth';
+import { validate, createTaskSchema, updateTaskSchema } from '../utils/validation';
 
 const router = Router();
 
@@ -166,10 +167,9 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // Create task
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { title, description, visibility, groupIds, blockedBy } = req.body;
-    if (!title) return res.status(400).json({ error: 'Title required' });
 
     // Verify user is editor in all assigned groups
     if (groupIds?.length) {
@@ -210,7 +210,7 @@ async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
 }
 
 // Update task (owner only)
-router.patch('/:id', async (req: AuthRequest, res: Response) => {
+router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
     const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
     if (!task) return res.status(404).json({ error: 'Not found' });

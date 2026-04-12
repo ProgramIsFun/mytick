@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
+import { validate, registerSchema, loginSchema, oauthSchema, updateProfileSchema } from '../utils/validation';
 
 const router = Router();
 
@@ -16,10 +17,9 @@ function userResponse(user: any) {
 const RESERVED_USERNAMES = ['admin', 'api', 'login', 'register', 'settings', 'profile', 'share', 'tasks', 'groups', 'public', 'about', 'help', 'support'];
 
 // Local register
-router.post('/register', async (req, res: Response) => {
+router.post('/register', validate(registerSchema), async (req, res: Response) => {
   try {
     const { email, password, name, username } = req.body;
-    if (!email || !password || !name || !username) return res.status(400).json({ error: 'All fields required' });
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'Email already registered' });
@@ -44,10 +44,9 @@ router.post('/register', async (req, res: Response) => {
 });
 
 // Local login
-router.post('/login', async (req, res: Response) => {
+router.post('/login', validate(loginSchema), async (req, res: Response) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'All fields required' });
 
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
@@ -65,7 +64,7 @@ router.post('/login', async (req, res: Response) => {
 });
 
 // OAuth callback (Google, GitHub, etc.)
-router.post('/oauth', async (req, res: Response) => {
+router.post('/oauth', validate(oauthSchema), async (req, res: Response) => {
   try {
     const { provider, providerId, email, name } = req.body;
     if (!provider || !providerId || !email) return res.status(400).json({ error: 'Missing fields' });
