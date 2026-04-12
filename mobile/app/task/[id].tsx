@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../src/api/client';
+import { useTheme } from '../../src/context/ThemeContext';
 
 export default function TaskDetail() {
+  const { c } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [task, setTask] = useState<any>(null);
@@ -27,7 +29,7 @@ export default function TaskDetail() {
       .then(r => setBlockers(r.filter(Boolean)));
   }, [task?.blockedBy]);
 
-  if (!task) return <View style={s.center}><Text>Loading...</Text></View>;
+  if (!task) return <View style={[s.center, { backgroundColor: c.bg }]}><Text style={{ color: c.text }}>Loading...</Text></View>;
 
   const saveTitle = async () => {
     if (!titleDraft.trim() || titleDraft === task.title) { setEditingTitle(false); return; }
@@ -62,41 +64,41 @@ export default function TaskDetail() {
   };
 
   return (
-    <ScrollView style={s.container}>
+    <ScrollView style={[s.container, { backgroundColor: c.bg }]}>
       <TouchableOpacity onPress={() => router.back()}>
-        <Text style={s.back}>← Back</Text>
+        <Text style={[s.back, { color: c.link }]}>← Back</Text>
       </TouchableOpacity>
 
       {editingTitle ? (
         <View>
-          <TextInput style={s.titleInput} value={titleDraft} onChangeText={setTitleDraft} autoFocus
+          <TextInput style={[s.titleInput, { color: c.text, borderBottomColor: c.link }]} value={titleDraft} onChangeText={setTitleDraft} autoFocus
             onSubmitEditing={saveTitle} />
           <View style={s.row}>
-            <TouchableOpacity style={s.btn} onPress={saveTitle}><Text style={s.btnText}>Save</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setEditingTitle(false)}><Text style={s.cancel}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={[s.btn, { backgroundColor: c.link }]} onPress={saveTitle}><Text style={s.btnText}>Save</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setEditingTitle(false)}><Text style={[s.cancel, { color: c.textMuted }]}>Cancel</Text></TouchableOpacity>
           </View>
         </View>
       ) : (
         <TouchableOpacity onPress={() => { setTitleDraft(task.title); setEditingTitle(true); }}>
-          <Text style={[s.title, task.status === 'done' && s.done]}>{task.title} ✏️</Text>
+          <Text style={[s.title, task.status === 'done' && s.done, { color: task.status === 'done' ? c.textMuted : c.text }]}>{task.title} ✏️</Text>
         </TouchableOpacity>
       )}
 
-      <Text style={s.meta}>Status: {task.status}</Text>
-      <Text style={s.meta}>Visibility: {{ private: '🔒 Private', group: '👥 Group', public: '🌐 Public' }[task.visibility as string]}</Text>
-      {task.deadline && <Text style={s.meta}>📅 Deadline: {new Date(task.deadline).toLocaleString()}</Text>}
+      <Text style={[s.meta, { color: c.textSecondary }]}>Status: {task.status}</Text>
+      <Text style={[s.meta, { color: c.textSecondary }]}>Visibility: {{ private: '🔒 Private', group: '👥 Group', public: '🌐 Public' }[task.visibility as string]}</Text>
+      {task.deadline && <Text style={[s.meta, { color: c.textSecondary }]}>📅 Deadline: {new Date(task.deadline).toLocaleString()}</Text>}
 
       {blockers.length > 0 && (
         <View style={s.section}>
-          <Text style={s.label}>Blocked by:</Text>
+          <Text style={[s.label, { color: c.text }]}>Blocked by:</Text>
           {blockers.map(b => (
             <View key={b._id} style={s.blockerRow}>
               <Text>{b.status === 'done' ? '✅' : '🔴'}</Text>
               <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push(`/task/${b._id}`)}>
-                <Text style={[s.link, b.status === 'done' && s.done]}>{b.title}</Text>
+                <Text style={[s.link, b.status === 'done' && s.done, { color: c.link }]}>{b.title}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => removeBlocker(b._id)}>
-                <Text style={{ color: 'red' }}>✕</Text>
+                <Text style={{ color: c.danger }}>✕</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -105,38 +107,38 @@ export default function TaskDetail() {
 
       <View style={s.section}>
         <View style={s.subtaskForm}>
-          <TextInput style={[s.input, { flex: 1 }]} placeholder="Add subtask..." value={subtaskTitle}
+          <TextInput style={[s.input, { flex: 1, borderColor: c.inputBorder, backgroundColor: c.btnBg, color: c.text }]} placeholder="Add subtask..." placeholderTextColor={c.textMuted} value={subtaskTitle}
             onChangeText={setSubtaskTitle} onSubmitEditing={addSubtask} />
-          <TouchableOpacity style={s.btn} onPress={addSubtask}><Text style={s.btnText}>+ Subtask</Text></TouchableOpacity>
+          <TouchableOpacity style={[s.btn, { backgroundColor: c.link }]} onPress={addSubtask}><Text style={s.btnText}>+ Subtask</Text></TouchableOpacity>
         </View>
       </View>
 
       {blocking.length > 0 && (
         <View style={s.section}>
-          <Text style={s.label}>Blocking:</Text>
+          <Text style={[s.label, { color: c.text }]}>Blocking:</Text>
           {blocking.map(b => (
             <TouchableOpacity key={b._id} onPress={() => router.push(`/task/${b._id}`)}>
-              <Text style={s.link}>{b.status === 'done' ? '✅' : '⏳'} {b.title}</Text>
+              <Text style={[s.link, { color: c.link }]}>{b.status === 'done' ? '✅' : '⏳'} {b.title}</Text>
             </TouchableOpacity>
           ))}
         </View>
       )}
 
       <View style={s.section}>
-        <Text style={s.label}>Description:</Text>
+        <Text style={[s.label, { color: c.text }]}>Description:</Text>
         {editingDesc ? (
           <View>
-            <TextInput style={s.textarea} value={descDraft} onChangeText={setDescDraft} multiline />
+            <TextInput style={[s.textarea, { borderColor: c.inputBorder, backgroundColor: c.btnBg, color: c.text }]} value={descDraft} onChangeText={setDescDraft} multiline placeholderTextColor={c.textMuted} />
             <View style={s.row}>
-              <TouchableOpacity style={s.btn} onPress={saveDesc}><Text style={s.btnText}>Save</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => setEditingDesc(false)}><Text style={s.cancel}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={[s.btn, { backgroundColor: c.link }]} onPress={saveDesc}><Text style={s.btnText}>Save</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditingDesc(false)}><Text style={[s.cancel, { color: c.textMuted }]}>Cancel</Text></TouchableOpacity>
             </View>
           </View>
         ) : (
           <View>
-            <Text style={s.desc}>{task.description || 'No description'}</Text>
+            <Text style={[s.desc, { color: c.text }]}>{task.description || 'No description'}</Text>
             <TouchableOpacity onPress={() => { setDescDraft(task.description); setEditingDesc(true); }}>
-              <Text style={s.edit}>✏️ Edit</Text>
+              <Text style={[s.edit, { color: c.link }]}>✏️ Edit</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -144,20 +146,20 @@ export default function TaskDetail() {
 
       {task.descriptionHistory?.length > 0 && (
         <View style={s.section}>
-          <Text style={s.label}>Description History:</Text>
+          <Text style={[s.label, { color: c.text }]}>Description History:</Text>
           {task.descriptionHistory.map((v: any, i: number) => (
-            <View key={i} style={s.historyItem}>
-              <Text style={s.historyDate}>{new Date(v.savedAt).toLocaleString()}</Text>
-              <Text style={s.historyText}>{v.description || '(empty)'}</Text>
+            <View key={i} style={[s.historyItem, { backgroundColor: c.bgSecondary }]}>
+              <Text style={[s.historyDate, { color: c.textMuted }]}>{new Date(v.savedAt).toLocaleString()}</Text>
+              <Text style={[s.historyText, { color: c.textSecondary }]}>{v.description || '(empty)'}</Text>
               <TouchableOpacity onPress={() => rollback(i)}>
-                <Text style={s.link}>↩ Rollback</Text>
+                <Text style={[s.link, { color: c.link }]}>↩ Rollback</Text>
               </TouchableOpacity>
             </View>
           ))}
         </View>
       )}
 
-      <Text style={[s.meta, { marginTop: 16 }]}>Created: {new Date(task.createdAt).toLocaleString()}</Text>
+      <Text style={[s.meta, { marginTop: 16, color: c.textMuted }]}>Created: {new Date(task.createdAt).toLocaleString()}</Text>
     </ScrollView>
   );
 }

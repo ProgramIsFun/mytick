@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { StatusBar } from 'expo-status-bar';
 
 type Theme = 'light' | 'dark';
 
@@ -27,10 +29,26 @@ const ThemeContext = createContext<ThemeContextType>(null!);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
   const [theme, setTheme] = useState<Theme>(system === 'dark' ? 'dark' : 'light');
-  const toggle = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    SecureStore.getItemAsync('theme').then(saved => {
+      if (saved === 'light' || saved === 'dark') setTheme(saved);
+      setLoaded(true);
+    });
+  }, []);
+
+  const toggle = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    SecureStore.setItemAsync('theme', next);
+  };
+
+  if (!loaded) return null;
 
   return (
     <ThemeContext.Provider value={{ theme, c: colors[theme], toggle }}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       {children}
     </ThemeContext.Provider>
   );
