@@ -10,21 +10,28 @@ function signToken(userId: unknown) {
 }
 
 function userResponse(user: any) {
-  return { id: user._id, email: user.email, name: user.name };
+  return { id: user._id, email: user.email, username: user.username, name: user.name };
 }
 
 // Local register
 router.post('/register', async (req, res: Response) => {
   try {
-    const { email, password, name } = req.body;
-    if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
+    const { email, password, name, username } = req.body;
+    if (!email || !password || !name || !username) return res.status(400).json({ error: 'All fields required' });
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'Email already registered' });
 
+    const RESERVED = ['admin', 'api', 'login', 'register', 'settings', 'profile', 'share', 'tasks', 'groups', 'public', 'about', 'help', 'support'];
+    if (RESERVED.includes(username.toLowerCase())) return res.status(400).json({ error: 'Username is reserved' });
+
+    const usernameTaken = await User.findOne({ username: username.toLowerCase() });
+    if (usernameTaken) return res.status(409).json({ error: 'Username already taken' });
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
       email,
+      username: username.toLowerCase(),
       name,
       providers: [{ type: 'local', providerId: email, passwordHash }],
     });
@@ -72,9 +79,14 @@ router.post('/oauth', async (req, res: Response) => {
         user.providers.push({ type: provider, providerId });
         await user.save();
       } else {
-        // New user
+        // New user — generate username from email prefix
+        let base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16);
+        let username = base || 'user';
+        let i = 1;
+        while (await User.findOne({ username })) { username = `${base}-${i++}`; }
         user = await User.create({
           email,
+          username,
           name: name || email,
           providers: [{ type: provider, providerId }],
         });
@@ -84,6 +96,20 @@ router.post('/oauth', async (req, res: Response) => {
     res.json({ token: signToken(user._id), user: userResponse(user) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get current user profile
+router.get('/me', async (req, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(userResponse(user));
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
   }
 });
 

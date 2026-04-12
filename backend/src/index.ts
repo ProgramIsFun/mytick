@@ -19,7 +19,7 @@ app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 
 const PORT = process.env.PORT || 4000;
 
-mongoose.connect(process.env.MONGODB_URI!)
+mongoose.connect(process.env.MONGODB_URI!, { autoIndex: false })
   .then(() => {
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })

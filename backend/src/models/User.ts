@@ -8,6 +8,7 @@ export interface IAuthProvider {
 
 export interface IUser extends Document {
   email: string;
+  username: string;
   name: string;
   providers: IAuthProvider[];
   createdAt: Date;
@@ -21,6 +22,7 @@ const authProviderSchema = new Schema<IAuthProvider>({
 
 const userSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  username: { type: String, required: true, unique: true, lowercase: true, trim: true, minlength: 1, maxlength: 39, match: /^[a-z0-9](?:[a-z0-9]*-?[a-z0-9]+)*$/ },
   name: { type: String, required: true, trim: true },
   providers: { type: [authProviderSchema], default: [] },
 }, { timestamps: true });

@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { api } from '../api/client';
 
 interface User {
   id: string;
   email: string;
+  username: string;
   name: string;
 }
 
@@ -23,12 +25,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const t = localStorage.getItem('token');
-    const u = localStorage.getItem('user');
-    if (t && u) {
+    if (t) {
       setToken(t);
-      setUser(JSON.parse(u));
+      api.getMe().then((u: User) => {
+        setUser(u);
+        localStorage.setItem('user', JSON.stringify(u));
+      }).catch(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }).finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = (token: string, user: User) => {

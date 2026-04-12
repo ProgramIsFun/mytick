@@ -12,20 +12,20 @@ interface Task {
 }
 
 export default function PublicTasksPage() {
-  const { userId } = useParams<{ userId: string }>();
+  const { username } = useParams<{ username: string }>();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!userId) return;
-    api.getPublicTasks(userId).then(setTasks).catch((err: any) => setError(err.message));
-  }, [userId]);
+    if (!username) return;
+    api.getPublicTasksByUsername(username).then(setTasks).catch((err: any) => setError(err.message));
+  }, [username]);
 
   if (error) return <div style={{ maxWidth: 600, margin: '40px auto', padding: 24, color: 'red' }}>{error}</div>;
 
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
-      <h1>Tasks</h1>
+      <h1>@{username}'s Tasks</h1>
       {tasks.length === 0 ? (
         <p style={{ color: '#888' }}>No tasks found.</p>
       ) : (

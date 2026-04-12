@@ -61,6 +61,47 @@ router.get('/user/:userId', async (req, res: Response) => {
   }
 });
 
+// Public: list tasks by username
+router.get('/u/:username', async (req, res: Response) => {
+  try {
+    const User = (await import('../models/User')).default;
+    const targetUser = await User.findOne({ username: req.params.username as string });
+    if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+    const token = req.headers.authorization?.split(' ')[1];
+    let viewerId: string | null = null;
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+        viewerId = decoded.userId;
+      } catch {}
+    }
+
+    const targetUserId = targetUser._id.toString();
+
+    if (viewerId === targetUserId) {
+      const tasks = await Task.find({ userId: targetUserId }).sort({ createdAt: -1 });
+      return res.json(tasks);
+    }
+
+    if (viewerId) {
+      const userGroups = await Group.find({ 'members.userId': viewerId }).select('_id');
+      const groupIds = userGroups.map(g => g._id);
+      const tasks = await Task.find({
+        userId: targetUserId,
+        $or: [{ visibility: 'public' }, { visibility: 'group', groupIds: { $in: groupIds } }],
+      }).sort({ createdAt: -1 });
+      return res.json(tasks);
+    }
+
+    const tasks = await Task.find({ userId: targetUserId, visibility: 'public' }).sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // All routes below require auth
 router.use(auth);
 

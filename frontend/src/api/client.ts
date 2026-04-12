@@ -19,10 +19,11 @@ async function request(path: string, options: RequestInit = {}) {
 
 export const api = {
   // Auth
-  register: (data: { email: string; password: string; name: string }) =>
+  register: (data: { email: string; password: string; name: string; username: string }) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data: { email: string; password: string }) =>
     request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  getMe: () => request('/auth/me'),
 
   // Tasks
   getTasks: () => request('/tasks'),
@@ -40,6 +41,8 @@ export const api = {
     request(`/tasks/share/${token}`),
   getPublicTasks: (userId: string) =>
     request(`/tasks/user/${userId}`),
+  getPublicTasksByUsername: (username: string) =>
+    request(`/tasks/u/${username}`),
 
   // Groups
   getGroups: () => request('/groups'),
