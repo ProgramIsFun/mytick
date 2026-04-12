@@ -42,8 +42,8 @@ function createServer() {
   }, async ({ userEmail }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
-      const tasks = await api('/tasks', { headers: { 'x-admin-user-id': id } as any });
-      return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+      const res = await api('/tasks?limit=100', { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(res.tasks, null, 2) }] };
     } catch (e: any) {
       return { content: [{ type: 'text', text: e.message }] };
     }
@@ -68,13 +68,14 @@ function createServer() {
     description: z.string().optional().describe('Task description'),
     visibility: z.enum(['private', 'group', 'public']).optional().describe('Task visibility'),
     blockedBy: z.array(z.string()).optional().describe('Array of task IDs this task is blocked by'),
-  }, async ({ userEmail, title, description, visibility, blockedBy }) => {
+    deadline: z.string().optional().describe('Deadline in ISO 8601 format'),
+  }, async ({ userEmail, title, description, visibility, blockedBy, deadline }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
       const task = await api('/tasks', {
         method: 'POST',
         headers: { 'x-admin-user-id': id } as any,
-        body: JSON.stringify({ title, description, visibility, blockedBy }),
+        body: JSON.stringify({ title, description, visibility, blockedBy, deadline }),
       });
       return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
     } catch (e: any) {
@@ -90,6 +91,7 @@ function createServer() {
     status: z.enum(['pending', 'in_progress', 'done']).optional().describe('New status'),
     visibility: z.enum(['private', 'group', 'public']).optional().describe('New visibility'),
     blockedBy: z.array(z.string()).optional().describe('Array of task IDs this task is blocked by'),
+    deadline: z.string().optional().nullable().describe('Deadline in ISO 8601 format, or null to clear'),
   }, async ({ taskId, userEmail, ...updates }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);

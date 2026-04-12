@@ -44,6 +44,7 @@ export const createTaskSchema = z.object({
   visibility: z.enum(['private', 'group', 'public']).optional(),
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
+  deadline: z.string().datetime().nullable().optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -53,6 +54,7 @@ export const updateTaskSchema = z.object({
   visibility: z.enum(['private', 'group', 'public']).optional(),
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
+  deadline: z.string().datetime().nullable().optional(),
 });
 
 // Group schemas

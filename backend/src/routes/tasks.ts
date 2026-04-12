@@ -228,7 +228,7 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
       task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
     }
 
-    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy'];
+    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (task as any)[key] = req.body[key];
     }
