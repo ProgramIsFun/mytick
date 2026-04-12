@@ -129,3 +129,143 @@ describe('task pagination', () => {
     expect(res.body.tasks.length).toBeLessThanOrEqual(5);
   });
 });
+
+describe('task description history', () => {
+  it('should save old description on update', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'History test', description: 'original' });
+    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ description: 'updated' });
+    expect(res.status).toBe(200);
+    expect(res.body.description).toBe('updated');
+    expect(res.body.descriptionHistory).toHaveLength(1);
+    expect(res.body.descriptionHistory[0].description).toBe('original');
+  });
+
+  it('should not save history if description unchanged', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'No change', description: 'same' });
+    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ description: 'same' });
+    expect(res.status).toBe(200);
+    expect(res.body.descriptionHistory).toHaveLength(0);
+  });
+
+  it('should rollback description', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Rollback test', description: 'v1' });
+    await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ description: 'v2' });
+    const res = await request(app).post(`/api/tasks/${task.body._id}/rollback/0`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.description).toBe('v1');
+    expect(res.body.descriptionHistory).toHaveLength(2);
+  });
+
+  it('should reject invalid rollback index', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Bad rollback' });
+    const res = await request(app).post(`/api/tasks/${task.body._id}/rollback/99`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('task blocking endpoint', () => {
+  it('should return tasks blocked by a given task', async () => {
+    const blocker = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Blocker' });
+    const blocked1 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Blocked 1', blockedBy: [blocker.body._id] });
+    const blocked2 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Blocked 2', blockedBy: [blocker.body._id] });
+
+    const res = await request(app).get(`/api/tasks/${blocker.body._id}/blocking`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(2);
+    const titles = res.body.map((t: any) => t.title);
+    expect(titles).toContain('Blocked 1');
+    expect(titles).toContain('Blocked 2');
+  });
+
+  it('should return empty for task blocking nothing', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Lonely' });
+    const res = await request(app).get(`/api/tasks/${task.body._id}/blocking`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(0);
+  });
+});
+
+describe('task visibility and permissions', () => {
+  let otherToken: string;
+
+  beforeAll(async () => {
+    ({ token: otherToken } = await createTestUser('visibility@test.com', 'visuser'));
+  });
+
+  it('should not let other user see private tasks', async () => {
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Private task', visibility: 'private' });
+    const res = await request(app).get('/api/tasks').set('Authorization', `Bearer ${otherToken}`);
+    expect(res.status).toBe(200);
+    const titles = res.body.tasks.map((t: any) => t.title);
+    expect(titles).not.toContain('Private task');
+  });
+
+  it('should not let other user update my task', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'My task' });
+    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${otherToken}`)
+      .send({ title: 'Hacked' });
+    expect(res.status).toBe(404);
+  });
+
+  it('should not let other user delete my task', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Undeletable' });
+    const res = await request(app).delete(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${otherToken}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('should show public tasks to unauthenticated users via /user/:id', async () => {
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Public visible', visibility: 'public' });
+    const res = await request(app).get(`/api/tasks/user/${me.body.id}`);
+    expect(res.status).toBe(200);
+    const titles = res.body.map((t: any) => t.title);
+    expect(titles).toContain('Public visible');
+  });
+});
+
+describe('task creation with groups', () => {
+  it('should reject assigning task to group where user is not editor', async () => {
+    const { token: ownerToken } = await createTestUser('groupowner@test.com', 'groupowner');
+    const group = await request(app).post('/api/groups').set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Restricted' });
+
+    // Add token user as viewer
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+    await request(app).post(`/api/groups/${group.body._id}/members`).set('Authorization', `Bearer ${ownerToken}`)
+      .send({ userId: me.body.id, role: 'viewer' });
+
+    const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Viewer task', groupIds: [group.body._id], visibility: 'group' });
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('admin key auth', () => {
+  it('should allow admin key to bypass JWT', async () => {
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/tasks').set('x-admin-key', 'test-admin-key')
+      .set('x-admin-user-id', me.body.id);
+    expect(res.status).toBe(200);
+  });
+
+  it('should reject wrong admin key', async () => {
+    const res = await request(app).get('/api/tasks').set('x-admin-key', 'wrong-key')
+      .set('x-admin-user-id', 'someid');
+    expect(res.status).toBe(401);
+  });
+});
