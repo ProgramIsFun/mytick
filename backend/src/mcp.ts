@@ -117,6 +117,33 @@ function createServer() {
     }
   });
 
+  server.tool('search_tasks', 'Search tasks by title', {
+    userEmail: z.string().describe('Email of the user'),
+    query: z.string().describe('Search query to match against task titles'),
+  }, async ({ userEmail, query }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const res = await api('/tasks?limit=100', { headers: { 'x-admin-user-id': id } as any });
+      const tasks = res.tasks.filter((t: any) => t.title.toLowerCase().includes(query.toLowerCase()));
+      return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
+  server.tool('get_blocking', 'Get tasks that are blocked by a specific task', {
+    taskId: z.string().describe('Task ID'),
+    userEmail: z.string().describe('Email of the user'),
+  }, async ({ taskId, userEmail }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const tasks = await api(`/tasks/${taskId}/blocking`, { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
   server.tool('list_groups', 'List groups for a user', {
     userEmail: z.string().describe('Email of the user'),
   }, async ({ userEmail }) => {
