@@ -11,6 +11,13 @@ interface CalendarItem {
   recurring: boolean;
 }
 
+interface EditState {
+  taskId: string;
+  originalDate: string;
+  newDate: string;
+  title: string;
+}
+
 export default function CalendarView() {
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => {
@@ -19,6 +26,7 @@ export default function CalendarView() {
   });
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [menu, setMenu] = useState<{ taskId: string; date: string } | null>(null);
+  const [edit, setEdit] = useState<EditState | null>(null);
 
   const year = month.getFullYear();
   const mon = month.getMonth();
@@ -55,6 +63,23 @@ export default function CalendarView() {
     refresh();
   };
 
+  const openEdit = (item: CalendarItem) => {
+    const d = new Date(item.date);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setEdit({ taskId: item.taskId, originalDate: item.date, newDate: local, title: item.title });
+    setMenu(null);
+  };
+
+  const saveEdit = async () => {
+    if (!edit) return;
+    await api.editOccurrence(edit.taskId, edit.originalDate, {
+      newDate: new Date(edit.newDate).toISOString(),
+      title: edit.title,
+    });
+    setEdit(null);
+    refresh();
+  };
+
   const itemsByDate = new Map<string, CalendarItem[]>();
   items.forEach(item => {
     const d = new Date(item.date);
@@ -85,12 +110,13 @@ export default function CalendarView() {
                 {item.recurring ? '🔁 ' : ''}{item.title}
               </span>
               {item.recurring && (
-                <span onClick={() => setMenu(isMenuOpen ? null : { taskId: item.taskId, date: item.date })} style={{ cursor: 'pointer', fontSize: 10 }}>⋯</span>
+                <span onClick={(e) => { e.stopPropagation(); setMenu(isMenuOpen ? null : { taskId: item.taskId, date: item.date }); }} style={{ cursor: 'pointer', fontSize: 10 }}>⋯</span>
               )}
               {isMenuOpen && (
-                <div style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: 4, zIndex: 10, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-                  <div onClick={() => handleSkip(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>Skip this one</div>
-                  <div onClick={() => handleEndSeries(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: 'var(--danger)' }}>End series from here</div>
+                <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: 4, zIndex: 10, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                  <div onClick={() => openEdit(item)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>✏️ Edit this one</div>
+                  <div onClick={() => handleSkip(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>⏭ Skip this one</div>
+                  <div onClick={() => handleEndSeries(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: 'var(--danger)' }}>🛑 End series from here</div>
                 </div>
               )}
             </div>
@@ -101,7 +127,7 @@ export default function CalendarView() {
   }
 
   return (
-    <div onClick={() => menu && setMenu(null)}>
+    <div onClick={() => { if (menu) setMenu(null); }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <button onClick={prev}>← Prev</button>
         <strong>{month.toLocaleString('default', { month: 'long', year: 'numeric' })}</strong>
@@ -113,6 +139,26 @@ export default function CalendarView() {
         ))}
         {cells}
       </div>
+
+      {edit && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setEdit(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', padding: 24, borderRadius: 8, minWidth: 300, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 16px' }}>Edit this occurrence</h3>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Title</label>
+              <input value={edit.title} onChange={e => setEdit({ ...edit, title: e.target.value })} style={{ width: '100%', padding: 8, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Date & time</label>
+              <input type="datetime-local" value={edit.newDate} onChange={e => setEdit({ ...edit, newDate: e.target.value })} style={{ width: '100%', padding: 8, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEdit(null)}>Cancel</button>
+              <button onClick={saveEdit} style={{ fontWeight: 'bold' }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

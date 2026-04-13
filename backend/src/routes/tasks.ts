@@ -177,20 +177,24 @@ router.get('/calendar', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Mark a single recurrence occurrence as done/skipped
+// Create/update a single recurrence occurrence exception
 router.post('/:id/occurrences', async (req: AuthRequest, res: Response) => {
   try {
     const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
     if (!task || !task.recurrence) return res.status(404).json({ error: 'Recurring task not found' });
 
-    const { date, status } = req.body;
-    if (!date || !['done', 'skipped'].includes(status)) {
-      return res.status(400).json({ error: 'date (ISO) and status (done|skipped) required' });
-    }
+    const { date, status, title, description, newDate } = req.body;
+    if (!date) return res.status(400).json({ error: 'date (ISO) required' });
+
+    const update: any = {};
+    if (status && ['pending', 'done', 'skipped'].includes(status)) update.status = status;
+    if (title !== undefined) update.title = title || undefined;
+    if (description !== undefined) update.description = description || undefined;
+    if (newDate !== undefined) update.newDate = newDate ? new Date(newDate) : undefined;
 
     const exception = await RecurrenceException.findOneAndUpdate(
       { taskId: task._id, date: new Date(date) },
-      { status },
+      update,
       { upsert: true, new: true },
     );
     res.json(exception);

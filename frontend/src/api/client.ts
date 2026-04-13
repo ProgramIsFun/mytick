@@ -38,6 +38,8 @@ export const api = {
     request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   markOccurrence: (id: string, date: string, status: 'done' | 'skipped') =>
     request(`/tasks/${id}/occurrences`, { method: 'POST', body: JSON.stringify({ date, status }) }),
+  editOccurrence: (id: string, date: string, overrides: { newDate?: string; title?: string; description?: string }) =>
+    request(`/tasks/${id}/occurrences`, { method: 'POST', body: JSON.stringify({ date, status: 'pending', ...overrides }) }),
   revertOccurrence: (id: string, date: string) =>
     request(`/tasks/${id}/occurrences`, { method: 'DELETE', body: JSON.stringify({ date }) }),
   endSeries: (id: string, date: string) =>
