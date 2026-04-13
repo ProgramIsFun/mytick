@@ -51,6 +51,21 @@ function createServer() {
     }
   });
 
+  server.tool('count_tasks', 'Get task counts by status for a user', {
+    userEmail: z.string().describe('Email of the user'),
+  }, async ({ userEmail }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const res = await api('/tasks?limit=100', { headers: { 'x-admin-user-id': id } as any });
+      const tasks = res.tasks;
+      const counts = { total: tasks.length, pending: 0, in_progress: 0, done: 0 };
+      for (const t of tasks) counts[t.status as keyof typeof counts]++;
+      return { content: [{ type: 'text', text: JSON.stringify(counts) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
   server.tool('get_task', 'Get a task by ID', {
     taskId: z.string().describe('Task ID'),
     userEmail: z.string().describe('Email of the requesting user'),
