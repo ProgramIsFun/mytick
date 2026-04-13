@@ -269,3 +269,60 @@ describe('admin key auth', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('task status filter', () => {
+  beforeAll(async () => {
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'Done task' });
+    const res = await request(app).get('/api/tasks?limit=1').set('Authorization', `Bearer ${token}`);
+    await request(app).patch(`/api/tasks/${res.body.tasks[0]._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'In progress task' });
+    const res2 = await request(app).get('/api/tasks?limit=1').set('Authorization', `Bearer ${token}`);
+    await request(app).patch(`/api/tasks/${res2.body.tasks[0]._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ status: 'in_progress' });
+  });
+
+  it('should filter by pending', async () => {
+    const res = await request(app).get('/api/tasks?status=pending').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks.every((t: any) => t.status === 'pending')).toBe(true);
+  });
+
+  it('should filter by done', async () => {
+    const res = await request(app).get('/api/tasks?status=done').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.tasks.every((t: any) => t.status === 'done')).toBe(true);
+  });
+
+  it('should filter by in_progress', async () => {
+    const res = await request(app).get('/api/tasks?status=in_progress').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.tasks.every((t: any) => t.status === 'in_progress')).toBe(true);
+  });
+
+  it('should return all when no status filter', async () => {
+    const res = await request(app).get('/api/tasks').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const statuses = new Set(res.body.tasks.map((t: any) => t.status));
+    expect(statuses.size).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('task count endpoint', () => {
+  it('should return counts by status', async () => {
+    const res = await request(app).get('/api/tasks/count').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('pending');
+    expect(res.body).toHaveProperty('in_progress');
+    expect(res.body).toHaveProperty('done');
+    expect(res.body.total).toBe(res.body.pending + res.body.in_progress + res.body.done);
+  });
+
+  it('should require auth', async () => {
+    const res = await request(app).get('/api/tasks/count');
+    expect(res.status).toBe(401);
+  });
+});
