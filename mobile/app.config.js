@@ -1,4 +1,18 @@
-export default {
+const fs = require('fs');
+const path = require('path');
+
+// For EAS cloud builds: GOOGLE_SERVICES_JSON is set as a file secret
+// For local builds: fall back to local file
+const googleServicesFile = (() => {
+  // Check env var (EAS secret - could be a file path)
+  if (process.env.GOOGLE_SERVICES_JSON) return process.env.GOOGLE_SERVICES_JSON;
+  // Check local file
+  const local = path.resolve(__dirname, 'google-services.json');
+  if (fs.existsSync(local)) return local;
+  return undefined;
+})();
+
+module.exports = {
   expo: {
     name: "mobile",
     slug: "mytick",
@@ -27,7 +41,7 @@ export default {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: "com.mytick.app",
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
+      ...(googleServicesFile ? { googleServicesFile } : {}),
     },
     web: {
       favicon: "./assets/favicon.png",

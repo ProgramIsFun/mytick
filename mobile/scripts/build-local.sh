@@ -7,13 +7,7 @@ if [ ! -f "google-services.json" ]; then
   exit 1
 fi
 
-# Temporarily commit the file for the build archive
-git add -f google-services.json
-git commit -m "temp: add google-services.json for build" --no-verify
+# Set absolute path so prebuild can find it regardless of working directory
+export GOOGLE_SERVICES_JSON="$(pwd)/google-services.json"
 
-# Build
 eas build --platform android --profile "${1:-preview}" --local
-
-# Undo the temp commit (keeps the file locally, removes from git history)
-git reset --soft HEAD~1
-git rm --cached google-services.json 2>/dev/null || true
