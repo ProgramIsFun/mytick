@@ -38,4 +38,8 @@ export const api = {
     request(`/tasks/${id}/rollback/${index}`, { method: 'POST' }),
   updateMe: (data: { username?: string; name?: string; newPassword?: string }) =>
     request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
+  registerFcmToken: (fcmToken: string) =>
+    request('/auth/fcm-token', { method: 'POST', body: JSON.stringify({ fcmToken }) }),
+  removeFcmToken: (fcmToken: string) =>
+    request('/auth/fcm-token', { method: 'DELETE', body: JSON.stringify({ fcmToken }) }),
 };

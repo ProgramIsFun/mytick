@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../api/client';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 interface User {
   id: string;
@@ -18,9 +19,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>(null!);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+function AuthInner({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { unregister } = usePushNotifications();
 
   useEffect(() => {
     SecureStore.getItemAsync('token').then(async (token) => {
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    await unregister();
     await SecureStore.deleteItemAsync('token');
     setUser(null);
   };
@@ -52,6 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  return <AuthInner>{children}</AuthInner>;
 }
 
 export const useAuth = () => useContext(AuthContext);
