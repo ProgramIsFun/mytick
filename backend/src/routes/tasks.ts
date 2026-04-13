@@ -106,7 +106,20 @@ router.get('/u/:username', async (req, res: Response) => {
 // All routes below require auth
 router.use(auth);
 
-// List my tasks + tasks shared to my groups
+/**
+ * @swagger
+ * /tasks:
+ *   get:
+ *     summary: List tasks (paginated)
+ *     tags: [Tasks]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: query, name: page, schema: { type: integer, default: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, default: 20, maximum: 100 } }
+ *       - { in: query, name: status, schema: { type: string, enum: [pending, in_progress, done] } }
+ *     responses:
+ *       200: { description: Paginated task list }
+ */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -136,7 +149,16 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Count tasks by status
+/**
+ * @swagger
+ * /tasks/count:
+ *   get:
+ *     summary: Get task counts by status
+ *     tags: [Tasks]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Task counts, content: { application/json: { schema: { type: object, properties: { total: { type: integer }, pending: { type: integer }, in_progress: { type: integer }, done: { type: integer } } } } } }
+ */
 router.get('/count', async (req: AuthRequest, res: Response) => {
   try {
     const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
@@ -194,7 +216,30 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Create task
+/**
+ * @swagger
+ * /tasks:
+ *   post:
+ *     summary: Create a task
+ *     tags: [Tasks]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               visibility: { type: string, enum: [private, group, public] }
+ *               deadline: { type: string, format: date-time, nullable: true }
+ *               blockedBy: { type: array, items: { type: string } }
+ *     responses:
+ *       201: { description: Task created }
+ *       400: { description: Validation error }
+ */
 router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { title, description, visibility, groupIds, blockedBy, deadline } = req.body;
@@ -238,7 +283,41 @@ async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
   return hasCycleInGraph(taskId, blockedBy, graph);
 }
 
-// Update task (owner only)
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   patch:
+ *     summary: Update a task (owner only)
+ *     tags: [Tasks]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               status: { type: string, enum: [pending, in_progress, done] }
+ *               visibility: { type: string, enum: [private, group, public] }
+ *               deadline: { type: string, format: date-time, nullable: true }
+ *               blockedBy: { type: array, items: { type: string } }
+ *     responses:
+ *       200: { description: Task updated }
+ *       400: { description: Cycle detected or validation error }
+ *       404: { description: Not found }
+ *   delete:
+ *     summary: Delete a task (owner only)
+ *     tags: [Tasks]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Deleted }
+ *       404: { description: Not found }
+ */
 router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
     const task = await Task.findOne({ _id: req.params.id, userId: req.userId });

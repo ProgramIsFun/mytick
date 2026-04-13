@@ -16,7 +16,29 @@ function userResponse(user: any) {
 
 const RESERVED_USERNAMES = ['admin', 'api', 'login', 'register', 'settings', 'profile', 'share', 'tasks', 'groups', 'public', 'about', 'help', 'support'];
 
-// Local register
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, name, username]
+ *             properties:
+ *               email: { type: string }
+ *               password: { type: string, minLength: 6 }
+ *               name: { type: string }
+ *               username: { type: string }
+ *     responses:
+ *       201: { description: User created }
+ *       400: { description: Validation error }
+ *       409: { description: Email or username taken }
+ */
 router.post('/register', validate(registerSchema), async (req, res: Response) => {
   try {
     const { email, password, name, username } = req.body;
@@ -43,7 +65,26 @@ router.post('/register', validate(registerSchema), async (req, res: Response) =>
   }
 });
 
-// Local login
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login with email and password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email: { type: string }
+ *               password: { type: string }
+ *     responses:
+ *       200: { description: Login successful }
+ *       401: { description: Invalid credentials }
+ */
 router.post('/login', validate(loginSchema), async (req, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -98,7 +139,17 @@ router.post('/oauth', validate(oauthSchema), async (req, res: Response) => {
   }
 });
 
-// Get current user profile
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: User profile, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+ *       401: { description: Unauthorized }
+ */
 router.get('/me', async (req, res: Response) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];

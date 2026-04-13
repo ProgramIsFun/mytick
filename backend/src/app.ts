@@ -10,6 +10,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Swagger docs — dev only
+if (process.env.NODE_ENV !== 'production') {
+  import('./swagger').then(({ default: spec }) => {
+    import('swagger-ui-express').then(swaggerUi => {
+      app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(spec));
+      logger.info('Swagger docs available at /api/docs');
+    });
+  });
+}
+
 // Request logging
 app.use((req, res, next) => {
   const start = Date.now();
