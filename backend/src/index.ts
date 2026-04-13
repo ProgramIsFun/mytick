@@ -7,6 +7,7 @@ import { validateEnv } from './utils/validateEnv';
 import { logger } from './utils/logger';
 import { initFCM, sendPush } from './services/fcm';
 import { notificationQueue } from './queues';
+import { DEADLINE_ALERTS } from './config/alerts';
 import User from './models/User';
 import Task from './models/Task';
 
@@ -33,7 +34,7 @@ mongoose.connect(process.env.MONGODB_URI!, { autoIndex: false })
         ]);
         if (!user || !task || task.status === 'done') return;
 
-        const label = job.alertType === '1day' ? 'in 1 day' : 'in 1 hour';
+        const label = DEADLINE_ALERTS.find(a => a.type === job.alertType)?.label || job.alertType;
         const title = 'Deadline approaching';
         const body = `"${task.title}" is due ${label}`;
 

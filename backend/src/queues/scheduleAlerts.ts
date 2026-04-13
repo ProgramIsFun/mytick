@@ -1,12 +1,7 @@
 import { NotificationQueue, NotificationJob } from './NotificationQueue';
-
-const ALERTS = [
-  { type: '1day', ms: 24 * 60 * 60 * 1000 },
-  { type: '1hour', ms: 60 * 60 * 1000 },
-];
+import { DEADLINE_ALERTS } from '../config/alerts';
 
 export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: string, userId: string, deadline: Date | null) {
-  // Cancel existing alerts first
   await queue.cancelByTask(taskId);
 
   if (!deadline) return;
@@ -15,7 +10,7 @@ export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: s
   const now = Date.now();
 
   const ops: Promise<void>[] = [];
-  for (const alert of ALERTS) {
+  for (const alert of DEADLINE_ALERTS) {
     const fireAt = deadlineMs - alert.ms;
     if (fireAt > now) {
       ops.push(queue.schedule({

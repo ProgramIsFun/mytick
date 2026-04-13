@@ -1,16 +1,12 @@
 import dotenv from 'dotenv';
 import { logger } from './utils/logger';
+import { DEADLINE_ALERTS } from './config/alerts';
 
 dotenv.config();
 
 const API_URL = process.env.API_URL || 'http://localhost:4000/api';
 const ADMIN_KEY = process.env.ADMIN_API_KEY!;
 const CHECK_INTERVAL = 60_000;
-
-const ALERTS = [
-  { label: '1 day', ms: 24 * 60 * 60 * 1000 },
-  { label: '1 hour', ms: 60 * 60 * 1000 },
-];
 
 const notified = new Set<string>();
 
@@ -40,8 +36,8 @@ async function checkDeadlines() {
         if (!task.deadline || task.status === 'done') continue;
         const remaining = new Date(task.deadline).getTime() - now;
 
-        for (const alert of ALERTS) {
-          const key = `${task._id}-${alert.label}`;
+        for (const alert of DEADLINE_ALERTS) {
+          const key = `${task._id}-${alert.type}`;
           if (notified.has(key)) continue;
           if (remaining > 0 && remaining <= alert.ms) {
             await sendNotification(user.id, task.title, alert.label);
