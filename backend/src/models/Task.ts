@@ -5,6 +5,11 @@ export interface IDescriptionVersion {
   savedAt: Date;
 }
 
+export interface IRecurrence {
+  freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+}
+
 export interface ITask extends Document {
   userId: Types.ObjectId;
   title: string;
@@ -16,6 +21,7 @@ export interface ITask extends Document {
   descriptionHistory: IDescriptionVersion[];
   blockedBy: Types.ObjectId[];
   deadline: Date | null;
+  recurrence: IRecurrence | null;
   createdAt: Date;
 }
 
@@ -29,6 +35,14 @@ const taskSchema = new Schema<ITask>({
   shareToken: { type: String, required: true, unique: true },
   blockedBy: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
   deadline: { type: Date, default: null },
+  recurrence: {
+    type: {
+      freq: { type: String, enum: ['daily', 'weekly', 'monthly', 'yearly'], required: true },
+      interval: { type: Number, required: true, min: 1 },
+    },
+    default: null,
+    _id: false,
+  },
   descriptionHistory: [{
     description: { type: String },
     savedAt: { type: Date, default: Date.now },

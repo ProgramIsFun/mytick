@@ -2,10 +2,12 @@ import { Router, Response } from 'express';
 import { nanoid } from 'nanoid';
 import Task from '../models/Task';
 import Group from '../models/Group';
+import RecurrenceException from '../models/RecurrenceException';
 import { auth, AuthRequest } from '../middleware/auth';
 import { validate, createTaskSchema, updateTaskSchema } from '../utils/validation';
 import { notificationQueue } from '../queues';
 import { scheduleDeadlineAlerts } from '../queues/scheduleAlerts';
+import { expandOccurrences } from '../utils/recurrence';
 
 const router = Router();
 
@@ -107,6 +109,106 @@ router.get('/u/:username', async (req, res: Response) => {
 
 // All routes below require auth
 router.use(auth);
+
+// Calendar expansion endpoint
+router.get('/calendar', async (req: AuthRequest, res: Response) => {
+  try {
+    const from = new Date(req.query.from as string);
+    const to = new Date(req.query.to as string);
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+      return res.status(400).json({ error: 'from and to query params required (ISO dates)' });
+    }
+
+    // Non-recurring tasks with deadline in range
+    const oneTimeTasks = await Task.find({
+      userId: req.userId,
+      recurrence: null,
+      deadline: { $gte: from, $lte: to },
+    });
+
+    const results: any[] = oneTimeTasks.map(t => ({
+      _id: t._id,
+      taskId: t._id,
+      title: t.title,
+      status: t.status,
+      date: t.deadline,
+      recurring: false,
+    }));
+
+    // Recurring tasks that started before range end
+    const recurringTasks = await Task.find({
+      userId: req.userId,
+      recurrence: { $ne: null },
+      deadline: { $lte: to },
+    });
+
+    const recurringIds = recurringTasks.map(t => t._id);
+    const exceptions = recurringIds.length
+      ? await RecurrenceException.find({ taskId: { $in: recurringIds }, date: { $gte: from, $lte: to } })
+      : [];
+
+    const exMap = new Map<string, string>();
+    for (const ex of exceptions) {
+      exMap.set(`${ex.taskId}-${ex.date.toISOString()}`, ex.status);
+    }
+
+    for (const task of recurringTasks) {
+      const occurrences = expandOccurrences(task, from, to);
+      for (const date of occurrences) {
+        const key = `${task._id}-${date.toISOString()}`;
+        const exStatus = exMap.get(key);
+        if (exStatus === 'skipped') continue;
+        results.push({
+          taskId: task._id,
+          title: task.title,
+          status: exStatus || 'pending',
+          date,
+          recurring: true,
+          recurrence: task.recurrence,
+        });
+      }
+    }
+
+    results.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Mark a single recurrence occurrence as done/skipped
+router.post('/:id/occurrences', async (req: AuthRequest, res: Response) => {
+  try {
+    const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
+    if (!task || !task.recurrence) return res.status(404).json({ error: 'Recurring task not found' });
+
+    const { date, status } = req.body;
+    if (!date || !['done', 'skipped'].includes(status)) {
+      return res.status(400).json({ error: 'date (ISO) and status (done|skipped) required' });
+    }
+
+    const exception = await RecurrenceException.findOneAndUpdate(
+      { taskId: task._id, date: new Date(date) },
+      { status },
+      { upsert: true, new: true },
+    );
+    res.json(exception);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Remove exception (revert occurrence to pending)
+router.delete('/:id/occurrences', async (req: AuthRequest, res: Response) => {
+  try {
+    const { date } = req.body;
+    if (!date) return res.status(400).json({ error: 'date required' });
+    await RecurrenceException.deleteOne({ taskId: req.params.id, date: new Date(date) });
+    res.json({ message: 'Exception removed' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 /**
  * @swagger
@@ -244,7 +346,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  */
 router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, visibility, groupIds, blockedBy, deadline } = req.body;
+    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence } = req.body;
 
     // Verify user is editor in all assigned groups
     if (groupIds?.length) {
@@ -265,11 +367,12 @@ router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Respo
       groupIds: groupIds || [],
       blockedBy: blockedBy || [],
       deadline: deadline || null,
+      recurrence: recurrence || null,
       shareToken: nanoid(12),
     });
 
     if (task.deadline) {
-      await scheduleDeadlineAlerts(notificationQueue, task._id.toString(), req.userId!, task.deadline);
+      await scheduleDeadlineAlerts(notificationQueue, task._id.toString(), req.userId!, task.deadline, task.recurrence);
     }
 
     res.status(201).json(task);
@@ -342,16 +445,16 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
       task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
     }
 
-    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline'];
+    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline', 'recurrence'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (task as any)[key] = req.body[key];
     }
     await task.save();
 
-    // Reschedule or cancel notifications on deadline/status change
-    if (req.body.deadline !== undefined || req.body.status === 'done') {
+    // Reschedule or cancel notifications on deadline/status/recurrence change
+    if (req.body.deadline !== undefined || req.body.status === 'done' || req.body.recurrence !== undefined) {
       const deadline = task.status === 'done' ? null : task.deadline;
-      await scheduleDeadlineAlerts(notificationQueue, task._id.toString(), req.userId!, deadline);
+      await scheduleDeadlineAlerts(notificationQueue, task._id.toString(), req.userId!, deadline, task.recurrence);
     }
 
     res.json(task);
@@ -387,6 +490,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!task) return res.status(404).json({ error: 'Not found' });
     await notificationQueue.cancelByTask(task._id.toString());
+    await RecurrenceException.deleteMany({ taskId: task._id });
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

@@ -37,6 +37,11 @@ export const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
 });
 
+const recurrenceSchema = z.object({
+  freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+  interval: z.number().int().min(1),
+}).nullable().optional();
+
 // Task schemas
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(500),
@@ -45,6 +50,7 @@ export const createTaskSchema = z.object({
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
   deadline: z.string().datetime().nullable().optional(),
+  recurrence: recurrenceSchema,
 });
 
 export const updateTaskSchema = z.object({
@@ -55,6 +61,7 @@ export const updateTaskSchema = z.object({
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
   deadline: z.string().datetime().nullable().optional(),
+  recurrence: recurrenceSchema,
 });
 
 // Group schemas

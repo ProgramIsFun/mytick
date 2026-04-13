@@ -31,10 +31,15 @@ export const api = {
   getTasks: (page = 1, limit = 20) => request(`/tasks?page=${page}&limit=${limit}`),
   getTask: (id: string) => request(`/tasks/${id}`),
   getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
-  createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[] }) =>
+  getCalendar: (from: string, to: string) => request(`/tasks/calendar?from=${from}&to=${to}`),
+  createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[]; deadline?: string; recurrence?: { freq: string; interval: number } | null }) =>
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, data: Record<string, unknown>) =>
     request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  markOccurrence: (id: string, date: string, status: 'done' | 'skipped') =>
+    request(`/tasks/${id}/occurrences`, { method: 'POST', body: JSON.stringify({ date, status }) }),
+  revertOccurrence: (id: string, date: string) =>
+    request(`/tasks/${id}/occurrences`, { method: 'DELETE', body: JSON.stringify({ date }) }),
   rollbackDescription: (id: string, index: number) =>
     request(`/tasks/${id}/rollback/${index}`, { method: 'POST' }),
   deleteTask: (id: string) =>

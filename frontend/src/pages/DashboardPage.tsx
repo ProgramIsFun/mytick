@@ -54,8 +54,8 @@ export default function DashboardPage() {
 
   useEffect(() => { loadTasks(); loadGroups(); }, []);
 
-  const handleCreate = async (title: string, groupIds: string[]) => {
-    await api.createTask({ title, groupIds, visibility: groupIds.length > 0 ? 'group' : 'private' });
+  const handleCreate = async (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number } | null) => {
+    await api.createTask({ title, groupIds, visibility: groupIds.length > 0 ? 'group' : 'private', deadline, recurrence });
     loadTasks();
   };
 
@@ -123,7 +123,7 @@ export default function DashboardPage() {
           )}
         </>
       ) : tab === 'calendar' ? (
-        <CalendarView tasks={tasks} />
+        <CalendarView />
       ) : (
         <GroupsPage />
       )}
