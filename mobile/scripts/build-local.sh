@@ -7,11 +7,13 @@ if [ ! -f "google-services.json" ]; then
   exit 1
 fi
 
-# Temporarily track the file for the build archive
+# Temporarily commit the file for the build archive
 git add -f google-services.json
+git commit -m "temp: add google-services.json for build" --no-verify
 
 # Build
 eas build --platform android --profile "${1:-preview}" --local
 
-# Untrack after build (keep local file, remove from git)
+# Undo the temp commit (keeps the file locally, removes from git history)
+git reset --soft HEAD~1
 git rm --cached google-services.json 2>/dev/null || true
