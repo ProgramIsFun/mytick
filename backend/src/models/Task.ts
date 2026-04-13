@@ -10,6 +10,7 @@ export interface IRecurrence {
   interval: number;
   until?: Date;
   count?: number;
+  byDay?: ('MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU')[];
 }
 
 export interface ITask extends Document {
@@ -43,6 +44,7 @@ const taskSchema = new Schema<ITask>({
       interval: { type: Number, required: true, min: 1 },
       until: { type: Date, default: undefined },
       count: { type: Number, default: undefined },
+      byDay: { type: [String], enum: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'], default: undefined },
     },
     default: null,
     _id: false,

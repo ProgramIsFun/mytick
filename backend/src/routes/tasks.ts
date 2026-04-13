@@ -147,22 +147,23 @@ router.get('/calendar', async (req: AuthRequest, res: Response) => {
       ? await RecurrenceException.find({ taskId: { $in: recurringIds }, date: { $gte: from, $lte: to } })
       : [];
 
-    const exMap = new Map<string, string>();
+    const exMap = new Map<string, typeof exceptions[0]>();
     for (const ex of exceptions) {
-      exMap.set(`${ex.taskId}-${ex.date.toISOString()}`, ex.status);
+      exMap.set(`${ex.taskId}-${ex.date.toISOString()}`, ex);
     }
 
     for (const task of recurringTasks) {
       const occurrences = expandOccurrences(task, from, to);
       for (const date of occurrences) {
         const key = `${task._id}-${date.toISOString()}`;
-        const exStatus = exMap.get(key);
-        if (exStatus === 'skipped') continue;
+        const ex = exMap.get(key);
+        if (ex?.status === 'skipped') continue;
         results.push({
           taskId: task._id,
-          title: task.title,
-          status: exStatus || 'pending',
-          date,
+          title: ex?.title || task.title,
+          description: ex?.description || task.description,
+          status: ex?.status || 'pending',
+          date: ex?.newDate || date,
           recurring: true,
           recurrence: task.recurrence,
         });

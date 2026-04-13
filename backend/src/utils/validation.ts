@@ -42,6 +42,7 @@ const recurrenceSchema = z.object({
   interval: z.number().int().min(1),
   until: z.string().datetime().optional(),
   count: z.number().int().min(1).optional(),
+  byDay: z.array(z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'])).optional(),
 }).nullable().optional();
 
 // Task schemas
