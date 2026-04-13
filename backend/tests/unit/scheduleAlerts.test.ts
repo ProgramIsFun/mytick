@@ -12,6 +12,7 @@ class MockQueue implements NotificationQueue {
     this.jobs = this.jobs.filter(j => j.taskId !== taskId);
   }
   async processDue() {}
+  startProcessing() {}
 }
 
 describe('scheduleDeadlineAlerts', () => {

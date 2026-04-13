@@ -23,11 +23,16 @@ mongoose.connect(process.env.MONGODB_URI!, { autoIndex: false })
   .then(() => {
     app.listen(PORT, () => logger.info({ port: PORT }, 'Server running'));
 
-    // Process due notifications every minute
+    const handler = (job: any) => processNotificationJob(job, notificationQueue);
+
+    // Let the queue implementation handle processing if it supports it (BullMQ)
+    notificationQueue.startProcessing(handler);
+
+    // For MongoDB: poll every minute. For BullMQ: this is a no-op.
     cron.schedule('* * * * *', () => {
-      notificationQueue.processDue((job) => processNotificationJob(job, notificationQueue));
+      notificationQueue.processDue(handler);
     });
 
-    logger.info('notification cron started');
+    logger.info('notification processing started');
   })
   .catch(err => logger.fatal({ err }, 'MongoDB connection error'));

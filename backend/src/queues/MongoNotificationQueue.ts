@@ -1,5 +1,5 @@
 import ScheduledNotification from '../models/ScheduledNotification';
-import { NotificationQueue, NotificationJob } from './NotificationQueue';
+import { NotificationQueue, NotificationJob, NotificationHandler } from './NotificationQueue';
 import { logger } from '../utils/logger';
 
 export class MongoNotificationQueue implements NotificationQueue {
@@ -23,7 +23,11 @@ export class MongoNotificationQueue implements NotificationQueue {
     }
   }
 
-  async processDue(handler: (job: NotificationJob) => Promise<void>): Promise<void> {
+  startProcessing(_handler: NotificationHandler): void {
+    // No-op for MongoDB — cron calls processDue() externally
+  }
+
+  async processDue(handler: NotificationHandler): Promise<void> {
     const due = await ScheduledNotification.find({ fireAt: { $lte: new Date() }, sent: false });
     for (const doc of due) {
       try {
