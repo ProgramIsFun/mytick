@@ -83,13 +83,17 @@ function createServer() {
     visibility: z.enum(['private', 'group', 'public']).optional().describe('Task visibility'),
     blockedBy: z.array(z.string()).optional().describe('Array of task IDs this task is blocked by'),
     deadline: z.string().optional().describe('Deadline in ISO 8601 format'),
-  }, async ({ userEmail, title, description, visibility, blockedBy, deadline }) => {
+    recurrence: z.object({
+      freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+      interval: z.number().int().min(1),
+    }).optional().nullable().describe('Recurrence rule, e.g. { freq: "monthly", interval: 1 }'),
+  }, async ({ userEmail, title, description, visibility, blockedBy, deadline, recurrence }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
       const task = await api('/tasks', {
         method: 'POST',
         headers: { 'x-admin-user-id': id } as any,
-        body: JSON.stringify({ title, description, visibility, blockedBy, deadline }),
+        body: JSON.stringify({ title, description, visibility, blockedBy, deadline, recurrence }),
       });
       return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
     } catch (e: any) {
@@ -106,6 +110,10 @@ function createServer() {
     visibility: z.enum(['private', 'group', 'public']).optional().describe('New visibility'),
     blockedBy: z.array(z.string()).optional().describe('Array of task IDs this task is blocked by'),
     deadline: z.string().optional().nullable().describe('Deadline in ISO 8601 format, or null to clear'),
+    recurrence: z.object({
+      freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+      interval: z.number().int().min(1),
+    }).optional().nullable().describe('Recurrence rule, or null to remove recurrence'),
   }, async ({ taskId, userEmail, ...updates }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
