@@ -43,9 +43,9 @@ function createServer() {
   }, async ({ userEmail, status }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
-      const res = await api('/tasks?limit=100', { headers: { 'x-admin-user-id': id } as any });
-      const tasks = status ? res.tasks.filter((t: any) => t.status === status) : res.tasks;
-      return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+      const query = status ? `?limit=100&status=${status}` : '?limit=100';
+      const res = await api(`/tasks${query}`, { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(res.tasks, null, 2) }] };
     } catch (e: any) {
       return { content: [{ type: 'text', text: e.message }] };
     }
@@ -56,10 +56,7 @@ function createServer() {
   }, async ({ userEmail }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
-      const res = await api('/tasks?limit=100', { headers: { 'x-admin-user-id': id } as any });
-      const tasks = res.tasks;
-      const counts = { total: tasks.length, pending: 0, in_progress: 0, done: 0 };
-      for (const t of tasks) counts[t.status as keyof typeof counts]++;
+      const counts = await api('/tasks/count', { headers: { 'x-admin-user-id': id } as any });
       return { content: [{ type: 'text', text: JSON.stringify(counts) }] };
     } catch (e: any) {
       return { content: [{ type: 'text', text: e.message }] };

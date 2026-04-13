@@ -112,16 +112,18 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
+    const status = req.query.status as string;
 
     const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
     const groupIds = userGroups.map(g => g._id);
 
-    const filter = {
+    const filter: any = {
       $or: [
         { userId: req.userId },
         { visibility: 'group', groupIds: { $in: groupIds } },
       ],
     };
+    if (status) filter.status = status;
 
     const [tasks, total] = await Promise.all([
       Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -129,6 +131,32 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     ]);
 
     res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Count tasks by status
+router.get('/count', async (req: AuthRequest, res: Response) => {
+  try {
+    const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
+    const groupIds = userGroups.map(g => g._id);
+
+    const baseFilter = {
+      $or: [
+        { userId: req.userId },
+        { visibility: 'group', groupIds: { $in: groupIds } },
+      ],
+    };
+
+    const [total, pending, in_progress, done] = await Promise.all([
+      Task.countDocuments(baseFilter),
+      Task.countDocuments({ ...baseFilter, status: 'pending' }),
+      Task.countDocuments({ ...baseFilter, status: 'in_progress' }),
+      Task.countDocuments({ ...baseFilter, status: 'done' }),
+    ]);
+
+    res.json({ total, pending, in_progress, done });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
