@@ -9,14 +9,7 @@ const FREQ_MAP: Record<string, Frequency> = {
   yearly: RRule.YEARLY,
 };
 
-interface ScheduleOpts {
-  taskId: string;
-  userId: string;
-  deadline: Date | null;
-  recurrence?: { freq: string; interval: number } | null;
-}
-
-export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: string, userId: string, deadline: Date | null, recurrence?: { freq: string; interval: number } | null) {
+export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: string, userId: string, deadline: Date | null, recurrence?: { freq: string; interval: number; until?: string | Date; count?: number } | null) {
   await queue.cancelByTask(taskId);
 
   if (!deadline) return;
@@ -24,12 +17,15 @@ export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: s
   let targetDate: Date;
 
   if (recurrence) {
-    // Find the next upcoming occurrence
-    const rule = new RRule({
+    const opts: any = {
       freq: FREQ_MAP[recurrence.freq],
       interval: recurrence.interval,
       dtstart: new Date(deadline),
-    });
+    };
+    if (recurrence.until) opts.until = new Date(recurrence.until);
+    if (recurrence.count) opts.count = recurrence.count;
+
+    const rule = new RRule(opts);
     const next = rule.after(new Date(), true);
     if (!next) return;
     targetDate = next;
@@ -41,14 +37,17 @@ export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: s
   const targetMs = targetDate.getTime();
   if (targetMs <= now) return;
 
-  // For recurring tasks, compute previous occurrence to avoid overlapping alerts
   let prevOccurrenceMs = 0;
   if (recurrence) {
-    const rule = new RRule({
+    const opts: any = {
       freq: FREQ_MAP[recurrence.freq],
       interval: recurrence.interval,
       dtstart: new Date(deadline),
-    });
+    };
+    if (recurrence.until) opts.until = new Date(recurrence.until);
+    if (recurrence.count) opts.count = recurrence.count;
+
+    const rule = new RRule(opts);
     const prev = rule.before(targetDate, false);
     if (prev) prevOccurrenceMs = prev.getTime();
   }

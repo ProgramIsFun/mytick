@@ -183,3 +183,72 @@ describe('occurrence exceptions', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('recurrence end conditions', () => {
+  it('should respect until date — no occurrences after it', async () => {
+    const start = new Date();
+    start.setHours(10, 0, 0, 0);
+    const until = new Date(start.getTime() + 3 * 24 * 60 * 60 * 1000);
+    await request(app).post('/api/tasks').set(auth()).send({
+      title: 'Limited daily',
+      deadline: start.toISOString(),
+      recurrence: { freq: 'daily', interval: 1, until: until.toISOString() },
+    });
+
+    const from = start.toISOString();
+    const to = new Date(start.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+    const res = await request(app).get(`/api/tasks/calendar?from=${from}&to=${to}`).set(auth());
+    const items = res.body.filter((i: any) => i.title === 'Limited daily');
+    // Should have at most 4 occurrences (day 0, 1, 2, 3)
+    expect(items.length).toBeLessThanOrEqual(4);
+  });
+
+  it('should respect count — only N occurrences', async () => {
+    const start = new Date();
+    start.setHours(11, 0, 0, 0);
+    await request(app).post('/api/tasks').set(auth()).send({
+      title: 'Count limited',
+      deadline: start.toISOString(),
+      recurrence: { freq: 'daily', interval: 1, count: 3 },
+    });
+
+    const from = start.toISOString();
+    const to = new Date(start.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+    const res = await request(app).get(`/api/tasks/calendar?from=${from}&to=${to}`).set(auth());
+    const items = res.body.filter((i: any) => i.title === 'Count limited');
+    expect(items).toHaveLength(3);
+  });
+
+  it('POST /end-series sets until and stops future occurrences', async () => {
+    const start = new Date();
+    start.setHours(12, 0, 0, 0);
+    const create = await request(app).post('/api/tasks').set(auth()).send({
+      title: 'End series test',
+      deadline: start.toISOString(),
+      recurrence: { freq: 'daily', interval: 1 },
+    });
+
+    // End series from day 3
+    const day3 = new Date(start.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const endRes = await request(app).post(`/api/tasks/${create.body._id}/end-series`).set(auth()).send({
+      date: day3.toISOString(),
+    });
+    expect(endRes.status).toBe(200);
+    expect(endRes.body.recurrence.until).toBeDefined();
+
+    // Calendar should show only days 0, 1, 2
+    const from = start.toISOString();
+    const to = new Date(start.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+    const cal = await request(app).get(`/api/tasks/calendar?from=${from}&to=${to}`).set(auth());
+    const items = cal.body.filter((i: any) => i.title === 'End series test');
+    expect(items.length).toBeLessThanOrEqual(3);
+  });
+
+  it('POST /end-series rejects non-recurring task', async () => {
+    const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Not recurring 2' });
+    const res = await request(app).post(`/api/tasks/${create.body._id}/end-series`).set(auth()).send({
+      date: new Date().toISOString(),
+    });
+    expect(res.status).toBe(404);
+  });
+});

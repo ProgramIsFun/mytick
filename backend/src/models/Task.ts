@@ -8,6 +8,8 @@ export interface IDescriptionVersion {
 export interface IRecurrence {
   freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
   interval: number;
+  until?: Date;
+  count?: number;
 }
 
 export interface ITask extends Document {
@@ -39,6 +41,8 @@ const taskSchema = new Schema<ITask>({
     type: {
       freq: { type: String, enum: ['daily', 'weekly', 'monthly', 'yearly'], required: true },
       interval: { type: Number, required: true, min: 1 },
+      until: { type: Date, default: undefined },
+      count: { type: Number, default: undefined },
     },
     default: null,
     _id: false,

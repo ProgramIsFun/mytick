@@ -7,7 +7,7 @@ interface Group {
 
 interface Props {
   groups: Group[];
-  onCreate: (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number } | null) => void;
+  onCreate: (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number; until?: string; count?: number } | null) => void;
 }
 
 export default function TaskForm({ groups, onCreate }: Props) {
@@ -17,6 +17,9 @@ export default function TaskForm({ groups, onCreate }: Props) {
   const [recurring, setRecurring] = useState(false);
   const [freq, setFreq] = useState('monthly');
   const [interval, setInterval] = useState(1);
+  const [endType, setEndType] = useState<'never' | 'until' | 'count'>('never');
+  const [until, setUntil] = useState('');
+  const [count, setCount] = useState(10);
 
   const toggleGroup = (id: string) => {
     setSelectedGroups(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
@@ -26,12 +29,18 @@ export default function TaskForm({ groups, onCreate }: Props) {
     e.preventDefault();
     if (!title.trim()) return;
     const dl = deadline ? new Date(deadline).toISOString() : undefined;
-    const rec = recurring && deadline ? { freq, interval } : null;
+    let rec: any = null;
+    if (recurring && deadline) {
+      rec = { freq, interval };
+      if (endType === 'until' && until) rec.until = new Date(until).toISOString();
+      if (endType === 'count') rec.count = count;
+    }
     onCreate(title.trim(), selectedGroups, dl, rec);
     setTitle('');
     setSelectedGroups([]);
     setDeadline('');
     setRecurring(false);
+    setEndType('never');
   };
 
   return (
@@ -64,6 +73,29 @@ export default function TaskForm({ groups, onCreate }: Props) {
           </>
         )}
       </div>
+      {recurring && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
+          <span>Ends:</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <input type="radio" name="endType" checked={endType === 'never'} onChange={() => setEndType('never')} /> Never
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <input type="radio" name="endType" checked={endType === 'until'} onChange={() => setEndType('until')} /> On date
+          </label>
+          {endType === 'until' && (
+            <input type="date" value={until} onChange={e => setUntil(e.target.value)} style={{ padding: 4 }} />
+          )}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <input type="radio" name="endType" checked={endType === 'count'} onChange={() => setEndType('count')} /> After
+          </label>
+          {endType === 'count' && (
+            <>
+              <input type="number" min={1} value={count} onChange={e => setCount(Math.max(1, +e.target.value))} style={{ width: 50, padding: 4 }} />
+              <span>times</span>
+            </>
+          )}
+        </div>
+      )}
       {groups.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           {groups.map(g => (

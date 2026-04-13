@@ -40,6 +40,8 @@ export const api = {
     request(`/tasks/${id}/occurrences`, { method: 'POST', body: JSON.stringify({ date, status }) }),
   revertOccurrence: (id: string, date: string) =>
     request(`/tasks/${id}/occurrences`, { method: 'DELETE', body: JSON.stringify({ date }) }),
+  endSeries: (id: string, date: string) =>
+    request(`/tasks/${id}/end-series`, { method: 'POST', body: JSON.stringify({ date }) }),
   rollbackDescription: (id: string, index: number) =>
     request(`/tasks/${id}/rollback/${index}`, { method: 'POST' }),
   deleteTask: (id: string) =>

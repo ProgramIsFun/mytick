@@ -86,6 +86,8 @@ function createServer() {
     recurrence: z.object({
       freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
       interval: z.number().int().min(1),
+      until: z.string().optional().describe('End date in ISO 8601 format'),
+      count: z.number().int().min(1).optional().describe('Number of occurrences'),
     }).optional().nullable().describe('Recurrence rule, e.g. { freq: "monthly", interval: 1 }'),
   }, async ({ userEmail, title, description, visibility, blockedBy, deadline, recurrence }) => {
     try {
@@ -113,6 +115,8 @@ function createServer() {
     recurrence: z.object({
       freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
       interval: z.number().int().min(1),
+      until: z.string().optional().describe('End date in ISO 8601 format'),
+      count: z.number().int().min(1).optional().describe('Number of occurrences'),
     }).optional().nullable().describe('Recurrence rule, or null to remove recurrence'),
   }, async ({ taskId, userEmail, ...updates }) => {
     try {

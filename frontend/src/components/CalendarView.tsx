@@ -18,32 +18,41 @@ export default function CalendarView() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [items, setItems] = useState<CalendarItem[]>([]);
+  const [menu, setMenu] = useState<{ taskId: string; date: string } | null>(null);
 
   const year = month.getFullYear();
   const mon = month.getMonth();
   const daysInMonth = new Date(year, mon + 1, 0).getDate();
   const startDay = new Date(year, mon, 1).getDay();
 
-  useEffect(() => {
+  const refresh = async () => {
     const from = new Date(year, mon, 1).toISOString();
     const to = new Date(year, mon + 1, 0, 23, 59, 59).toISOString();
-    api.getCalendar(from, to).then(setItems).catch(() => setItems([]));
-  }, [year, mon]);
+    setItems(await api.getCalendar(from, to).catch(() => []));
+  };
+
+  useEffect(() => { refresh(); }, [year, mon]);
 
   const toggleOccurrence = async (item: CalendarItem) => {
     if (item.recurring) {
-      if (item.status === 'done') {
-        await api.revertOccurrence(item.taskId, item.date);
-      } else {
-        await api.markOccurrence(item.taskId, item.date, 'done');
-      }
+      if (item.status === 'done') await api.revertOccurrence(item.taskId, item.date);
+      else await api.markOccurrence(item.taskId, item.date, 'done');
     } else {
       await api.updateTask(item.taskId, { status: item.status === 'done' ? 'pending' : 'done' });
     }
-    // Refresh
-    const from = new Date(year, mon, 1).toISOString();
-    const to = new Date(year, mon + 1, 0, 23, 59, 59).toISOString();
-    setItems(await api.getCalendar(from, to));
+    refresh();
+  };
+
+  const handleEndSeries = async (taskId: string, date: string) => {
+    await api.endSeries(taskId, date);
+    setMenu(null);
+    refresh();
+  };
+
+  const handleSkip = async (taskId: string, date: string) => {
+    await api.markOccurrence(taskId, date, 'skipped');
+    setMenu(null);
+    refresh();
   };
 
   const itemsByDate = new Map<string, CalendarItem[]>();
@@ -64,24 +73,35 @@ export default function CalendarView() {
     const dayItems = itemsByDate.get(key) || [];
     const isToday = new Date().toDateString() === new Date(year, mon, d).toDateString();
     cells.push(
-      <div key={d} style={{ border: '1px solid var(--border)', minHeight: 70, padding: 4, background: isToday ? 'var(--today-bg)' : 'var(--btn-bg)' }}>
+      <div key={d} style={{ border: '1px solid var(--border)', minHeight: 70, padding: 4, background: isToday ? 'var(--today-bg)' : 'var(--btn-bg)', position: 'relative' }}>
         <div style={{ fontSize: 12, fontWeight: isToday ? 'bold' : 'normal', color: isToday ? 'var(--link)' : 'var(--text-secondary)' }}>{d}</div>
-        {dayItems.map((item, i) => (
-          <div key={`${item.taskId}-${i}`}
-            style={{ fontSize: 11, padding: '2px 4px', margin: '1px 0', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden',
+        {dayItems.map((item, i) => {
+          const isMenuOpen = menu?.taskId === item.taskId && menu?.date === item.date;
+          return (
+            <div key={`${item.taskId}-${i}`} style={{ fontSize: 11, padding: '2px 4px', margin: '1px 0', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 3, overflow: 'visible', position: 'relative',
               background: item.status === 'done' ? 'var(--task-done)' : 'var(--task-pending)', textDecoration: item.status === 'done' ? 'line-through' : 'none' }}>
-            <input type="checkbox" checked={item.status === 'done'} onChange={() => toggleOccurrence(item)} style={{ margin: 0, cursor: 'pointer' }} />
-            <span onClick={() => navigate(`/tasks/${item.taskId}`)} style={{ cursor: 'pointer', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', flex: 1 }}>
-              {item.recurring ? '🔁 ' : ''}{item.title}
-            </span>
-          </div>
-        ))}
+              <input type="checkbox" checked={item.status === 'done'} onChange={() => toggleOccurrence(item)} style={{ margin: 0, cursor: 'pointer' }} />
+              <span onClick={() => navigate(`/tasks/${item.taskId}`)} style={{ cursor: 'pointer', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', flex: 1 }}>
+                {item.recurring ? '🔁 ' : ''}{item.title}
+              </span>
+              {item.recurring && (
+                <span onClick={() => setMenu(isMenuOpen ? null : { taskId: item.taskId, date: item.date })} style={{ cursor: 'pointer', fontSize: 10 }}>⋯</span>
+              )}
+              {isMenuOpen && (
+                <div style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: 4, zIndex: 10, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                  <div onClick={() => handleSkip(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>Skip this one</div>
+                  <div onClick={() => handleEndSeries(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: 'var(--danger)' }}>End series from here</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
 
   return (
-    <div>
+    <div onClick={() => menu && setMenu(null)}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <button onClick={prev}>← Prev</button>
         <strong>{month.toLocaleString('default', { month: 'long', year: 'numeric' })}</strong>

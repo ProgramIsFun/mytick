@@ -40,6 +40,8 @@ export const updateProfileSchema = z.object({
 const recurrenceSchema = z.object({
   freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
   interval: z.number().int().min(1),
+  until: z.string().datetime().optional(),
+  count: z.number().int().min(1).optional(),
 }).nullable().optional();
 
 // Task schemas

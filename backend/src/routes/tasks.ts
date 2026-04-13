@@ -210,6 +210,33 @@ router.delete('/:id/occurrences', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// End recurrence from a specific date ("this and all following")
+router.post('/:id/end-series', async (req: AuthRequest, res: Response) => {
+  try {
+    const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
+    if (!task || !task.recurrence) return res.status(404).json({ error: 'Recurring task not found' });
+
+    const { date } = req.body;
+    if (!date) return res.status(400).json({ error: 'date required' });
+
+    const endDate = new Date(date);
+    // Set until to just before this occurrence
+    task.recurrence.until = new Date(endDate.getTime() - 1);
+    task.markModified('recurrence');
+
+    // Clean up exceptions on or after this date
+    await RecurrenceException.deleteMany({ taskId: task._id, date: { $gte: endDate } });
+    await task.save();
+
+    // Reschedule notifications
+    await scheduleDeadlineAlerts(notificationQueue, task._id.toString(), req.userId!, task.deadline, task.recurrence);
+
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 /**
  * @swagger
  * /tasks:
