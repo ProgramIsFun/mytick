@@ -39,11 +39,13 @@ function createServer() {
 
   server.tool('list_tasks', 'List tasks for a user', {
     userEmail: z.string().describe('Email of the user'),
-  }, async ({ userEmail }) => {
+    status: z.enum(['pending', 'in_progress', 'done']).optional().describe('Filter by status'),
+  }, async ({ userEmail, status }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
       const res = await api('/tasks?limit=100', { headers: { 'x-admin-user-id': id } as any });
-      return { content: [{ type: 'text', text: JSON.stringify(res.tasks, null, 2) }] };
+      const tasks = status ? res.tasks.filter((t: any) => t.status === status) : res.tasks;
+      return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
     } catch (e: any) {
       return { content: [{ type: 'text', text: e.message }] };
     }
