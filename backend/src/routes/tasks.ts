@@ -4,6 +4,8 @@ import Task from '../models/Task';
 import Group from '../models/Group';
 import { auth, AuthRequest } from '../middleware/auth';
 import { validate, createTaskSchema, updateTaskSchema } from '../utils/validation';
+import { notificationQueue } from '../queues';
+import { scheduleDeadlineAlerts } from '../queues/scheduleAlerts';
 
 const router = Router();
 
@@ -266,6 +268,10 @@ router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Respo
       shareToken: nanoid(12),
     });
 
+    if (task.deadline) {
+      await scheduleDeadlineAlerts(notificationQueue, task._id.toString(), req.userId!, task.deadline);
+    }
+
     res.status(201).json(task);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -342,6 +348,12 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
     }
     await task.save();
 
+    // Reschedule or cancel notifications on deadline/status change
+    if (req.body.deadline !== undefined || req.body.status === 'done') {
+      const deadline = task.status === 'done' ? null : task.deadline;
+      await scheduleDeadlineAlerts(notificationQueue, task._id.toString(), req.userId!, deadline);
+    }
+
     res.json(task);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -374,6 +386,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!task) return res.status(404).json({ error: 'Not found' });
+    await notificationQueue.cancelByTask(task._id.toString());
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

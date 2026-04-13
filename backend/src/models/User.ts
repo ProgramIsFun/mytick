@@ -11,6 +11,7 @@ export interface IUser extends Document {
   username: string;
   name: string;
   providers: IAuthProvider[];
+  fcmTokens: string[];
   createdAt: Date;
 }
 
@@ -25,6 +26,7 @@ const userSchema = new Schema<IUser>({
   username: { type: String, required: true, unique: true, lowercase: true, trim: true, minlength: 1, maxlength: 39, match: /^[a-z0-9](?:[a-z0-9]*-?[a-z0-9]+)*$/ },
   name: { type: String, required: true, trim: true },
   providers: { type: [authProviderSchema], default: [] },
+  fcmTokens: { type: [String], default: [] },
 }, { timestamps: true });
 
 // Compound index for provider lookups

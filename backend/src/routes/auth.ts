@@ -207,6 +207,36 @@ router.patch('/me', async (req, res: Response) => {
   }
 });
 
+// Register/update FCM device token
+router.post('/fcm-token', async (req, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const { fcmToken } = req.body;
+    if (!fcmToken) return res.status(400).json({ error: 'fcmToken required' });
+    await User.updateOne({ _id: decoded.userId }, { $addToSet: { fcmTokens: fcmToken } });
+    res.json({ message: 'Token registered' });
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Remove FCM device token (logout)
+router.delete('/fcm-token', async (req, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const { fcmToken } = req.body;
+    if (!fcmToken) return res.status(400).json({ error: 'fcmToken required' });
+    await User.updateOne({ _id: decoded.userId }, { $pull: { fcmTokens: fcmToken } });
+    res.json({ message: 'Token removed' });
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
 // List all users (admin only)
 router.get('/users', async (req, res: Response) => {
   try {
