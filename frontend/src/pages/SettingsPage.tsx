@@ -4,14 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { requestNotificationPermission } from '../firebase';
 
-export default function SettingsPage() {
-  const { user, login: setUser } = useAuth();
-  const navigate = useNavigate();
-  const [username, setUsername] = useState(user?.username || '');
-  const [name, setName] = useState(user?.name || '');
-  const [newPassword, setNewPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+// --- DEBUG SECTION START --- Remove this entire section for production
+function DebugPushSection() {
   const [pushStatus, setPushStatus] = useState('');
   const [fcmToken, setFcmToken] = useState('');
   const [notifPermission, setNotifPermission] = useState(Notification.permission);
@@ -27,16 +21,12 @@ export default function SettingsPage() {
     try {
       const token = await requestNotificationPermission();
       setNotifPermission(Notification.permission);
-      if (!token) {
-        setPushStatus('❌ Permission denied or token failed');
-        return;
-      }
+      if (!token) { setPushStatus('❌ Permission denied or token failed'); return; }
       setFcmToken(token);
       await api.registerFcmToken(token);
       setPushStatus('✅ Token registered');
-    } catch (e: any) {
-      setPushStatus(`❌ ${e.message}`);
-    }
+      api.getFcmTokens().then(r => setStoredTokens(r.tokens)).catch(() => {});
+    } catch (e: any) { setPushStatus(`❌ ${e.message}`); }
   };
 
   const handleTestPush = async (tokenIndex?: number) => {
@@ -44,10 +34,48 @@ export default function SettingsPage() {
     try {
       const res = await api.testPush(tokenIndex);
       setPushStatus(`✅ Sent to ${res.tokens} device(s)`);
-    } catch (e: any) {
-      setPushStatus(`❌ ${e.message}`);
-    }
+    } catch (e: any) { setPushStatus(`❌ ${e.message}`); }
   };
+
+  return (
+    <>
+      <hr style={{ margin: '24px 0' }} />
+      <h3>🛠 Push Notifications (Debug)</h3>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        Permission: <strong>{notifPermission}</strong>
+      </p>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+        FCM Token: <strong>{fcmToken || 'Not registered'}</strong>
+      </p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+        <button onClick={handleRegisterToken} style={{ padding: '10px 20px' }}>📝 Register Token</button>
+        <button onClick={() => handleTestPush()} style={{ padding: '10px 20px' }}>🔔 Push All</button>
+      </div>
+      {pushStatus && <p style={{ fontSize: 14, marginTop: 8 }}>{pushStatus}</p>}
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>
+        <strong>Stored tokens ({storedTokens.length}):</strong>
+      </p>
+      {storedTokens.map((t, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
+          <p style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', fontFamily: 'monospace', margin: 0, flex: 1 }}>
+            {i + 1}. {t}
+          </p>
+          <button onClick={() => handleTestPush(i)} style={{ fontSize: 10, padding: '2px 8px', whiteSpace: 'nowrap' }}>🔔 Push</button>
+        </div>
+      ))}
+    </>
+  );
+}
+// --- DEBUG SECTION END ---
+
+export default function SettingsPage() {
+  const { user, login: setUser } = useAuth();
+  const navigate = useNavigate();
+  const [username, setUsername] = useState(user?.username || '');
+  const [name, setName] = useState(user?.name || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSave = async () => {
     setError(''); setSuccess('');
@@ -97,31 +125,8 @@ export default function SettingsPage() {
 
       <button onClick={handleSave} style={{ padding: '10px 20px' }}>Save</button>
 
-      <hr style={{ margin: '24px 0' }} />
-      <h3>Push Notifications</h3>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        Permission: <strong>{notifPermission}</strong>
-      </p>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-        FCM Token: <strong>{fcmToken || 'Not registered'}</strong>
-      </p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-        <button onClick={handleRegisterToken} style={{ padding: '10px 20px' }}>📝 Register Token</button>
-        <button onClick={() => handleTestPush()} style={{ padding: '10px 20px' }}>🔔 Push All</button>
-      </div>
-      {pushStatus && <p style={{ fontSize: 14, marginTop: 8 }}>{pushStatus}</p>}
-
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>
-        <strong>Stored tokens ({storedTokens.length}):</strong>
-      </p>
-      {storedTokens.map((t, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
-          <p style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', fontFamily: 'monospace', margin: 0, flex: 1 }}>
-            {i + 1}. {t}
-          </p>
-          <button onClick={() => handleTestPush(i)} style={{ fontSize: 10, padding: '2px 8px', whiteSpace: 'nowrap' }}>🔔 Push</button>
-        </div>
-      ))}
+      {/* --- DEBUG: Remove DebugPushSection for production --- */}
+      <DebugPushSection />
     </div>
   );
 }
