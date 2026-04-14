@@ -259,8 +259,11 @@ router.post('/test-push', async (req, res: Response) => {
     const user = await User.findById(decoded.userId);
     if (!user || !user.fcmTokens?.length) return res.status(400).json({ error: 'No FCM tokens registered' });
     const { sendPush } = await import('../services/fcm');
-    await sendPush(user.fcmTokens, '🔔 Test Notification', 'Push notifications are working!', {});
-    res.json({ message: 'Sent', tokens: user.fcmTokens.length });
+    const { tokenIndex } = req.body || {};
+    const tokens = tokenIndex !== undefined ? [user.fcmTokens[tokenIndex]].filter(Boolean) : user.fcmTokens;
+    if (!tokens.length) return res.status(400).json({ error: 'Invalid token index' });
+    await sendPush(tokens, '🔔 Test Notification', 'Push notifications are working!', {});
+    res.json({ message: 'Sent', tokens: tokens.length });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

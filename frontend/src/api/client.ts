@@ -73,8 +73,8 @@ export const api = {
     request('/auth/fcm-token', { method: 'POST', body: JSON.stringify({ fcmToken }) }),
   removeFcmToken: (fcmToken: string) =>
     request('/auth/fcm-token', { method: 'DELETE', body: JSON.stringify({ fcmToken }) }),
-  testPush: () =>
-    request('/auth/test-push', { method: 'POST' }),
+  testPush: (tokenIndex?: number) =>
+    request('/auth/test-push', { method: 'POST', body: JSON.stringify(tokenIndex !== undefined ? { tokenIndex } : {}) }),
   getFcmTokens: () =>
     request('/auth/fcm-tokens'),
 };
