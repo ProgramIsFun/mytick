@@ -237,6 +237,19 @@ router.delete('/fcm-token', async (req, res: Response) => {
   }
 });
 
+// Get my FCM tokens
+router.get('/fcm-tokens', async (req, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId).select('fcmTokens');
+    res.json({ tokens: user?.fcmTokens || [] });
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
 // Test push notification
 router.post('/test-push', async (req, res: Response) => {
   try {

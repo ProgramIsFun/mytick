@@ -15,9 +15,11 @@ export default function SettingsPage() {
   const [pushStatus, setPushStatus] = useState('');
   const [fcmToken, setFcmToken] = useState('');
   const [notifPermission, setNotifPermission] = useState(Notification.permission);
+  const [storedTokens, setStoredTokens] = useState<string[]>([]);
 
   useEffect(() => {
     setNotifPermission(Notification.permission);
+    api.getFcmTokens().then(r => setStoredTokens(r.tokens)).catch(() => {});
   }, []);
 
   const handleRegisterToken = async () => {
@@ -108,6 +110,15 @@ export default function SettingsPage() {
         <button onClick={handleTestPush} style={{ padding: '10px 20px' }}>🔔 Send Test Push</button>
       </div>
       {pushStatus && <p style={{ fontSize: 14, marginTop: 8 }}>{pushStatus}</p>}
+
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>
+        <strong>Stored tokens ({storedTokens.length}):</strong>
+      </p>
+      {storedTokens.map((t, i) => (
+        <p key={i} style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', fontFamily: 'monospace', margin: '4px 0' }}>
+          {i + 1}. {t}
+        </p>
+      ))}
     </div>
   );
 }

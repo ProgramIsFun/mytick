@@ -75,4 +75,6 @@ export const api = {
     request('/auth/fcm-token', { method: 'DELETE', body: JSON.stringify({ fcmToken }) }),
   testPush: () =>
     request('/auth/test-push', { method: 'POST' }),
+  getFcmTokens: () =>
+    request('/auth/fcm-tokens'),
 };
