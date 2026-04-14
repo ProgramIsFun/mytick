@@ -47,6 +47,9 @@ function DebugPushSection() {
       <p style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
         FCM Token: <strong>{fcmToken || 'Not registered'}</strong>
       </p>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+        Device: <strong>{navigator.userAgent}</strong>
+      </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
         <button onClick={handleRegisterToken} style={{ padding: '10px 20px' }}>📝 Register Token</button>
         <button onClick={() => handleTestPush()} style={{ padding: '10px 20px' }}>🔔 Push All</button>
