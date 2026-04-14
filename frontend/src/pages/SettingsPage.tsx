@@ -11,6 +11,17 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pushStatus, setPushStatus] = useState('');
+
+  const handleTestPush = async () => {
+    setPushStatus('Sending...');
+    try {
+      const res = await api.testPush();
+      setPushStatus(`✅ Sent to ${res.tokens} device(s)`);
+    } catch (e: any) {
+      setPushStatus(`❌ ${e.message}`);
+    }
+  };
 
   const handleSave = async () => {
     setError(''); setSuccess('');
@@ -59,6 +70,11 @@ export default function SettingsPage() {
       {success && <p style={{ color: 'green', fontSize: 14 }}>{success}</p>}
 
       <button onClick={handleSave} style={{ padding: '10px 20px' }}>Save</button>
+
+      <hr style={{ margin: '24px 0' }} />
+      <h3>Push Notifications</h3>
+      <button onClick={handleTestPush} style={{ padding: '10px 20px' }}>🔔 Send Test Push</button>
+      {pushStatus && <p style={{ fontSize: 14, marginTop: 8 }}>{pushStatus}</p>}
     </div>
   );
 }
