@@ -24,19 +24,27 @@ export async function resetApiUrl() {
 
 async function request(path: string, options: RequestInit = {}) {
   const token = await SecureStore.getItemAsync('token');
-  const res = await fetch(`${_apiUrl}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || 'Request failed');
+  const url = `${_apiUrl}${path}`;
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(err.error || 'Request failed');
+    }
+    return res.json();
+  } catch (e: any) {
+    if (e.message === 'Network request failed') {
+      throw new Error(`Network request failed\n\nURL: ${url}\n\nCheck:\n• Backend running?\n• Same WiFi?\n• Correct IP?`);
+    }
+    throw e;
   }
-  return res.json();
 }
 
 export const api = {
