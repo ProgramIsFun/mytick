@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getApiUrl, getDefaultApiUrl, setApiUrl, resetApiUrl } from '../src/api/client';
+import { api } from '../src/api/client';
 import Constants from 'expo-constants';
 
 export default function DebugScreen() {
@@ -63,6 +64,16 @@ export default function DebugScreen() {
 
       <TouchableOpacity style={[styles.btn, styles.resetBtn]} onPress={handleReset}>
         <Text style={styles.btnText}>Reset to Default</Text>
+      </TouchableOpacity>
+
+      <Text style={[styles.label, { marginTop: 24 }]}>Push Notifications</Text>
+      <TouchableOpacity style={[styles.btn, { backgroundColor: '#34C759' }]} onPress={async () => {
+        try {
+          const res = await api.testPush();
+          Alert.alert('Sent', `Push sent to ${res.tokens} device(s)`);
+        } catch (e: any) { Alert.alert('Error', e.message); }
+      }}>
+        <Text style={styles.btnText}>🔔 Send Test Push</Text>
       </TouchableOpacity>
     </View>
   );

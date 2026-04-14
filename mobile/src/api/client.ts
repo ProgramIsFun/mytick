@@ -71,4 +71,6 @@ export const api = {
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
   deleteGroup: (groupId: string) =>
     request(`/groups/${groupId}`, { method: 'DELETE' }),
+  testPush: () =>
+    request('/auth/test-push', { method: 'POST' }),
 };

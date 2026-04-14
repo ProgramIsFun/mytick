@@ -237,6 +237,22 @@ router.delete('/fcm-token', async (req, res: Response) => {
   }
 });
 
+// Test push notification
+router.post('/test-push', async (req, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user || !user.fcmTokens?.length) return res.status(400).json({ error: 'No FCM tokens registered' });
+    const { sendPush } = await import('../services/fcm');
+    await sendPush(user.fcmTokens, '🔔 Test Notification', 'Push notifications are working!', {});
+    res.json({ message: 'Sent', tokens: user.fcmTokens.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // List all users (admin only)
 router.get('/users', async (req, res: Response) => {
   try {
