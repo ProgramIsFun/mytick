@@ -4,6 +4,7 @@ import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { api } from '../src/api/client';
 import { Redirect, useRouter } from 'expo-router';
+import GroupsView from '../src/components/GroupsView';
 import CalendarView from '../src/components/CalendarView';
 
 interface Task {
@@ -146,7 +147,7 @@ export default function Tasks() {
       )}
 
       {tab === 'settings' && <SettingsTab />}
-      {tab === 'groups' && <Text style={s.empty}>Groups — coming soon</Text>}
+      {tab === 'groups' && <GroupsView colors={c} />}
       {tab === 'calendar' && <CalendarView tasks={tasks} />}
     </View>
   );
