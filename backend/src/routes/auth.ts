@@ -213,9 +213,19 @@ router.post('/fcm-token', async (req, res: Response) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-    const { fcmToken } = req.body;
+    const { fcmToken, provider, device } = req.body;
     if (!fcmToken) return res.status(400).json({ error: 'fcmToken required' });
-    await User.updateOne({ _id: decoded.userId }, { $addToSet: { fcmTokens: fcmToken } });
+    const pushProvider = provider || 'fcm';
+    const pushDevice = device || req.headers['user-agent'] || '';
+    // Add to both legacy and new schema
+    await User.updateOne({ _id: decoded.userId }, {
+      $addToSet: { fcmTokens: fcmToken },
+    });
+    // Upsert in pushTokens (update device/date if token exists, insert if not)
+    await User.updateOne(
+      { _id: decoded.userId, 'pushTokens.token': { $ne: fcmToken } },
+      { $push: { pushTokens: { token: fcmToken, provider: pushProvider, device: pushDevice, registeredAt: new Date() } } }
+    );
     res.json({ message: 'Token registered' });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
@@ -230,21 +240,25 @@ router.delete('/fcm-token', async (req, res: Response) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     const { fcmToken } = req.body;
     if (!fcmToken) return res.status(400).json({ error: 'fcmToken required' });
-    await User.updateOne({ _id: decoded.userId }, { $pull: { fcmTokens: fcmToken } });
+    await User.updateOne({ _id: decoded.userId }, {
+      $pull: { fcmTokens: fcmToken, pushTokens: { token: fcmToken } },
+    });
     res.json({ message: 'Token removed' });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
 });
 
-// Get my FCM tokens
+// Get my push tokens
 router.get('/fcm-tokens', async (req, res: Response) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-    const user = await User.findById(decoded.userId).select('fcmTokens');
-    res.json({ tokens: user?.fcmTokens || [] });
+    const user = await User.findById(decoded.userId).select('pushTokens fcmTokens');
+    // Return pushTokens if available, fall back to legacy fcmTokens
+    const pushTokens = user?.pushTokens?.length ? user.pushTokens : (user?.fcmTokens || []).map(t => ({ token: t, provider: 'fcm', device: '', registeredAt: null }));
+    res.json({ tokens: pushTokens });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
@@ -257,10 +271,15 @@ router.post('/test-push', async (req, res: Response) => {
     if (!token) return res.status(401).json({ error: 'No token' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     const user = await User.findById(decoded.userId);
-    if (!user || !user.fcmTokens?.length) return res.status(400).json({ error: 'No FCM tokens registered' });
+    // Collect all FCM tokens from pushTokens + legacy
+    const allTokens = [
+      ...(user?.pushTokens?.filter(t => t.provider === 'fcm').map(t => t.token) || []),
+      ...(user?.fcmTokens || []),
+    ].filter((t, i, a) => a.indexOf(t) === i); // dedupe
+    if (!allTokens.length) return res.status(400).json({ error: 'No push tokens registered' });
     const { sendPush } = await import('../services/fcm');
     const { tokenIndex } = req.body || {};
-    const tokens = tokenIndex !== undefined ? [user.fcmTokens[tokenIndex]].filter(Boolean) : user.fcmTokens;
+    const tokens = tokenIndex !== undefined ? [allTokens[tokenIndex]].filter(Boolean) : allTokens;
     if (!tokens.length) return res.status(400).json({ error: 'Invalid token index' });
     await sendPush(tokens, '🔔 Test Notification', 'Push notifications are working!', {});
     res.json({ message: 'Sent', tokens: tokens.length });

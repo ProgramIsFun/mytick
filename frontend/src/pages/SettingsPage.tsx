@@ -9,7 +9,7 @@ function DebugPushSection() {
   const [pushStatus, setPushStatus] = useState('');
   const [fcmToken, setFcmToken] = useState('');
   const [notifPermission, setNotifPermission] = useState(Notification.permission);
-  const [storedTokens, setStoredTokens] = useState<string[]>([]);
+  const [storedTokens, setStoredTokens] = useState<{ token: string; provider: string; device: string; registeredAt: string | null }[]>([]);
 
   useEffect(() => {
     setNotifPermission(Notification.permission);
@@ -60,9 +60,14 @@ function DebugPushSection() {
       </p>
       {storedTokens.map((t, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
-          <p style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', fontFamily: 'monospace', margin: 0, flex: 1 }}>
-            {i + 1}. {t}
-          </p>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', fontFamily: 'monospace', margin: 0 }}>
+              {i + 1}. [{t.provider}] {t.token}
+            </p>
+            <p style={{ fontSize: 9, color: '#aaa', margin: 0 }}>
+              {t.device?.slice(0, 80) || 'unknown device'}{t.registeredAt ? ` · ${new Date(t.registeredAt).toLocaleString()}` : ''}
+            </p>
+          </div>
           <button onClick={() => handleTestPush(i)} style={{ fontSize: 10, padding: '2px 8px', whiteSpace: 'nowrap' }}>🔔 Push</button>
         </div>
       ))}
