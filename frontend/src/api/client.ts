@@ -67,4 +67,12 @@ export const api = {
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
   deleteGroup: (groupId: string) =>
     request(`/groups/${groupId}`, { method: 'DELETE' }),
+
+  // FCM
+  registerFcmToken: (fcmToken: string) =>
+    request('/auth/fcm-token', { method: 'POST', body: JSON.stringify({ fcmToken }) }),
+  removeFcmToken: (fcmToken: string) =>
+    request('/auth/fcm-token', { method: 'DELETE', body: JSON.stringify({ fcmToken }) }),
+  testPush: () =>
+    request('/auth/test-push', { method: 'POST' }),
 };

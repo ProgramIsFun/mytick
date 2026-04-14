@@ -7,9 +7,11 @@ import PublicTasksPage from './pages/PublicTasksPage';
 import SharedTaskPage from './pages/SharedTaskPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import SettingsPage from './pages/SettingsPage';
+import { usePushNotifications } from './hooks/usePushNotifications';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
+  usePushNotifications();
   if (loading) return null;
   return token ? <>{children}</> : <Navigate to="/login" />;
 }
