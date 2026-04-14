@@ -53,21 +53,51 @@ VITE_API_URL=http://localhost:4000/api   # defaults to this
 
 ```bash
 cd mobile
+cp .env.example .env   # edit with your values
 npm install
-EXPO_PUBLIC_API_URL=http://<your-local-ip>:4000/api npx expo start
 ```
 
-For EAS builds, set the secret:
+#### Development (Expo Go)
+
 ```bash
-eas secret:create --name EXPO_PUBLIC_API_URL --value "https://your-backend.com/api" --type string --scope project
+npx expo start         # scan QR code with Expo Go app
 ```
 
-Build commands:
-```bash
-eas build --platform android --profile preview   # test APK
-eas build --platform android --profile production # production
-eas build --platform ios --profile production     # iOS
+Set your Mac's IP in `.env` so the phone can reach the backend:
 ```
+EXPO_PUBLIC_API_URL=http://192.168.x.x:4000/api
+```
+
+#### Build APK locally
+
+Prerequisites: Java 17, Android SDK
+```bash
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+export ANDROID_HOME="/opt/homebrew/share/android-commandlinetools"
+./scripts/build-local.sh
+```
+
+The APK will be output in the `mobile/` directory.
+
+#### Build APK via EAS (cloud)
+
+```bash
+eas build --platform android --profile preview
+```
+
+EAS environment variables (set via `eas env:update`):
+- `EXPO_PUBLIC_API_URL` — backend API URL
+- `GOOGLE_SERVICES_JSON` — Firebase config (file type)
+
+#### Install APK on device
+
+```bash
+adb install build-*.apk
+```
+
+#### Debug screen
+
+Tap the "MyTick" title on the login screen 7 times to open the debug screen. From there you can view and change the API URL at runtime without rebuilding.
 
 ## Deployment
 
