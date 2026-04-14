@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
+import { requestNotificationPermission } from '../firebase';
 
 export default function SettingsPage() {
   const { user, login: setUser } = useAuth();
@@ -12,6 +13,29 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [pushStatus, setPushStatus] = useState('');
+  const [fcmToken, setFcmToken] = useState('');
+  const [notifPermission, setNotifPermission] = useState(Notification.permission);
+
+  useEffect(() => {
+    setNotifPermission(Notification.permission);
+  }, []);
+
+  const handleRegisterToken = async () => {
+    setPushStatus('Requesting permission...');
+    try {
+      const token = await requestNotificationPermission();
+      setNotifPermission(Notification.permission);
+      if (!token) {
+        setPushStatus('❌ Permission denied or token failed');
+        return;
+      }
+      setFcmToken(token);
+      await api.registerFcmToken(token);
+      setPushStatus('✅ Token registered');
+    } catch (e: any) {
+      setPushStatus(`❌ ${e.message}`);
+    }
+  };
 
   const handleTestPush = async () => {
     setPushStatus('Sending...');
@@ -73,7 +97,16 @@ export default function SettingsPage() {
 
       <hr style={{ margin: '24px 0' }} />
       <h3>Push Notifications</h3>
-      <button onClick={handleTestPush} style={{ padding: '10px 20px' }}>🔔 Send Test Push</button>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        Permission: <strong>{notifPermission}</strong>
+      </p>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+        FCM Token: <strong>{fcmToken || 'Not registered'}</strong>
+      </p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+        <button onClick={handleRegisterToken} style={{ padding: '10px 20px' }}>📝 Register Token</button>
+        <button onClick={handleTestPush} style={{ padding: '10px 20px' }}>🔔 Send Test Push</button>
+      </div>
       {pushStatus && <p style={{ fontSize: 14, marginTop: 8 }}>{pushStatus}</p>}
     </div>
   );
