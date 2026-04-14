@@ -16,7 +16,26 @@ Notifications.setNotificationHandler({
   }),
 });
 
-async function getExpoPushToken(): Promise<string | null> {
+type PushProvider = 'fcm' | 'huawei' | 'apns';
+
+async function detectPushProvider(): Promise<PushProvider> {
+  if (Platform.OS === 'ios') return 'apns';
+  // On Android, try to detect Huawei (no Google Play Services)
+  try {
+    // getDevicePushTokenAsync will fail on Huawei without Google Play Services
+    // In that case, we'd fall back to Huawei Push Kit
+    // For now, detect via device brand
+    const brand = (Device.brand || '').toLowerCase();
+    if (brand === 'huawei' || brand === 'honor') {
+      // TODO: When Huawei Push Kit is integrated, return 'huawei'
+      // For now, still try FCM — some Huawei devices have Google services
+      return 'fcm';
+    }
+  } catch {}
+  return 'fcm';
+}
+
+async function getPushToken(): Promise<{ token: string; provider: PushProvider } | null> {
   if (!Device.isDevice) {
     console.log('Push notifications require a physical device');
     return null;
@@ -30,7 +49,6 @@ async function getExpoPushToken(): Promise<string | null> {
   }
   if (finalStatus !== 'granted') return null;
 
-  // Android needs a notification channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Default',
@@ -38,8 +56,16 @@ async function getExpoPushToken(): Promise<string | null> {
     });
   }
 
-  const token = await Notifications.getDevicePushTokenAsync();
-  return token.data as string;
+  const provider = await detectPushProvider();
+
+  try {
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    return { token: tokenData.data as string, provider };
+  } catch (err) {
+    console.log(`Failed to get push token (${provider}):`, err);
+    // TODO: If FCM fails on Huawei, try Huawei Push Kit here
+    return null;
+  }
 }
 
 export function usePushNotifications() {
@@ -47,14 +73,14 @@ export function usePushNotifications() {
   const router = useRouter();
 
   useEffect(() => {
-    // Register token
-    getExpoPushToken().then(async (token) => {
-      if (!token) return;
-      tokenRef.current = token;
+    // Register token with provider detection
+    getPushToken().then(async (result) => {
+      if (!result) return;
+      tokenRef.current = result.token;
       try {
-        await api.registerFcmToken(token);
+        await api.registerFcmToken(result.token, result.provider, `${Device.brand || ''} ${Device.modelName || ''} ${Platform.OS}`);
       } catch (err) {
-        console.log('Failed to register FCM token:', err);
+        console.log('Failed to register push token:', err);
       }
     });
 
