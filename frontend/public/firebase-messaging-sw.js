@@ -5,12 +5,12 @@ importScripts('https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/11.7.1/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: 'TODO_FILL_ME',
+  apiKey: 'AIzaSyA4I_DbmS9czeZDLeB80gacLnt1pR5UeOI',
   authDomain: 'mytick-cbcf0.firebaseapp.com',
   projectId: 'mytick-cbcf0',
   storageBucket: 'mytick-cbcf0.firebasestorage.app',
   messagingSenderId: '516718261323',
-  appId: 'TODO_FILL_ME',
+  appId: '1:516718261323:web:b24089355cfec4424809ce',
 });
 
 const messaging = firebase.messaging();
