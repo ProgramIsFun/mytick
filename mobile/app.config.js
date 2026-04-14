@@ -41,6 +41,7 @@ module.exports = {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: "com.mytick.app",
+      usesCleartextTraffic: true, // TODO: remove for production — use HTTPS instead
       ...(googleServicesFile ? { googleServicesFile } : {}),
     },
     web: {
