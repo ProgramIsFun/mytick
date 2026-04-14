@@ -3,6 +3,22 @@ import react from '@vitejs/plugin-react'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 
+const SW_PLACEHOLDERS = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID',
+]
+
+function replaceSW(sw: string, env: Record<string, string>) {
+  for (const key of SW_PLACEHOLDERS) {
+    sw = sw.replace(`__${key}__`, env[key] || '')
+  }
+  return sw
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
@@ -10,23 +26,25 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       {
-        name: 'inject-sw-env',
+        name: 'firebase-sw-env',
+        // Dev: serve the SW with env vars injected
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (req.url === '/firebase-messaging-sw.js') {
+              const sw = readFileSync(resolve('public/firebase-messaging-sw.js'), 'utf-8')
+              res.setHeader('Content-Type', 'application/javascript')
+              res.end(replaceSW(sw, env))
+              return
+            }
+            next()
+          })
+        },
+        // Build: replace placeholders in output
         writeBundle() {
           const swPath = resolve('dist/firebase-messaging-sw.js')
           try {
-            let sw = readFileSync(swPath, 'utf-8')
-            const replacements: Record<string, string> = {
-              '__VITE_FIREBASE_API_KEY__': env.VITE_FIREBASE_API_KEY || '',
-              '__VITE_FIREBASE_AUTH_DOMAIN__': env.VITE_FIREBASE_AUTH_DOMAIN || '',
-              '__VITE_FIREBASE_PROJECT_ID__': env.VITE_FIREBASE_PROJECT_ID || '',
-              '__VITE_FIREBASE_STORAGE_BUCKET__': env.VITE_FIREBASE_STORAGE_BUCKET || '',
-              '__VITE_FIREBASE_MESSAGING_SENDER_ID__': env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-              '__VITE_FIREBASE_APP_ID__': env.VITE_FIREBASE_APP_ID || '',
-            }
-            for (const [key, val] of Object.entries(replacements)) {
-              sw = sw.replace(key, val)
-            }
-            writeFileSync(swPath, sw)
+            const sw = readFileSync(swPath, 'utf-8')
+            writeFileSync(swPath, replaceSW(sw, env))
           } catch {}
         },
       },
