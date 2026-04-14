@@ -1,10 +1,30 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api';
+const DEFAULT_API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+let _apiUrl = DEFAULT_API_URL;
+
+export async function initApiUrl() {
+  const saved = await SecureStore.getItemAsync('debug_api_url');
+  if (saved) _apiUrl = saved;
+}
+
+export function getApiUrl() { return _apiUrl; }
+export function getDefaultApiUrl() { return DEFAULT_API_URL; }
+
+export async function setApiUrl(url: string) {
+  _apiUrl = url;
+  await SecureStore.setItemAsync('debug_api_url', url);
+}
+
+export async function resetApiUrl() {
+  _apiUrl = DEFAULT_API_URL;
+  await SecureStore.deleteItemAsync('debug_api_url');
+}
 
 async function request(path: string, options: RequestInit = {}) {
   const token = await SecureStore.getItemAsync('token');
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${_apiUrl}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

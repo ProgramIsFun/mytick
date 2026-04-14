@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
@@ -14,6 +14,19 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const tapCount = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleTitleTap = () => {
+    tapCount.current++;
+    clearTimeout(tapTimer.current);
+    if (tapCount.current >= 7) {
+      tapCount.current = 0;
+      router.push('/debug');
+    } else {
+      tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 2000);
+    }
+  };
 
   if (loading) return <View style={[s.center, { backgroundColor: c.bg }]}><Text style={{ color: c.text }}>Loading...</Text></View>;
   if (user) return <Redirect href="/tasks" />;
@@ -31,7 +44,9 @@ export default function Login() {
 
   return (
     <View style={[s.container, { backgroundColor: c.bg }]}>
-      <Text style={[s.title, { color: c.text }]}>MyTick</Text>
+      <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+        <Text style={[s.title, { color: c.text }]}>MyTick</Text>
+      </TouchableOpacity>
       {isRegister && (
         <>
           <TextInput style={s.input} placeholder="Name" value={name} onChangeText={setName} />
