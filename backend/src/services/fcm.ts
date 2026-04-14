@@ -27,6 +27,11 @@ export async function sendPush(tokens: string[], title: string, body: string, da
   try {
     const res = await messaging.sendEachForMulticast({ tokens, notification: { title, body }, data });
     logger.info({ success: res.successCount, failure: res.failureCount }, 'FCM sent');
+    if (res.failureCount > 0) {
+      res.responses.forEach((r: any, i: number) => {
+        if (!r.success) logger.warn({ token: tokens[i]?.slice(0, 20) + '...', error: r.error?.message }, 'FCM token failed');
+      });
+    }
   } catch (err) {
     logger.error({ err }, 'FCM send failed');
   }
