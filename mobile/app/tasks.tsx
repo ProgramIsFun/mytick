@@ -6,6 +6,7 @@ import { api } from '../src/api/client';
 import { Redirect, useRouter } from 'expo-router';
 import GroupsView from '../src/components/GroupsView';
 import CalendarView from '../src/components/CalendarView';
+import { scheduleDeadlineReminders } from '../src/hooks/useLocalNotifications';
 
 interface Task {
   _id: string;
@@ -37,7 +38,12 @@ export default function Tasks() {
     } catch {}
   }, []);
 
-  useEffect(() => { if (user) loadTasks(); }, [user, loadTasks]);
+  useEffect(() => {
+    if (user) {
+      loadTasks();
+      scheduleDeadlineReminders();
+    }
+  }, [user, loadTasks]);
 
   if (loading) return <View style={[s.center, { backgroundColor: c.bg }]}><Text style={{ color: c.text }}>Loading...</Text></View>;
   if (!user) return <Redirect href="/" />;
