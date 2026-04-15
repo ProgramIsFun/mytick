@@ -161,6 +161,20 @@ function createServer() {
     }
   });
 
+  server.tool('list_root_tasks', 'List root tasks (not a subtask of any other task)', {
+    userEmail: z.string().describe('Email of the user'),
+    status: z.enum(['pending', 'in_progress', 'done']).optional().describe('Filter by status'),
+  }, async ({ userEmail, status }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const query = status ? `?limit=100&status=${status}` : '?limit=100';
+      const res = await api(`/tasks/roots${query}`, { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(res.tasks, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
   server.tool('get_blocking', 'Get tasks that are blocked by a specific task', {
     taskId: z.string().describe('Task ID'),
     userEmail: z.string().describe('Email of the user'),
