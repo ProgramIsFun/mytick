@@ -310,6 +310,47 @@ describe('task status filter', () => {
   });
 });
 
+describe('root tasks endpoint', () => {
+  it('should return only root tasks (not in any blockedBy)', async () => {
+    const { token: freshToken } = await createTestUser('roots@test.com', 'rootsuser');
+    const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Parent' });
+    const child = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Child', blockedBy: [parent.body._id] });
+    const standalone = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Standalone' });
+
+    const res = await request(app).get('/api/tasks/roots').set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    const ids = res.body.tasks.map((t: any) => t._id);
+    expect(ids).toContain(child.body._id);
+    expect(ids).toContain(standalone.body._id);
+    expect(ids).not.toContain(parent.body._id);
+  });
+
+  it('should support status filter', async () => {
+    const { token: freshToken } = await createTestUser('roots2@test.com', 'rootsuser2');
+    const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'P' });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'C', blockedBy: [parent.body._id] });
+
+    const res = await request(app).get('/api/tasks/roots?status=pending').set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks.every((t: any) => t.status === 'pending')).toBe(true);
+  });
+
+  it('should not include other users tasks', async () => {
+    const { token: t1 } = await createTestUser('roots3@test.com', 'rootsuser3');
+    const { token: t2 } = await createTestUser('roots4@test.com', 'rootsuser4');
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${t1}`).send({ title: 'User1 task' });
+    const res = await request(app).get('/api/tasks/roots').set('Authorization', `Bearer ${t2}`);
+    expect(res.status).toBe(200);
+    const titles = res.body.tasks.map((t: any) => t.title);
+    expect(titles).not.toContain('User1 task');
+  });
+});
+
 describe('task count endpoint', () => {
   it('should return counts by status', async () => {
     const res = await request(app).get('/api/tasks/count').set('Authorization', `Bearer ${token}`);

@@ -320,6 +320,30 @@ router.get('/count', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get root tasks (not in any other task's blockedBy)
+router.get('/roots', async (req: AuthRequest, res: Response) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
+    const status = req.query.status as string;
+
+    const childIds = await Task.distinct('blockedBy', { userId: req.userId, blockedBy: { $ne: [] } });
+
+    const filter: any = { userId: req.userId, _id: { $nin: childIds } };
+    if (status) filter.status = status;
+
+    const [tasks, total] = await Promise.all([
+      Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Task.countDocuments(filter),
+    ]);
+
+    res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get tasks that are blocked by a specific task
 router.get('/:id/blocking', async (req: AuthRequest, res: Response) => {
   try {
