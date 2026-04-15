@@ -36,6 +36,10 @@ const taskSchema = new Schema<ITask>({
   visibility: { type: String, enum: ['private', 'group', 'public'], default: 'private' },
   groupIds: [{ type: Schema.Types.ObjectId, ref: 'Group' }],
   shareToken: { type: String, required: true, unique: true },
+  // Dependencies are stored as an embedded array rather than a separate collection.
+  // This is intentional: tasks rarely have >20 deps, and reads always need task+deps together.
+  // Embedded = 1 query. Separate collection = 2 queries for every read, at any scale.
+  // If relationships become the core product, migrate to a graph DB (Neo4j), not a separate collection.
   blockedBy: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
   deadline: { type: Date, default: null },
   recurrence: {

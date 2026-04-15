@@ -545,6 +545,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!task) return res.status(404).json({ error: 'Not found' });
+    await Task.updateMany({ blockedBy: task._id }, { $pull: { blockedBy: task._id } });
     await notificationQueue.cancelByTask(task._id.toString());
     await RecurrenceException.deleteMany({ taskId: task._id });
     res.json({ message: 'Deleted' });
