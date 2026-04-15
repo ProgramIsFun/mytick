@@ -17,7 +17,7 @@ const spec = swaggerJsdoc({
             _id: { type: 'string' },
             title: { type: 'string' },
             description: { type: 'string' },
-            status: { type: 'string', enum: ['pending', 'in_progress', 'done'] },
+            status: { type: 'string', enum: ['pending', 'in_progress', 'on_hold', 'done', 'abandoned'] },
             visibility: { type: 'string', enum: ['private', 'group', 'public'] },
             deadline: { type: 'string', format: 'date-time', nullable: true },
             blockedBy: { type: 'array', items: { type: 'string' } },

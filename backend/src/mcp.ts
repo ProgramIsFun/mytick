@@ -39,7 +39,7 @@ function createServer() {
 
   server.tool('list_tasks', 'List tasks for a user', {
     userEmail: z.string().describe('Email of the user'),
-    status: z.enum(['pending', 'in_progress', 'done']).optional().describe('Filter by status'),
+    status: z.enum(['pending', 'in_progress', 'on_hold', 'done', 'abandoned']).optional().describe('Filter by status'),
   }, async ({ userEmail, status }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
@@ -109,7 +109,7 @@ function createServer() {
     userEmail: z.string().describe('Email of the task owner'),
     title: z.string().optional().describe('New title'),
     description: z.string().optional().describe('New description'),
-    status: z.enum(['pending', 'in_progress', 'done']).optional().describe('New status'),
+    status: z.enum(['pending', 'in_progress', 'on_hold', 'done', 'abandoned']).optional().describe('New status'),
     visibility: z.enum(['private', 'group', 'public']).optional().describe('New visibility'),
     blockedBy: z.array(z.string()).optional().describe('Array of task IDs this task is blocked by'),
     deadline: z.string().optional().nullable().describe('Deadline in ISO 8601 format, or null to clear'),
@@ -163,7 +163,7 @@ function createServer() {
 
   server.tool('list_root_tasks', 'List root tasks (not a subtask of any other task)', {
     userEmail: z.string().describe('Email of the user'),
-    status: z.enum(['pending', 'in_progress', 'done']).optional().describe('Filter by status'),
+    status: z.enum(['pending', 'in_progress', 'on_hold', 'done', 'abandoned']).optional().describe('Filter by status'),
   }, async ({ userEmail, status }) => {
     try {
       const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);

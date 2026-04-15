@@ -252,7 +252,7 @@ router.post('/:id/end-series', async (req: AuthRequest, res: Response) => {
  *     parameters:
  *       - { in: query, name: page, schema: { type: integer, default: 1 } }
  *       - { in: query, name: limit, schema: { type: integer, default: 20, maximum: 100 } }
- *       - { in: query, name: status, schema: { type: string, enum: [pending, in_progress, done] } }
+ *       - { in: query, name: status, schema: { type: string, enum: [pending, in_progress, on_hold, done, abandoned] } }
  *     responses:
  *       200: { description: Paginated task list }
  */
@@ -307,14 +307,16 @@ router.get('/count', async (req: AuthRequest, res: Response) => {
       ],
     };
 
-    const [total, pending, in_progress, done] = await Promise.all([
+    const [total, pending, in_progress, on_hold, done, abandoned] = await Promise.all([
       Task.countDocuments(baseFilter),
       Task.countDocuments({ ...baseFilter, status: 'pending' }),
       Task.countDocuments({ ...baseFilter, status: 'in_progress' }),
+      Task.countDocuments({ ...baseFilter, status: 'on_hold' }),
       Task.countDocuments({ ...baseFilter, status: 'done' }),
+      Task.countDocuments({ ...baseFilter, status: 'abandoned' }),
     ]);
 
-    res.json({ total, pending, in_progress, done });
+    res.json({ total, pending, in_progress, on_hold, done, abandoned });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -465,7 +467,7 @@ async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
  *             properties:
  *               title: { type: string }
  *               description: { type: string }
- *               status: { type: string, enum: [pending, in_progress, done] }
+ *               status: { type: string, enum: [pending, in_progress, on_hold, done, abandoned] }
  *               visibility: { type: string, enum: [private, group, public] }
  *               deadline: { type: string, format: date-time, nullable: true }
  *               blockedBy: { type: array, items: { type: string } }

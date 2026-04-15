@@ -59,7 +59,7 @@ export const createTaskSchema = z.object({
 export const updateTaskSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(5000).optional(),
-  status: z.enum(['pending', 'in_progress', 'done']).optional(),
+  status: z.enum(['pending', 'in_progress', 'on_hold', 'done', 'abandoned']).optional(),
   visibility: z.enum(['private', 'group', 'public']).optional(),
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
