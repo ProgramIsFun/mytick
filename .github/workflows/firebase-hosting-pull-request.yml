@@ -17,6 +17,13 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_FIREBASE_API_KEY: AIzaSyA4I_DbmS9czeZDLeB80gacLnt1pR5UeOI
+          VITE_FIREBASE_AUTH_DOMAIN: mytick-cbcf0.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID: mytick-cbcf0
+          VITE_FIREBASE_STORAGE_BUCKET: mytick-cbcf0.firebasestorage.app
+          VITE_FIREBASE_MESSAGING_SENDER_ID: "516718261323"
+          VITE_FIREBASE_APP_ID: 1:516718261323:web:b24089355cfec4424809ce
+          VITE_FIREBASE_VAPID_KEY: BNaAw5Td5PuR2YAJdZ4OZr3AhvrOVDXwfTudxe4AnCpNxSYpNpSr5WMAXbnHsFstcm2m4nWw5y9w_zkH72eQYvQ
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
