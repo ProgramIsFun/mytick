@@ -29,11 +29,10 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create account
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, provider, loginVaultId, credentials } = req.body;
+    const { name, provider, credentials } = req.body;
     if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
     const account = await Account.create({
       userId: req.userId, name, provider,
-      loginVaultId: loginVaultId || '',
       credentials: credentials || [],
     });
     res.status(201).json(account);
@@ -47,7 +46,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const account = await Account.findOne({ _id: req.params.id, userId: req.userId });
     if (!account) return res.status(404).json({ error: 'Not found' });
-    const allowed = ['name', 'provider', 'loginVaultId', 'credentials'];
+    const allowed = ['name', 'provider', 'credentials'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (account as any)[key] = req.body[key];
     }

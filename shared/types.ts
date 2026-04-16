@@ -93,7 +93,6 @@ export interface Account {
   userId: string;
   name: string;
   provider: ServiceProvider;
-  loginVaultId: string;
   credentials: Credential[];
   createdAt: string;
   updatedAt: string;

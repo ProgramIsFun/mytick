@@ -11,8 +11,7 @@ export interface IAccount extends Document {
   userId: Types.ObjectId;
   name: string;
   provider: ServiceProvider;
-  loginVaultId: string;          // vault item for root login (email+pw)
-  credentials: ICredential[];    // flat list of vault items belonging to this account
+  credentials: ICredential[];    // flat list — includes login creds, API keys, everything
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,7 +25,6 @@ const accountSchema = new Schema<IAccount>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true, trim: true },
   provider: { type: String, enum: ['mongodb_atlas', 'firebase', 'render', 'aws', 'stripe', 'github', 'banking', 'email', 'custom'], required: true },
-  loginVaultId: { type: String, default: '' },
   credentials: [credentialSchema],
 }, { timestamps: true });
 

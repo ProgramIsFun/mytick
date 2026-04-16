@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
-interface Account { _id: string; name: string; provider: string; loginVaultId: string; credentials: { vaultId: string; key: string }[]; }
+interface Account { _id: string; name: string; provider: string; credentials: { vaultId: string; key: string }[]; }
 interface Service { accountId: Account | string; role: string; mappings: { target: string; envVar: string; vaultField: string }[]; }
 interface Project { _id: string; name: string; description: string; repoUrl: string; localPath: string; services: Service[]; members: { userId: string; role: string }[]; }
 
@@ -120,7 +120,6 @@ export default function ProjectsPage() {
                       <div className="text-xs text-text-muted mt-0.5">
                         {prov.label}
                         {a.credentials.length > 0 ? <span className="ml-2">· 🔐 {a.credentials.length} key{a.credentials.length !== 1 ? 's' : ''}</span> : <span className="ml-2 text-warning">· ⚠️ no keys</span>}
-                        {a.loginVaultId && <span className="ml-2">· 🔑 login stored</span>}
                       </div>
                     </div>
                     <span className="text-xs text-text-muted">{expanded ? '▲' : '▼'}</span>
@@ -133,10 +132,6 @@ export default function ProjectsPage() {
                           <div className="text-text-primary font-medium mt-0.5">{prov.label}</div>
                         </div>
                         <div>
-                          <span className="text-text-muted">Login Vault</span>
-                          <div className="text-text-primary font-mono mt-0.5">{a.loginVaultId ? a.loginVaultId.slice(0, 16) + '...' : 'Not stored'}</div>
-                        </div>
-                        <div className="col-span-2">
                           <span className="text-text-muted">Used by</span>
                           <div className="text-text-primary mt-0.5">{usedBy.length ? usedBy.map(p => p.name).join(', ') : 'No projects'}</div>
                         </div>
