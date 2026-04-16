@@ -2,34 +2,19 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
-interface CalendarItem {
-  _id?: string;
-  taskId: string;
-  title: string;
-  status: string;
-  date: string;
-  recurring: boolean;
-}
+interface CalendarItem { _id?: string; taskId: string; title: string; status: string; date: string; recurring: boolean; }
+interface EditState { taskId: string; originalDate: string; newDate: string; title: string; }
 
-interface EditState {
-  taskId: string;
-  originalDate: string;
-  newDate: string;
-  title: string;
-}
+const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
 
 export default function CalendarView() {
   const navigate = useNavigate();
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
+  const [month, setMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1); });
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [menu, setMenu] = useState<{ taskId: string; date: string } | null>(null);
   const [edit, setEdit] = useState<EditState | null>(null);
 
-  const year = month.getFullYear();
-  const mon = month.getMonth();
+  const year = month.getFullYear(), mon = month.getMonth();
   const daysInMonth = new Date(year, mon + 1, 0).getDate();
   const startDay = new Date(year, mon, 1).getDay();
 
@@ -51,18 +36,6 @@ export default function CalendarView() {
     refresh();
   };
 
-  const handleEndSeries = async (taskId: string, date: string) => {
-    await api.endSeries(taskId, date);
-    setMenu(null);
-    refresh();
-  };
-
-  const handleSkip = async (taskId: string, date: string) => {
-    await api.markOccurrence(taskId, date, 'skipped');
-    setMenu(null);
-    refresh();
-  };
-
   const openEdit = (item: CalendarItem) => {
     const d = new Date(item.date);
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -72,12 +45,8 @@ export default function CalendarView() {
 
   const saveEdit = async () => {
     if (!edit) return;
-    await api.editOccurrence(edit.taskId, edit.originalDate, {
-      newDate: new Date(edit.newDate).toISOString(),
-      title: edit.title,
-    });
-    setEdit(null);
-    refresh();
+    await api.editOccurrence(edit.taskId, edit.originalDate, { newDate: new Date(edit.newDate).toISOString(), title: edit.title });
+    setEdit(null); refresh();
   };
 
   const itemsByDate = new Map<string, CalendarItem[]>();
@@ -88,35 +57,32 @@ export default function CalendarView() {
     itemsByDate.get(key)!.push(item);
   });
 
-  const prev = () => setMonth(new Date(year, mon - 1, 1));
-  const next = () => setMonth(new Date(year, mon + 1, 1));
-
   const cells = [];
-  for (let i = 0; i < startDay; i++) cells.push(<div key={`e${i}`} />);
+  for (let i = 0; i < startDay; i++) cells.push(<div key={`e${i}`} className="min-h-[80px]" />);
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${mon}-${d}`;
     const dayItems = itemsByDate.get(key) || [];
     const isToday = new Date().toDateString() === new Date(year, mon, d).toDateString();
     cells.push(
-      <div key={d} style={{ border: '1px solid var(--border)', minHeight: 70, padding: 4, background: isToday ? 'var(--today-bg)' : 'var(--btn-bg)', position: 'relative' }}>
-        <div style={{ fontSize: 12, fontWeight: isToday ? 'bold' : 'normal', color: isToday ? 'var(--link)' : 'var(--text-secondary)' }}>{d}</div>
+      <div key={d} className={`border border-border-light min-h-[80px] p-1.5 rounded-md relative ${isToday ? 'bg-accent/5' : 'bg-surface'}`}>
+        <div className={`text-xs mb-1 ${isToday ? 'font-bold text-accent' : 'text-text-muted'}`}>{d}</div>
         {dayItems.map((item, i) => {
           const isMenuOpen = menu?.taskId === item.taskId && menu?.date === item.date;
           return (
-            <div key={`${item.taskId}-${i}`} style={{ fontSize: 11, padding: '2px 4px', margin: '1px 0', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 3, overflow: 'visible', position: 'relative',
-              background: item.status === 'done' ? 'var(--task-done)' : 'var(--task-pending)', textDecoration: item.status === 'done' ? 'line-through' : 'none' }}>
-              <input type="checkbox" checked={item.status === 'done'} onChange={() => toggleOccurrence(item)} style={{ margin: 0, cursor: 'pointer' }} />
-              <span onClick={() => navigate(`/tasks/${item.taskId}`)} style={{ cursor: 'pointer', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', flex: 1 }}>
+            <div key={`${item.taskId}-${i}`}
+              className={`text-[11px] px-1.5 py-1 my-0.5 rounded flex items-center gap-1.5 relative ${item.status === 'done' ? 'bg-success/10 line-through text-text-muted' : 'bg-warning/10 text-text-primary'}`}>
+              <input type="checkbox" checked={item.status === 'done'} onChange={() => toggleOccurrence(item)} className="w-3 h-3 cursor-pointer accent-accent" />
+              <span onClick={() => navigate(`/tasks/${item.taskId}`)} className="cursor-pointer truncate flex-1">
                 {item.recurring ? '🔁 ' : ''}{item.title}
               </span>
               {item.recurring && (
-                <span onClick={(e) => { e.stopPropagation(); setMenu(isMenuOpen ? null : { taskId: item.taskId, date: item.date }); }} style={{ cursor: 'pointer', fontSize: 10 }}>⋯</span>
+                <span onClick={e => { e.stopPropagation(); setMenu(isMenuOpen ? null : { taskId: item.taskId, date: item.date }); }} className="cursor-pointer text-[10px] hover:bg-surface-hover rounded px-0.5">⋯</span>
               )}
               {isMenuOpen && (
-                <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: 4, zIndex: 10, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-                  <div onClick={() => openEdit(item)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>✏️ Edit this one</div>
-                  <div onClick={() => handleSkip(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>⏭ Skip this one</div>
-                  <div onClick={() => handleEndSeries(item.taskId, item.date)} style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: 'var(--danger)' }}>🛑 End series from here</div>
+                <div onClick={e => e.stopPropagation()} className="absolute right-0 top-full bg-surface border border-border rounded-md p-1 z-10 shadow-lg whitespace-nowrap">
+                  <div onClick={() => openEdit(item)} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover rounded">✏️ Edit this one</div>
+                  <div onClick={() => { api.markOccurrence(item.taskId, item.date, 'skipped'); setMenu(null); refresh(); }} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover rounded">⏭ Skip this one</div>
+                  <div onClick={() => { api.endSeries(item.taskId, item.date); setMenu(null); refresh(); }} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover rounded text-danger">🛑 End series</div>
                 </div>
               )}
             </div>
@@ -128,33 +94,36 @@ export default function CalendarView() {
 
   return (
     <div onClick={() => { if (menu) setMenu(null); }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <button onClick={prev}>← Prev</button>
-        <strong>{month.toLocaleString('default', { month: 'long', year: 'numeric' })}</strong>
-        <button onClick={next}>Next →</button>
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => setMonth(new Date(year, mon - 1, 1))} className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-surface-hover transition-colors">← Prev</button>
+        <span className="text-sm font-semibold text-text-primary">{month.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+        <button onClick={() => setMonth(new Date(year, mon + 1, 1))} className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-surface-hover transition-colors">Next →</button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, fontSize: 13 }}>
+
+      <div className="grid grid-cols-7 gap-0.5">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-          <div key={d} style={{ textAlign: 'center', fontWeight: 'bold', padding: 4, color: 'var(--text-muted)' }}>{d}</div>
+          <div key={d} className="text-center text-xs font-semibold text-text-muted py-2">{d}</div>
         ))}
         {cells}
       </div>
 
       {edit && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setEdit(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', padding: 24, borderRadius: 8, minWidth: 300, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 16px' }}>Edit this occurrence</h3>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Title</label>
-              <input value={edit.title} onChange={e => setEdit({ ...edit, title: e.target.value })} style={{ width: '100%', padding: 8, boxSizing: 'border-box' }} />
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setEdit(null)}>
+          <div onClick={e => e.stopPropagation()} className="bg-surface border border-border rounded-xl p-6 min-w-[320px] shadow-xl">
+            <h3 className="text-lg font-semibold text-text-primary mb-4">Edit occurrence</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-text-secondary mb-1 block">Title</label>
+                <input value={edit.title} onChange={e => setEdit({ ...edit, title: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-text-secondary mb-1 block">Date & time</label>
+                <input type="datetime-local" value={edit.newDate} onChange={e => setEdit({ ...edit, newDate: e.target.value })} className={inputCls} />
+              </div>
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Date & time</label>
-              <input type="datetime-local" value={edit.newDate} onChange={e => setEdit({ ...edit, newDate: e.target.value })} style={{ width: '100%', padding: 8, boxSizing: 'border-box' }} />
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setEdit(null)}>Cancel</button>
-              <button onClick={saveEdit} style={{ fontWeight: 'bold' }}>Save</button>
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => setEdit(null)} className="px-4 py-2 text-sm rounded-md border border-border hover:bg-surface-hover transition-colors">Cancel</button>
+              <button onClick={saveEdit} className="px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors">Save</button>
             </div>
           </div>
         </div>
