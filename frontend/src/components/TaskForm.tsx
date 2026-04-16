@@ -1,19 +1,19 @@
 import { useState, type FormEvent } from 'react';
 
-interface Group {
-  _id: string;
-  name: string;
-}
+interface Group { _id: string; name: string; }
 
 interface Props {
   groups: Group[];
   onCreate: (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number; until?: string; count?: number } | null) => void;
 }
 
+const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
+const btnSecondary = "px-4 py-2 text-sm rounded-md border border-border text-text-secondary hover:bg-surface-hover transition-colors";
+const btnPrimary = "px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors";
+
 export default function TaskForm({ groups, onCreate }: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [deadline, setDeadline] = useState('');
   const [recurring, setRecurring] = useState(false);
@@ -23,12 +23,10 @@ export default function TaskForm({ groups, onCreate }: Props) {
   const [until, setUntil] = useState('');
   const [count, setCount] = useState(10);
 
-  const toggleGroup = (id: string) => {
-    setSelectedGroups(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
-  };
+  const toggleGroup = (id: string) => setSelectedGroups(p => p.includes(id) ? p.filter(g => g !== id) : [...p, id]);
 
   const reset = () => {
-    setTitle(''); setDescription(''); setSelectedGroups([]); setDeadline('');
+    setTitle(''); setSelectedGroups([]); setDeadline('');
     setRecurring(false); setFreq('monthly'); setInterval(1);
     setEndType('never'); setUntil(''); setCount(10);
   };
@@ -44,95 +42,81 @@ export default function TaskForm({ groups, onCreate }: Props) {
       if (endType === 'count') rec.count = count;
     }
     onCreate(title.trim(), selectedGroups, dl, rec);
-    reset();
-    setOpen(false);
+    reset(); setOpen(false);
   };
 
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ width: '100%', padding: 12, marginBottom: 24, fontSize: 15, border: '2px dashed var(--input-border)', borderRadius: 8, background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full py-3 text-sm border-2 border-dashed border-border rounded-lg bg-transparent text-text-muted hover:border-accent hover:text-accent cursor-pointer transition-colors"
+      >
         + Add a new task...
       </button>
 
       {open && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setOpen(false)}>
-          <form onSubmit={handleSubmit} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', padding: 24, borderRadius: 12, width: '90%', maxWidth: 440, boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 16px' }}>New Task</h3>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setOpen(false)}>
+          <form onSubmit={handleSubmit} onClick={e => e.stopPropagation()} className="bg-surface border border-border rounded-xl w-[90%] max-w-md p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-text-primary mb-4">New Task</h3>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Title *</label>
-              <input value={title} onChange={e => setTitle(e.target.value)} placeholder="What needs to be done?" autoFocus style={{ width: '100%', padding: 10, boxSizing: 'border-box', borderRadius: 6, border: '1px solid var(--input-border)' }} />
-            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-text-secondary mb-1 block">Title *</label>
+                <input value={title} onChange={e => setTitle(e.target.value)} placeholder="What needs to be done?" autoFocus className={inputCls} />
+              </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Description</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional details..." rows={2} style={{ width: '100%', padding: 10, boxSizing: 'border-box', borderRadius: 6, border: '1px solid var(--input-border)', resize: 'vertical' }} />
-            </div>
+              <div>
+                <label className="text-xs font-medium text-text-secondary mb-1 block">Deadline</label>
+                <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} className={inputCls} />
+              </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Deadline</label>
-              <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ width: '100%', padding: 10, boxSizing: 'border-box', borderRadius: 6, border: '1px solid var(--input-border)' }} />
-            </div>
-
-            <div style={{ marginBottom: 12, padding: 12, background: 'var(--bg-secondary)', borderRadius: 8 }}>
-              <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, marginBottom: recurring ? 10 : 0 }}>
-                <input type="checkbox" checked={recurring} onChange={() => setRecurring(!recurring)} disabled={!deadline} />
-                Repeat this task
-              </label>
-              {recurring && (
-                <>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                    <span style={{ fontSize: 13 }}>Every</span>
-                    <input type="number" min={1} value={interval} onChange={e => setInterval(Math.max(1, +e.target.value))} style={{ width: 50, padding: 6, borderRadius: 4, border: '1px solid var(--input-border)' }} />
-                    <select value={freq} onChange={e => setFreq(e.target.value)} style={{ padding: 6, borderRadius: 4, border: '1px solid var(--input-border)' }}>
-                      <option value="daily">day(s)</option>
-                      <option value="weekly">week(s)</option>
-                      <option value="monthly">month(s)</option>
-                      <option value="yearly">year(s)</option>
-                    </select>
+              <div className="p-3 bg-surface-secondary rounded-lg">
+                <label className="text-xs font-medium text-text-secondary flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={recurring} onChange={() => setRecurring(!recurring)} disabled={!deadline} className="rounded border-border accent-accent" />
+                  Repeat this task
+                </label>
+                {recurring && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-text-secondary">Every</span>
+                      <input type="number" min={1} value={interval} onChange={e => setInterval(Math.max(1, +e.target.value))} className="w-14 px-2 py-1 text-sm rounded border border-border bg-surface" />
+                      <select value={freq} onChange={e => setFreq(e.target.value)} className="px-2 py-1 text-sm rounded border border-border bg-surface">
+                        <option value="daily">day(s)</option>
+                        <option value="weekly">week(s)</option>
+                        <option value="monthly">month(s)</option>
+                        <option value="yearly">year(s)</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap text-xs text-text-secondary">
+                      <span>Ends:</span>
+                      <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="endType" checked={endType === 'never'} onChange={() => setEndType('never')} /> Never</label>
+                      <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="endType" checked={endType === 'until'} onChange={() => setEndType('until')} /> On</label>
+                      {endType === 'until' && <input type="date" value={until} onChange={e => setUntil(e.target.value)} className="px-2 py-1 rounded border border-border bg-surface text-xs" />}
+                      <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="endType" checked={endType === 'count'} onChange={() => setEndType('count')} /> After</label>
+                      {endType === 'count' && <><input type="number" min={1} value={count} onChange={e => setCount(Math.max(1, +e.target.value))} className="w-14 px-2 py-1 rounded border border-border bg-surface text-xs" /><span>times</span></>}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
-                    <span>Ends:</span>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <input type="radio" name="endType" checked={endType === 'never'} onChange={() => setEndType('never')} /> Never
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <input type="radio" name="endType" checked={endType === 'until'} onChange={() => setEndType('until')} /> On
-                    </label>
-                    {endType === 'until' && (
-                      <input type="date" value={until} onChange={e => setUntil(e.target.value)} style={{ padding: 4, borderRadius: 4, border: '1px solid var(--input-border)' }} />
-                    )}
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <input type="radio" name="endType" checked={endType === 'count'} onChange={() => setEndType('count')} /> After
-                    </label>
-                    {endType === 'count' && (
-                      <>
-                        <input type="number" min={1} value={count} onChange={e => setCount(Math.max(1, +e.target.value))} style={{ width: 50, padding: 4, borderRadius: 4, border: '1px solid var(--input-border)' }} />
-                        <span>times</span>
-                      </>
-                    )}
+                )}
+              </div>
+
+              {groups.length > 0 && (
+                <div>
+                  <label className="text-xs font-medium text-text-secondary mb-2 block">Share with groups</label>
+                  <div className="flex flex-wrap gap-2">
+                    {groups.map(g => (
+                      <label key={g._id} className={`text-xs flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors ${selectedGroups.includes(g._id) ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-secondary hover:bg-surface-hover'}`}>
+                        <input type="checkbox" checked={selectedGroups.includes(g._id)} onChange={() => toggleGroup(g._id)} className="hidden" />
+                        {g.name}
+                      </label>
+                    ))}
                   </div>
-                </>
+                </div>
               )}
             </div>
 
-            {groups.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Share with groups</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {groups.map(g => (
-                    <label key={g._id} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 4, background: selectedGroups.includes(g._id) ? 'var(--task-pending)' : 'transparent', border: '1px solid var(--input-border)', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={selectedGroups.includes(g._id)} onChange={() => toggleGroup(g._id)} />
-                      {g.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => { reset(); setOpen(false); }} style={{ padding: '10px 20px', borderRadius: 6 }}>Cancel</button>
-              <button type="submit" style={{ padding: '10px 20px', borderRadius: 6, fontWeight: 'bold' }}>Create Task</button>
+            <div className="flex justify-end gap-2 mt-5">
+              <button type="button" onClick={() => { reset(); setOpen(false); }} className={btnSecondary}>Cancel</button>
+              <button type="submit" className={btnPrimary}>Create Task</button>
             </div>
           </form>
         </div>
