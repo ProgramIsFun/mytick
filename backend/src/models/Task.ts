@@ -23,6 +23,7 @@ export interface ITask extends Document {
   shareToken: string;
   descriptionHistory: IDescriptionVersion[];
   blockedBy: Types.ObjectId[];
+  projectIds: Types.ObjectId[];
   deadline: Date | null;
   recurrence: IRecurrence | null;
   createdAt: Date;
@@ -41,6 +42,7 @@ const taskSchema = new Schema<ITask>({
   // Embedded = 1 query. Separate collection = 2 queries for every read, at any scale.
   // If relationships become the core product, migrate to a graph DB (Neo4j), not a separate collection.
   blockedBy: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
+  projectIds: [{ type: Schema.Types.ObjectId, ref: 'Project' }],
   deadline: { type: Date, default: null },
   recurrence: {
     type: {

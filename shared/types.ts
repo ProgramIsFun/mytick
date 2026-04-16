@@ -13,6 +13,7 @@ export interface Task {
   groupIds: string[];
   shareToken: string;
   blockedBy: string[];
+  projectIds: string[];
   deadline: string | null;
   recurrence: Recurrence | null;
   descriptionHistory: DescriptionVersion[];

@@ -404,7 +404,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  */
 router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence } = req.body;
+    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, projectIds } = req.body;
 
     // Verify user is editor in all assigned groups
     if (groupIds?.length) {
@@ -424,6 +424,7 @@ router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Respo
       visibility: visibility || 'private',
       groupIds: groupIds || [],
       blockedBy: blockedBy || [],
+      projectIds: projectIds || [],
       deadline: deadline || null,
       recurrence: recurrence || null,
       shareToken: nanoid(12),
@@ -503,7 +504,7 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
       task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
     }
 
-    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline', 'recurrence'];
+    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'projectIds', 'deadline', 'recurrence'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (task as any)[key] = req.body[key];
     }
