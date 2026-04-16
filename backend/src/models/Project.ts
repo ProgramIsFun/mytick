@@ -9,6 +9,7 @@ export interface IEnvMapping {
 export interface IProjectService {
   accountId: Types.ObjectId;  // points to Account
   role: string;               // e.g. "database", "auth", "hosting"
+  env: string;                // e.g. "dev", "uat", "prod", or "" for all
   mappings: IEnvMapping[];
 }
 
@@ -16,8 +17,10 @@ export interface IProject extends Document {
   userId: Types.ObjectId;
   name: string;
   description: string;
+  type: 'software' | 'personal' | 'business' | 'other';
   repoUrl: string;
   localPath: string;
+  environments: string[];       // e.g. ["dev", "uat", "prod"]
   services: IProjectService[];
   members: { userId: Types.ObjectId; role: 'editor' | 'viewer' }[];
   createdAt: Date;
@@ -33,6 +36,7 @@ const envMappingSchema = new Schema<IEnvMapping>({
 const projectServiceSchema = new Schema<IProjectService>({
   accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
   role: { type: String, required: true },
+  env: { type: String, default: '' },
   mappings: [envMappingSchema],
 }, { _id: false });
 
@@ -46,8 +50,10 @@ const projectSchema = new Schema<IProject>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true, trim: true },
   description: { type: String, default: '', trim: true },
+  type: { type: String, enum: ['software', 'personal', 'business', 'other'], default: 'software' },
   repoUrl: { type: String, default: '' },
   localPath: { type: String, default: '' },
+  environments: [{ type: String }],
   services: [projectServiceSchema],
   members: [{
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },

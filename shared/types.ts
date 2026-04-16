@@ -104,9 +104,12 @@ export interface EnvMapping {
   vaultId: string;      // Bitwarden item UUID for this specific value
 }
 
+export type ProjectType = 'software' | 'personal' | 'business' | 'other';
+
 export interface ProjectService {
   accountId: string;
   role: string;
+  env: string;
   mappings: EnvMapping[];
 }
 
@@ -120,8 +123,10 @@ export interface Project {
   userId: string;
   name: string;
   description: string;
+  type: ProjectType;
   repoUrl: string;
   localPath: string;
+  environments: string[];
   services: ProjectService[];
   members: ProjectMember[];
   createdAt: string;

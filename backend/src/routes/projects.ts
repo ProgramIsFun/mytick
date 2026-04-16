@@ -35,13 +35,15 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create project
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, repoUrl, localPath, services } = req.body;
+    const { name, description, repoUrl, localPath, services, type, environments } = req.body;
     if (!name) return res.status(400).json({ error: 'name required' });
     const project = await Project.create({
       userId: req.userId, name,
       description: description || '',
+      type: type || 'software',
       repoUrl: repoUrl || '',
       localPath: localPath || '',
+      environments: environments || [],
       services: services || [],
     });
     res.status(201).json(project);
@@ -55,7 +57,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
     if (!project) return res.status(404).json({ error: 'Not found' });
-    const allowed = ['name', 'description', 'repoUrl', 'localPath', 'services'];
+    const allowed = ['name', 'description', 'repoUrl', 'localPath', 'services', 'type', 'environments'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (project as any)[key] = req.body[key];
     }
