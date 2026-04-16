@@ -139,11 +139,15 @@ export default function ProjectsPage() {
                       {a.credentials.length > 0 && (
                         <div>
                           <span className="text-xs text-text-muted">Credentials</span>
-                          <div className="flex flex-wrap gap-1.5 mt-1">
+                          <div className="space-y-1 mt-1">
                             {a.credentials.map((c, j) => (
-                              <span key={j} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">{c.key}</span>
+                              <div key={j} className="flex items-center gap-2">
+                                <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">{c.key}</span>
+                                <span className="text-[10px] text-text-muted">••••••••</span>
+                              </div>
                             ))}
                           </div>
+                          <p className="text-[10px] text-text-muted mt-2 italic">🔒 Values stored in your password manager. Local vault bridge coming soon.</p>
                         </div>
                       )}
                     </div>
