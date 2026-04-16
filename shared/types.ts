@@ -78,3 +78,31 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
   done: '#22c55e',
   abandoned: '#6b7280',
 };
+
+// Project management
+export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'custom';
+
+export interface EnvMapping {
+  target: string;       // e.g. "backend/.env"
+  envVar: string;       // e.g. "MONGODB_URI"
+  vaultField: string;   // field name in Bitwarden item
+}
+
+export interface ProjectAccount {
+  vaultId: string;            // Bitwarden item UUID
+  provider: ServiceProvider;
+  role: string;               // e.g. "database", "auth", "hosting"
+  mappings: EnvMapping[];
+}
+
+export interface Project {
+  _id: string;
+  userId: string;
+  name: string;
+  description: string;
+  repoUrl: string;
+  localPath: string;
+  accounts: ProjectAccount[];
+  createdAt: string;
+  updatedAt: string;
+}
