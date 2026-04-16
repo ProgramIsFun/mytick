@@ -351,6 +351,38 @@ describe('root tasks endpoint', () => {
   });
 });
 
+describe('task projectIds', () => {
+  it('should create task with projectIds', async () => {
+    const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Project task', projectIds: ['aaaaaaaaaaaaaaaaaaaaaaaa'] });
+    expect(res.status).toBe(201);
+    expect(res.body.projectIds).toEqual(['aaaaaaaaaaaaaaaaaaaaaaaa']);
+  });
+
+  it('should create task without projectIds', async () => {
+    const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Standalone task' });
+    expect(res.status).toBe(201);
+    expect(res.body.projectIds).toEqual([]);
+  });
+
+  it('should update projectIds', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Move me' });
+    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ projectIds: ['bbbbbbbbbbbbbbbbbbbbbbbb'] });
+    expect(res.status).toBe(200);
+    expect(res.body.projectIds).toEqual(['bbbbbbbbbbbbbbbbbbbbbbbb']);
+  });
+
+  it('should assign task to multiple projects', async () => {
+    const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Multi project', projectIds: ['aaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbb'] });
+    expect(res.status).toBe(201);
+    expect(res.body.projectIds).toHaveLength(2);
+  });
+});
+
 describe('task count endpoint', () => {
   it('should return counts by status', async () => {
     const res = await request(app).get('/api/tasks/count').set('Authorization', `Bearer ${token}`);
