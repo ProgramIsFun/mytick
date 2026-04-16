@@ -1,9 +1,9 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IEnvMapping {
-  target: string;       // e.g. "backend/.env", "frontend/.env"
+  target: string;       // e.g. "backend/.env", "Render dashboard"
   envVar: string;       // e.g. "MONGODB_URI"
-  vaultField: string;   // field name in the Bitwarden item
+  vaultId: string;      // Bitwarden item UUID for this specific value
 }
 
 export interface IProjectService {
@@ -27,7 +27,7 @@ export interface IProject extends Document {
 const envMappingSchema = new Schema<IEnvMapping>({
   target: { type: String, required: true },
   envVar: { type: String, required: true },
-  vaultField: { type: String, required: true },
+  vaultId: { type: String, required: true },
 }, { _id: false });
 
 const projectServiceSchema = new Schema<IProjectService>({
@@ -37,10 +37,10 @@ const projectServiceSchema = new Schema<IProjectService>({
 }, { _id: false });
 
 // Architecture note:
-// Project → services[] → accountId (Account model) → vaultId (Bitwarden)
-// Account is a shared resource — multiple projects can reference the same account.
-// To switch a project's account, change accountId. Mappings stay.
-// To manage the account itself (rotate keys, login), use Account.vaultId / loginVaultId.
+// Bitwarden is flat — each item is one key-value pair.
+// Account.credentials[] groups vault items that belong to the same service account.
+// Project.services[].mappings[] maps vault items to env vars.
+// This is provider-agnostic — any password manager that stores key-value pairs works.
 
 const projectSchema = new Schema<IProject>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },

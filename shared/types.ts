@@ -83,13 +83,18 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
 // Project management
 export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'custom';
 
+export interface Credential {
+  vaultId: string;   // Bitwarden item UUID (one key-value pair)
+  key: string;       // human label, e.g. "MONGODB_URI"
+}
+
 export interface Account {
   _id: string;
   userId: string;
   name: string;
   provider: ServiceProvider;
-  vaultId: string;        // Bitwarden item UUID for API keys
-  loginVaultId: string;   // Bitwarden item UUID for root login
+  loginVaultId: string;
+  credentials: Credential[];
   createdAt: string;
   updatedAt: string;
 }
@@ -97,12 +102,12 @@ export interface Account {
 export interface EnvMapping {
   target: string;       // e.g. "backend/.env"
   envVar: string;       // e.g. "MONGODB_URI"
-  vaultField: string;   // field name in Bitwarden item
+  vaultId: string;      // Bitwarden item UUID for this specific value
 }
 
 export interface ProjectService {
-  accountId: string;          // points to Account._id
-  role: string;               // e.g. "database", "auth", "hosting"
+  accountId: string;
+  role: string;
   mappings: EnvMapping[];
 }
 

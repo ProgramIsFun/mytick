@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 
-interface Account { _id: string; name: string; provider: string; vaultId: string; loginVaultId: string; }
+interface Account { _id: string; name: string; provider: string; loginVaultId: string; credentials: { vaultId: string; key: string }[]; }
 interface Service { accountId: Account | string; role: string; mappings: { target: string; envVar: string; vaultField: string }[]; }
 interface Project { _id: string; name: string; description: string; repoUrl: string; localPath: string; services: Service[]; members: { userId: string; role: string }[]; }
 
@@ -117,7 +117,7 @@ export default function ProjectsPage() {
                       <div className="font-medium text-sm text-text-primary">{a.name}</div>
                       <div className="text-xs text-text-muted mt-0.5">
                         {prov.label}
-                        {a.vaultId ? <span className="ml-2">· 🔐 vault linked</span> : <span className="ml-2 text-warning">· ⚠️ no vault</span>}
+                        {a.credentials.length > 0 ? <span className="ml-2">· 🔐 {a.credentials.length} key{a.credentials.length !== 1 ? 's' : ''}</span> : <span className="ml-2 text-warning">· ⚠️ no keys</span>}
                         {a.loginVaultId && <span className="ml-2">· 🔑 login stored</span>}
                       </div>
                     </div>
@@ -131,18 +131,24 @@ export default function ProjectsPage() {
                           <div className="text-text-primary font-medium mt-0.5">{prov.label}</div>
                         </div>
                         <div>
-                          <span className="text-text-muted">Vault ID</span>
-                          <div className="text-text-primary font-mono mt-0.5">{a.vaultId ? a.vaultId.slice(0, 16) + '...' : 'Not linked'}</div>
-                        </div>
-                        <div>
                           <span className="text-text-muted">Login Vault</span>
                           <div className="text-text-primary font-mono mt-0.5">{a.loginVaultId ? a.loginVaultId.slice(0, 16) + '...' : 'Not stored'}</div>
                         </div>
-                        <div>
+                        <div className="col-span-2">
                           <span className="text-text-muted">Used by</span>
                           <div className="text-text-primary mt-0.5">{usedBy.length ? usedBy.map(p => p.name).join(', ') : 'No projects'}</div>
                         </div>
                       </div>
+                      {a.credentials.length > 0 && (
+                        <div>
+                          <span className="text-xs text-text-muted">Credentials</span>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {a.credentials.map((c, j) => (
+                              <span key={j} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">{c.key}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
