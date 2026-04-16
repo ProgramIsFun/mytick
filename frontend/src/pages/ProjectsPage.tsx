@@ -22,6 +22,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [tab, setTab] = useState<Tab>('projects');
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => { api.getProjects().then(setProjects); api.getAccounts().then(setAccounts); }, []);
@@ -103,17 +104,47 @@ export default function ProjectsPage() {
           <div className="space-y-3">
             {accounts.map(a => {
               const prov = PROVIDER[a.provider] || PROVIDER.custom;
+              const expanded = expandedAccount === a._id;
+              const usedBy = projects.filter(p => p.services.some(s => {
+                const aid = typeof s.accountId === 'object' ? (s.accountId as Account)._id : s.accountId;
+                return aid === a._id;
+              }));
               return (
-                <div key={a._id} className="border border-border rounded-lg p-4 bg-surface flex items-center gap-4">
-                  <span className="text-2xl">{prov.emoji}</span>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm text-text-primary">{a.name}</div>
-                    <div className="text-xs text-text-muted mt-0.5">
-                      {prov.label}
-                      {a.vaultId ? <span className="ml-2">· 🔐 vault linked</span> : <span className="ml-2 text-warning">· ⚠️ no vault</span>}
-                      {a.loginVaultId && <span className="ml-2">· 🔑 login stored</span>}
+                <div key={a._id} className="border border-border rounded-lg bg-surface overflow-hidden">
+                  <div className="flex items-center gap-4 p-4 cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => setExpandedAccount(expanded ? null : a._id)}>
+                    <span className="text-2xl">{prov.emoji}</span>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm text-text-primary">{a.name}</div>
+                      <div className="text-xs text-text-muted mt-0.5">
+                        {prov.label}
+                        {a.vaultId ? <span className="ml-2">· 🔐 vault linked</span> : <span className="ml-2 text-warning">· ⚠️ no vault</span>}
+                        {a.loginVaultId && <span className="ml-2">· 🔑 login stored</span>}
+                      </div>
                     </div>
+                    <span className="text-xs text-text-muted">{expanded ? '▲' : '▼'}</span>
                   </div>
+                  {expanded && (
+                    <div className="border-t border-border-light px-4 py-3 bg-surface-secondary space-y-3">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-text-muted">Provider</span>
+                          <div className="text-text-primary font-medium mt-0.5">{prov.label}</div>
+                        </div>
+                        <div>
+                          <span className="text-text-muted">Vault ID</span>
+                          <div className="text-text-primary font-mono mt-0.5">{a.vaultId ? a.vaultId.slice(0, 16) + '...' : 'Not linked'}</div>
+                        </div>
+                        <div>
+                          <span className="text-text-muted">Login Vault</span>
+                          <div className="text-text-primary font-mono mt-0.5">{a.loginVaultId ? a.loginVaultId.slice(0, 16) + '...' : 'Not stored'}</div>
+                        </div>
+                        <div>
+                          <span className="text-text-muted">Used by</span>
+                          <div className="text-text-primary mt-0.5">{usedBy.length ? usedBy.map(p => p.name).join(', ') : 'No projects'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
