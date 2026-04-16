@@ -77,4 +77,29 @@ export const api = {
     request('/auth/test-push', { method: 'POST', body: JSON.stringify(tokenIndex !== undefined ? { tokenIndex } : {}) }),
   getFcmTokens: () =>
     request('/auth/fcm-tokens'),
+
+  // Accounts
+  getAccounts: () => request('/accounts'),
+  getAccount: (id: string) => request(`/accounts/${id}`),
+  createAccount: (data: { name: string; provider: string; vaultId?: string; loginVaultId?: string }) =>
+    request('/accounts', { method: 'POST', body: JSON.stringify(data) }),
+  updateAccount: (id: string, data: Record<string, unknown>) =>
+    request(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAccount: (id: string) =>
+    request(`/accounts/${id}`, { method: 'DELETE' }),
+
+  // Projects
+  getProjects: () => request('/projects'),
+  getProject: (id: string) => request(`/projects/${id}`),
+  createProject: (data: { name: string; description?: string; repoUrl?: string; localPath?: string; services?: unknown[] }) =>
+    request('/projects', { method: 'POST', body: JSON.stringify(data) }),
+  updateProject: (id: string, data: Record<string, unknown>) =>
+    request(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteProject: (id: string) =>
+    request(`/projects/${id}`, { method: 'DELETE' }),
+  getProjectsByAccount: (accountId: string) => request(`/projects/by-account/${accountId}`),
+  addProjectMember: (id: string, userId: string, role: string = 'viewer') =>
+    request(`/projects/${id}/members`, { method: 'POST', body: JSON.stringify({ userId, role }) }),
+  removeProjectMember: (id: string, userId: string) =>
+    request(`/projects/${id}/members/${userId}`, { method: 'DELETE' }),
 };

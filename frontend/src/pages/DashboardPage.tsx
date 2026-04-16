@@ -75,6 +75,7 @@ export default function DashboardPage() {
         <h1>MyTick</h1>
         <div>
           <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/@${user?.username}/tasks`); }} style={{ marginRight: 8 }} title="Copy public tasks link">🔗 Public Link</button>
+          <button onClick={() => navigate('/projects')} style={{ marginRight: 8 }}>📁 Projects</button>
           <span style={{ marginRight: 12, cursor: 'pointer' }} onClick={() => navigate('/settings')}>{user?.name} (@{user?.username}) ⚙️</span>
           <button onClick={logout}>Logout</button>
         </div>
