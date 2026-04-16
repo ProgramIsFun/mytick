@@ -47,8 +47,8 @@ export default function App() {
 function Footer() {
   const { theme, toggle } = useTheme();
   return (
-    <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
-      <button onClick={toggle} style={{ fontSize: 12, padding: '4px 8px', marginRight: 8 }}>{theme === 'light' ? '🌙' : '☀️'}</button>
+    <div className="mt-10 pt-4 border-t border-border-light text-center text-xs text-text-muted">
+      <button onClick={toggle} className="text-xs px-2 py-1 mr-2 rounded hover:bg-surface-hover border border-border">{theme === 'light' ? '🌙' : '☀️'}</button>
       v1.1.0{import.meta.env.DEV && ` · API: ${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}`}
     </div>
   );

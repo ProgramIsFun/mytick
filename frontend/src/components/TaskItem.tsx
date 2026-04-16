@@ -8,12 +8,10 @@ interface Task {
   visibility: string;
   groupIds: string[];
   shareToken: string;
+  deadline: string | null;
 }
 
-interface Group {
-  _id: string;
-  name: string;
-}
+interface Group { _id: string; name: string; }
 
 interface Props {
   task: Task;
@@ -23,23 +21,24 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  pending: { label: 'Pending', cls: 'bg-warning/15 text-warning' },
+  in_progress: { label: 'In Progress', cls: 'bg-accent/15 text-accent' },
+  on_hold: { label: 'On Hold', cls: 'bg-purple/15 text-purple' },
+  done: { label: 'Done', cls: 'bg-success/15 text-success' },
+  abandoned: { label: 'Abandoned', cls: 'bg-gray/15 text-gray' },
+};
+
 export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: Props) {
   const [copied, setCopied] = useState(false);
-  const [showGroups, setShowGroups] = useState(false);
   const navigate = useNavigate();
   const isDone = task.status === 'done';
+  const badge = STATUS_BADGE[task.status] || STATUS_BADGE.pending;
 
-  const toggleDone = () => onUpdate(task._id, { status: isDone ? 'pending' : 'done' });
-
-  const cycleVisibility = () => {
-    const next = task.visibility === 'private' ? 'group' : task.visibility === 'group' ? 'public' : 'private';
-    onUpdate(task._id, { visibility: next });
-  };
-
-  const toggleGroup = (groupId: string) => {
-    const current = task.groupIds || [];
-    const next = current.includes(groupId) ? current.filter(id => id !== groupId) : [...current, groupId];
-    onUpdate(task._id, { groupIds: next });
+  const cycleStatus = () => {
+    const order = ['pending', 'in_progress', 'done'];
+    const next = order[(order.indexOf(task.status) + 1) % order.length];
+    onUpdate(task._id, { status: next });
   };
 
   const copyLink = () => {
@@ -48,52 +47,48 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const visibilityLabel = { private: '🔒', group: '👥', public: '🌐' }[task.visibility] || '';
+  const visIcon = { private: '🔒', group: '👥', public: '🌐' }[task.visibility] || '';
 
   return (
-    <div style={{ padding: 12, borderBottom: '1px solid var(--border)', opacity: isDone ? 0.5 : 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <input type="checkbox" checked={isDone} onChange={toggleDone} disabled={!isOwner} />
-        <span
-          onClick={() => navigate(`/tasks/${task._id}`)}
-          style={{ flex: 1, textDecoration: isDone ? 'line-through' : 'none', cursor: 'pointer' }}
-        >{task.title}</span>
+    <div className={`group flex items-center gap-3 px-4 py-3 border-b border-border-light hover:bg-surface-hover transition-colors ${isDone || task.status === 'abandoned' ? 'opacity-50' : ''}`}>
+      <input
+        type="checkbox"
+        checked={isDone}
+        onChange={() => onUpdate(task._id, { status: isDone ? 'pending' : 'done' })}
+        disabled={!isOwner}
+        className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
+      />
 
-        {isOwner && (
-          <>
-            <button onClick={cycleVisibility} title="Toggle visibility" style={{ fontSize: 12, padding: '4px 8px' }}>
-              {visibilityLabel}
-            </button>
-            {task.visibility === 'group' && (
-              <button onClick={() => setShowGroups(!showGroups)} style={{ fontSize: 12, padding: '4px 8px' }}>
-                📂
-              </button>
-            )}
-            {task.visibility === 'public' && (
-              <button onClick={copyLink} style={{ fontSize: 12, padding: '4px 8px' }}>
-                {copied ? '✅' : '🔗'}
-              </button>
-            )}
-            <button onClick={() => onDelete(task._id)} style={{ fontSize: 12, padding: '4px 8px', color: 'var(--danger)' }}>
-              ✕
-            </button>
-          </>
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/tasks/${task._id}`)}>
+        <div className={`text-sm font-medium truncate ${isDone ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+          {task.title}
+        </div>
+        {task.deadline && (
+          <div className="text-xs text-text-muted mt-0.5">
+            📅 {new Date(task.deadline).toLocaleDateString()}
+          </div>
         )}
       </div>
 
-      {showGroups && isOwner && (
-        <div style={{ marginTop: 8, marginLeft: 28, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {groups.map(g => (
-            <label key={g._id} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <input
-                type="checkbox"
-                checked={(task.groupIds || []).includes(g._id)}
-                onChange={() => toggleGroup(g._id)}
-              />
-              {g.name}
-            </label>
-          ))}
-          {groups.length === 0 && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No groups yet</span>}
+      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
+        {badge.label}
+      </span>
+
+      <span className="text-xs" title={task.visibility}>{visIcon}</span>
+
+      {isOwner && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {task.visibility === 'public' && (
+            <button onClick={copyLink} className="text-xs px-2 py-1 rounded hover:bg-surface-hover border border-border">
+              {copied ? '✅' : '🔗'}
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(task._id)}
+            className="text-xs px-2 py-1 rounded hover:bg-danger/10 text-danger border border-transparent hover:border-danger/20"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
