@@ -2,19 +2,10 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
-interface Member {
-  userId: string;
-  username?: string;
-  name?: string;
-  role: string;
-}
+interface Member { userId: string; username?: string; name?: string; role: string; }
+interface Group { _id: string; name: string; ownerId: string; members: Member[]; }
 
-interface Group {
-  _id: string;
-  name: string;
-  ownerId: string;
-  members: Member[];
-}
+const inputCls = "px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -25,106 +16,76 @@ export default function GroupsPage() {
   const [error, setError] = useState('');
   const { user } = useAuth();
 
-  const load = async () => {
-    try { setGroups(await api.getGroups()); } catch (e: any) { setError(e.message); }
-  };
-
+  const load = async () => { try { setGroups(await api.getGroups()); } catch (e: any) { setError(e.message); } };
   useEffect(() => { load(); }, []);
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    await api.createGroup(name.trim());
-    setName('');
-    load();
+    await api.createGroup(name.trim()); setName(''); load();
   };
 
   const handleAddMember = async (e: FormEvent) => {
     e.preventDefault();
     if (!addMemberGroupId || !memberUserId.trim()) return;
-    try {
-      await api.addMember(addMemberGroupId, memberUserId.trim(), memberRole);
-      setMemberUserId('');
-      setAddMemberGroupId(null);
-      load();
-    } catch (e: any) { setError(e.message); }
-  };
-
-  const handleRemoveMember = async (groupId: string, userId: string) => {
-    await api.removeMember(groupId, userId);
-    load();
-  };
-
-  const handleDelete = async (groupId: string) => {
-    await api.deleteGroup(groupId);
-    load();
+    try { await api.addMember(addMemberGroupId, memberUserId.trim(), memberRole); setMemberUserId(''); setAddMemberGroupId(null); load(); }
+    catch (e: any) { setError(e.message); }
   };
 
   return (
     <div>
-      <h2>Groups</h2>
-
-      <form onSubmit={handleCreate} style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        <input
-          placeholder="New group name..."
-          value={name}
-          onChange={e => setName(e.target.value)}
-          style={{ flex: 1, padding: 10 }}
-        />
-        <button type="submit" style={{ padding: '10px 20px' }}>Create</button>
+      <form onSubmit={handleCreate} className="flex gap-2 mb-6">
+        <input placeholder="New group name..." value={name} onChange={e => setName(e.target.value)} className={`flex-1 ${inputCls}`} />
+        <button type="submit" className="px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors">Create</button>
       </form>
 
-      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
+      {error && <div className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-md mb-4">{error}</div>}
 
-      {groups.map(group => {
-        const isOwner = group.ownerId === user?.id;
-        return (
-        <div key={group._id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 16, marginBottom: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong>{group.name}</strong>
-            {isOwner && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setAddMemberGroupId(addMemberGroupId === group._id ? null : group._id)} style={{ fontSize: 12, padding: '4px 8px' }}>
-                + Member
-              </button>
-              <button onClick={() => handleDelete(group._id)} style={{ fontSize: 12, padding: '4px 8px', color: 'var(--danger)' }}>
-                Delete
-              </button>
-            </div>
-            )}
-          </div>
-
-          <div style={{ marginTop: 8 }}>
-            {group.members.map(m => (
-              <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 14 }}>
-                <span>@{m.username || m.userId} · {m.role}</span>
+      <div className="space-y-3">
+        {groups.map(group => {
+          const isOwner = group.ownerId === user?.id;
+          return (
+            <div key={group._id} className="border border-border rounded-lg p-4 bg-surface">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-text-primary">👥 {group.name}</h3>
                 {isOwner && (
-                <button onClick={() => handleRemoveMember(group._id, m.userId)} style={{ fontSize: 11, padding: '2px 6px', color: 'var(--danger)' }}>
-                  Remove
-                </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => setAddMemberGroupId(addMemberGroupId === group._id ? null : group._id)}
+                      className="text-xs px-2.5 py-1 rounded-md border border-border hover:bg-surface-hover transition-colors">+ Member</button>
+                    <button onClick={() => { api.deleteGroup(group._id); load(); }}
+                      className="text-xs px-2.5 py-1 rounded-md text-danger hover:bg-danger/10 transition-colors">Delete</button>
+                  </div>
                 )}
               </div>
-            ))}
-          </div>
 
-          {isOwner && addMemberGroupId === group._id && (
-            <form onSubmit={handleAddMember} style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <input
-                placeholder="User ID or email"
-                value={memberUserId}
-                onChange={e => setMemberUserId(e.target.value)}
-                style={{ flex: 1, padding: 6 }}
-              />
-              <select value={memberRole} onChange={e => setMemberRole(e.target.value)} style={{ padding: 6 }}>
-                <option value="viewer">Viewer</option>
-                <option value="editor">Editor</option>
-              </select>
-              <button type="submit" style={{ padding: '6px 12px' }}>Add</button>
-            </form>
-          )}
-        </div>
-        );
-      })}
+              <div className="mt-3 space-y-1">
+                {group.members.map(m => (
+                  <div key={m.userId} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-surface-secondary text-sm">
+                    <span className="text-text-primary">@{m.username || m.userId} <span className="text-text-muted">· {m.role}</span></span>
+                    {isOwner && (
+                      <button onClick={() => { api.removeMember(group._id, m.userId); load(); }}
+                        className="text-[11px] text-danger hover:underline">Remove</button>
+                    )}
+                  </div>
+                ))}
+                {group.members.length === 0 && <p className="text-xs text-text-muted py-1">No members yet</p>}
+              </div>
+
+              {isOwner && addMemberGroupId === group._id && (
+                <form onSubmit={handleAddMember} className="flex gap-2 mt-3">
+                  <input placeholder="User ID or email" value={memberUserId} onChange={e => setMemberUserId(e.target.value)} className={`flex-1 ${inputCls}`} />
+                  <select value={memberRole} onChange={e => setMemberRole(e.target.value)} className={inputCls}>
+                    <option value="viewer">Viewer</option>
+                    <option value="editor">Editor</option>
+                  </select>
+                  <button type="submit" className="px-3 py-2 text-sm rounded-md bg-accent text-white hover:bg-accent-hover transition-colors">Add</button>
+                </form>
+              )}
+            </div>
+          );
+        })}
+        {groups.length === 0 && <div className="text-center py-8 text-text-muted text-sm">No groups yet. Create one above!</div>}
+      </div>
     </div>
   );
 }

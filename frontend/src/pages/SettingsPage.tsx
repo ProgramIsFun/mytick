@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { requestNotificationPermission } from '../firebase';
 
-// --- DEBUG SECTION START --- Remove this entire section for production
+const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
+
 function DebugPushSection() {
   const [pushStatus, setPushStatus] = useState('');
   const [fcmToken, setFcmToken] = useState('');
@@ -38,43 +39,34 @@ function DebugPushSection() {
   };
 
   return (
-    <>
-      <hr style={{ margin: '24px 0' }} />
-      <h3>🛠 Push Notifications (Debug)</h3>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        Permission: <strong>{notifPermission}</strong>
-      </p>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-        FCM Token: <strong>{fcmToken || 'Not registered'}</strong>
-      </p>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-        Device: <strong>{navigator.userAgent}</strong>
-      </p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-        <button onClick={handleRegisterToken} style={{ padding: '10px 20px' }}>📝 Register Token</button>
-        <button onClick={() => handleTestPush()} style={{ padding: '10px 20px' }}>🔔 Push All</button>
+    <div className="border border-border rounded-lg p-5 bg-surface mt-6">
+      <h3 className="text-sm font-semibold text-text-primary mb-3">🛠 Push Notifications (Debug)</h3>
+      <div className="space-y-1 text-xs text-text-muted">
+        <p>Permission: <strong className="text-text-primary">{notifPermission}</strong></p>
+        <p className="break-all">FCM Token: <strong className="text-text-primary">{fcmToken || 'Not registered'}</strong></p>
       </div>
-      {pushStatus && <p style={{ fontSize: 14, marginTop: 8 }}>{pushStatus}</p>}
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>
-        <strong>Stored tokens ({storedTokens.length}):</strong>
-      </p>
-      {storedTokens.map((t, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', fontFamily: 'monospace', margin: 0 }}>
-              {i + 1}. [{t.provider}] {t.token}
-            </p>
-            <p style={{ fontSize: 9, color: '#aaa', margin: 0 }}>
-              {t.device?.slice(0, 80) || 'unknown device'}{t.registeredAt ? ` · ${new Date(t.registeredAt).toLocaleString()}` : ''}
-            </p>
-          </div>
-          <button onClick={() => handleTestPush(i)} style={{ fontSize: 10, padding: '2px 8px', whiteSpace: 'nowrap' }}>🔔 Push</button>
+      <div className="flex gap-2 mt-3">
+        <button onClick={handleRegisterToken} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-surface-hover transition-colors">📝 Register Token</button>
+        <button onClick={() => handleTestPush()} className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-surface-hover transition-colors">🔔 Push All</button>
+      </div>
+      {pushStatus && <p className="text-xs mt-2 text-text-secondary">{pushStatus}</p>}
+      {storedTokens.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-medium text-text-muted mb-2">Stored tokens ({storedTokens.length}):</p>
+          {storedTokens.map((t, i) => (
+            <div key={i} className="flex items-center gap-2 py-1.5 border-t border-border-light">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-text-muted font-mono truncate">{i + 1}. [{t.provider}] {t.token}</p>
+                <p className="text-[9px] text-text-muted">{t.device?.slice(0, 80) || 'unknown'}{t.registeredAt ? ` · ${new Date(t.registeredAt).toLocaleString()}` : ''}</p>
+              </div>
+              <button onClick={() => handleTestPush(i)} className="text-[10px] px-2 py-0.5 rounded border border-border hover:bg-surface-hover shrink-0">🔔</button>
+            </div>
+          ))}
         </div>
-      ))}
-    </>
+      )}
+    </div>
   );
 }
-// --- DEBUG SECTION END ---
 
 export default function SettingsPage() {
   const { user, login: setUser } = useAuth();
@@ -95,46 +87,43 @@ export default function SettingsPage() {
       setUser(token, updated);
       setNewPassword('');
       setSuccess('Profile updated');
-    } catch (e: any) {
-      setError(e.message);
-    }
+    } catch (e: any) { setError(e.message); }
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '40px auto', padding: 24 }}>
-      <button onClick={() => navigate('/')} style={{ marginBottom: 16 }}>← Back</button>
-      <h1>Settings</h1>
+    <div className="min-h-screen bg-surface">
+      <header className="border-b border-border bg-surface-secondary">
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-4">
+          <button onClick={() => navigate('/')} className="text-sm text-text-muted hover:text-text-primary transition-colors">← Back</button>
+          <h1 className="text-lg font-semibold text-text-primary">Settings</h1>
+        </div>
+      </header>
 
-      <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 'bold' }}>Username</label>
-      <input
-        value={username}
-        onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-        style={{ display: 'block', width: '100%', padding: 8, marginBottom: 16, boxSizing: 'border-box' }}
-      />
+      <main className="max-w-lg mx-auto px-4 py-6">
+        <div className="border border-border rounded-lg p-5 bg-surface space-y-4">
+          <div>
+            <label className="text-xs font-medium text-text-secondary mb-1 block">Username</label>
+            <input value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-text-secondary mb-1 block">Display Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-text-secondary mb-1 block">New Password</label>
+            <input type="password" placeholder="Leave blank to keep current" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={inputCls} />
+          </div>
 
-      <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 'bold' }}>Display Name</label>
-      <input
-        value={name}
-        onChange={e => setName(e.target.value)}
-        style={{ display: 'block', width: '100%', padding: 8, marginBottom: 16, boxSizing: 'border-box' }}
-      />
+          {error && <div className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-md">{error}</div>}
+          {success && <div className="text-sm text-success bg-success/10 px-3 py-2 rounded-md">{success}</div>}
 
-      <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 'bold' }}>New Password</label>
-      <input
-        type="password"
-        placeholder="Leave blank to keep current"
-        value={newPassword}
-        onChange={e => setNewPassword(e.target.value)}
-        style={{ display: 'block', width: '100%', padding: 8, marginBottom: 16, boxSizing: 'border-box' }}
-      />
+          <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors">
+            Save changes
+          </button>
+        </div>
 
-      {error && <p style={{ color: 'var(--danger)', fontSize: 14 }}>{error}</p>}
-      {success && <p style={{ color: 'green', fontSize: 14 }}>{success}</p>}
-
-      <button onClick={handleSave} style={{ padding: '10px 20px' }}>Save</button>
-
-      {/* --- DEBUG: Remove DebugPushSection for production --- */}
-      <DebugPushSection />
+        <DebugPushSection />
+      </main>
     </div>
   );
 }
