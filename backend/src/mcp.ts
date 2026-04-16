@@ -217,6 +217,63 @@ function createServer() {
     }
   });
 
+  // Context
+  server.tool('list_context', 'List all context entries for a user', {
+    userEmail: z.string().describe('Email of the user'),
+  }, async ({ userEmail }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const entries = await api('/context', { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(entries, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
+  server.tool('get_context', 'Get a context entry by key', {
+    userEmail: z.string().describe('Email of the user'),
+    key: z.string().describe('Context key'),
+  }, async ({ userEmail, key }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const entry = await api(`/context/${encodeURIComponent(key)}`, { headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: JSON.stringify(entry, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
+  server.tool('set_context', 'Set a context entry (upsert)', {
+    userEmail: z.string().describe('Email of the user'),
+    key: z.string().describe('Context key'),
+    value: z.string().describe('Context value'),
+  }, async ({ userEmail, key, value }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      const entry = await api(`/context/${encodeURIComponent(key)}`, {
+        method: 'PUT',
+        headers: { 'x-admin-user-id': id } as any,
+        body: JSON.stringify({ value }),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(entry, null, 2) }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
+  server.tool('delete_context', 'Delete a context entry', {
+    userEmail: z.string().describe('Email of the user'),
+    key: z.string().describe('Context key'),
+  }, async ({ userEmail, key }) => {
+    try {
+      const { id } = await api(`/auth/lookup?email=${encodeURIComponent(userEmail)}`);
+      await api(`/context/${encodeURIComponent(key)}`, { method: 'DELETE', headers: { 'x-admin-user-id': id } as any });
+      return { content: [{ type: 'text', text: 'Deleted' }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: e.message }] };
+    }
+  });
+
   return server;
 }
 
