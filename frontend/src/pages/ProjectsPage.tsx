@@ -71,13 +71,22 @@ export default function ProjectsPage() {
                       const acc = typeof s.accountId === 'object' ? s.accountId : accounts.find(a => a._id === s.accountId);
                       const prov = PROVIDER[acc?.provider || 'custom'] || PROVIDER.custom;
                       return (
-                        <div key={i} className="flex items-center gap-3 text-sm py-1.5 px-3 rounded-md bg-surface-secondary">
-                          <span>{prov.emoji}</span>
-                          <span className="font-medium text-text-primary">{acc?.name || 'Unknown'}</span>
-                          <span className="text-text-muted">—</span>
-                          <span className="text-text-secondary">{s.role}</span>
+                        <div key={i} className="text-sm py-1.5 px-3 rounded-md bg-surface-secondary">
+                          <div className="flex items-center gap-3">
+                            <span>{prov.emoji}</span>
+                            <span className="font-medium text-text-primary">{acc?.name || 'Unknown'}</span>
+                            <span className="text-text-muted">—</span>
+                            <span className="text-text-secondary">{s.role}</span>
+                            {s.mappings.length > 0 && (
+                              <span className="ml-auto text-xs text-text-muted">{s.mappings.length} env var{s.mappings.length !== 1 ? 's' : ''}</span>
+                            )}
+                          </div>
                           {s.mappings.length > 0 && (
-                            <span className="ml-auto text-xs text-text-muted">{s.mappings.length} env var{s.mappings.length !== 1 ? 's' : ''}</span>
+                            <div className="mt-1.5 ml-7 flex flex-wrap gap-1.5">
+                              {s.mappings.map((m, j) => (
+                                <span key={j} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">{m.envVar}</span>
+                              ))}
+                            </div>
                           )}
                         </div>
                       );
