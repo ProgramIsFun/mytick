@@ -13,6 +13,8 @@ const PROVIDER: Record<string, { emoji: string; label: string }> = {
   aws: { emoji: '☁️', label: 'AWS' },
   stripe: { emoji: '💳', label: 'Stripe' },
   github: { emoji: '🐙', label: 'GitHub' },
+  banking: { emoji: '🏦', label: 'Banking' },
+  email: { emoji: '📧', label: 'Email' },
   custom: { emoji: '⚙️', label: 'Custom' },
 };
 

@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'custom';
+export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'banking' | 'email' | 'custom';
 
 export interface ICredential {
   vaultId: string;   // Bitwarden item UUID (one key-value pair)
@@ -25,7 +25,7 @@ const credentialSchema = new Schema<ICredential>({
 const accountSchema = new Schema<IAccount>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true, trim: true },
-  provider: { type: String, enum: ['mongodb_atlas', 'firebase', 'render', 'aws', 'stripe', 'github', 'custom'], required: true },
+  provider: { type: String, enum: ['mongodb_atlas', 'firebase', 'render', 'aws', 'stripe', 'github', 'banking', 'email', 'custom'], required: true },
   loginVaultId: { type: String, default: '' },
   credentials: [credentialSchema],
 }, { timestamps: true });

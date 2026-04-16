@@ -81,7 +81,7 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
 };
 
 // Project management
-export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'custom';
+export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'banking' | 'email' | 'custom';
 
 export interface Credential {
   vaultId: string;   // Bitwarden item UUID (one key-value pair)
