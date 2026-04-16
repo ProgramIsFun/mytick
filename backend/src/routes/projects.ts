@@ -5,10 +5,15 @@ import { auth, AuthRequest } from '../middleware/auth';
 const router = Router();
 router.use(auth);
 
-// List projects
+// List projects (owned or member of)
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const projects = await Project.find({ userId: req.userId }).sort({ createdAt: -1 });
+    const projects = await Project.find({
+      $or: [
+        { userId: req.userId },
+        { 'members.userId': req.userId },
+      ],
+    }).sort({ createdAt: -1 });
     res.json(projects);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -80,6 +85,39 @@ router.get('/by-account/:accountId', async (req: AuthRequest, res: Response) => 
       'services.accountId': req.params.accountId,
     });
     res.json(projects);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add member to project (owner only)
+router.post('/:id/members', async (req: AuthRequest, res: Response) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
+    if (!project) return res.status(404).json({ error: 'Not found' });
+    const { userId, role } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const existing = project.members.find(m => m.userId.toString() === userId);
+    if (existing) {
+      existing.role = role || existing.role;
+    } else {
+      project.members.push({ userId, role: role || 'viewer' });
+    }
+    await project.save();
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Remove member from project (owner only)
+router.delete('/:id/members/:userId', async (req: AuthRequest, res: Response) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
+    if (!project) return res.status(404).json({ error: 'Not found' });
+    project.members = project.members.filter(m => m.userId.toString() !== req.params.userId);
+    await project.save();
+    res.json(project);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

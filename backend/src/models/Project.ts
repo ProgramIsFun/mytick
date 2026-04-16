@@ -19,6 +19,7 @@ export interface IProject extends Document {
   repoUrl: string;
   localPath: string;
   services: IProjectService[];
+  members: { userId: Types.ObjectId; role: 'editor' | 'viewer' }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +49,10 @@ const projectSchema = new Schema<IProject>({
   repoUrl: { type: String, default: '' },
   localPath: { type: String, default: '' },
   services: [projectServiceSchema],
+  members: [{
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    role: { type: String, enum: ['editor', 'viewer'], default: 'viewer' },
+  }],
 }, { timestamps: true });
 
 export default mongoose.model<IProject>('Project', projectSchema);

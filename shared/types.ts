@@ -106,6 +106,11 @@ export interface ProjectService {
   mappings: EnvMapping[];
 }
 
+export interface ProjectMember {
+  userId: string;
+  role: 'editor' | 'viewer';
+}
+
 export interface Project {
   _id: string;
   userId: string;
@@ -114,6 +119,7 @@ export interface Project {
   repoUrl: string;
   localPath: string;
   services: ProjectService[];
+  members: ProjectMember[];
   createdAt: string;
   updatedAt: string;
 }
