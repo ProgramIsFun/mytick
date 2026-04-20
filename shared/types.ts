@@ -18,6 +18,7 @@ export interface Task {
   deadline: string | null;
   recurrence: Recurrence | null;
   metadata: ProjectMetadata | null;
+  tags: string[];
   descriptionHistory: DescriptionVersion[];
   createdAt: string;
   updatedAt: string;

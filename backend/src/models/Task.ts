@@ -43,6 +43,7 @@ export interface ITask extends Document {
   deadline: Date | null;
   recurrence: IRecurrence | null;
   metadata: IProjectMetadata | null;
+  tags: string[];
   createdAt: Date;
 }
 
@@ -76,6 +77,7 @@ const taskSchema = new Schema<ITask>({
     type: Schema.Types.Mixed,
     default: null,
   },
+  tags: [{ type: String, trim: true }],
   descriptionHistory: [{
     description: { type: String },
     savedAt: { type: Date, default: Date.now },

@@ -263,6 +263,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const skip = (page - 1) * limit;
     const status = req.query.status as string;
     const type = req.query.type as string;
+    const tag = req.query.tag as string;
 
     const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
     const groupIds = userGroups.map(g => g._id);
@@ -275,6 +276,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     };
     if (status) filter.status = status;
     if (type) filter.type = type;
+    if (tag) filter.tags = tag;
 
     const [tasks, total] = await Promise.all([
       Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -332,12 +334,14 @@ router.get('/roots', async (req: AuthRequest, res: Response) => {
     const skip = (page - 1) * limit;
     const status = req.query.status as string;
     const type = req.query.type as string;
+    const tag = req.query.tag as string;
 
     const childIds = await Task.distinct('blockedBy', { userId: req.userId, blockedBy: { $ne: [] } });
 
     const filter: any = { userId: req.userId, _id: { $nin: childIds } };
     if (status) filter.status = status;
     if (type) filter.type = type;
+    if (tag) filter.tags = tag;
 
     const [tasks, total] = await Promise.all([
       Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -408,7 +412,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  */
 router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, type, metadata } = req.body;
+    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, type, metadata, tags } = req.body;
 
     // Verify user is editor in all assigned groups
     if (groupIds?.length) {
@@ -432,6 +436,7 @@ router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Respo
       deadline: deadline || null,
       recurrence: recurrence || null,
       metadata: metadata || null,
+      tags: tags || [],
       shareToken: nanoid(12),
     });
 
@@ -509,7 +514,7 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
       task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
     }
 
-    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline', 'recurrence', 'type', 'metadata'];
+    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline', 'recurrence', 'type', 'metadata', 'tags'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (task as any)[key] = req.body[key];
     }

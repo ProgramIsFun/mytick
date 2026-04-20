@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 
 interface DescriptionVersion { description: string; savedAt: string; }
-interface Task { _id: string; title: string; description: string; status: string; visibility: string; groupIds: string[]; shareToken: string; userId: string; descriptionHistory: DescriptionVersion[]; blockedBy: string[]; createdAt: string; type?: string; metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: { accountId: string; role: string; env?: string; mappings?: { target: string; envVar: string; vaultId: string }[] }[]; members?: { userId: string; role: string }[] } | null; }
+interface Task { _id: string; title: string; description: string; status: string; visibility: string; groupIds: string[]; shareToken: string; userId: string; descriptionHistory: DescriptionVersion[]; blockedBy: string[]; createdAt: string; type?: string; tags?: string[]; metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: { accountId: string; role: string; env?: string; mappings?: { target: string; envVar: string; vaultId: string }[] }[]; members?: { userId: string; role: string }[] } | null; }
 interface BlockerTask { _id: string; title: string; status: string; }
 
 const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
@@ -30,6 +30,7 @@ export default function TaskDetailPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -78,6 +79,17 @@ export default function TaskDetailPage() {
     setTask(await api.updateTask(task._id, { blockedBy: task.blockedBy.filter(i => i !== blockerId) }));
   };
 
+  const addTag = async () => {
+    const t = tagInput.trim().toLowerCase();
+    if (!t || task.tags?.includes(t)) { setTagInput(''); return; }
+    setTask(await api.updateTask(task._id, { tags: [...(task.tags || []), t] }));
+    setTagInput('');
+  };
+
+  const removeTag = async (tag: string) => {
+    setTask(await api.updateTask(task._id, { tags: (task.tags || []).filter(t => t !== tag) }));
+  };
+
   const visIcon = { private: '🔒 Private', group: '👥 Group', public: '🌐 Public' }[task.visibility] || '';
 
   return (
@@ -111,6 +123,26 @@ export default function TaskDetailPage() {
           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${badge.cls}`}>{badge.label}</span>
           <span className="text-xs text-text-muted">{visIcon}</span>
           <span className="text-xs text-text-muted">Created {new Date(task.createdAt).toLocaleDateString()}</span>
+        </div>
+
+        {/* Tags */}
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          {(task.tags || []).map(t => (
+            <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent flex items-center gap-1">
+              {t}
+              {isOwner && <button onClick={() => removeTag(t)} className="hover:text-danger">×</button>}
+            </span>
+          ))}
+          {isOwner && (
+            <form onSubmit={e => { e.preventDefault(); addTag(); }} className="inline-flex">
+              <input
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                placeholder="+ tag"
+                className="text-xs px-2 py-0.5 w-20 rounded-full border border-border-light bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:w-32 transition-all"
+              />
+            </form>
+          )}
         </div>
 
         <div className="grid gap-6">

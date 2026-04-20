@@ -10,6 +10,7 @@ interface Task {
   groupIds: string[];
   shareToken: string;
   deadline: string | null;
+  tags?: string[];
   metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: unknown[]; members?: unknown[] } | null;
 }
 
@@ -68,6 +69,13 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
         </div>
         {task.metadata?.repoUrl && (
           <div className="text-xs text-text-muted mt-0.5 truncate">🔗 {task.metadata.repoUrl}</div>
+        )}
+        {task.tags && task.tags.length > 0 && (
+          <div className="flex gap-1 mt-0.5 flex-wrap">
+            {task.tags.map(t => (
+              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>
+            ))}
+          </div>
         )}
         {task.deadline && (
           <div className="text-xs text-text-muted mt-0.5">

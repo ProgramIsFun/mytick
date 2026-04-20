@@ -77,6 +77,7 @@ export const createTaskSchema = z.object({
   deadline: z.string().datetime().nullable().optional(),
   recurrence: recurrenceSchema,
   metadata: projectMetadataSchema,
+  tags: z.array(z.string().max(50)).max(20).optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -90,6 +91,7 @@ export const updateTaskSchema = z.object({
   deadline: z.string().datetime().nullable().optional(),
   recurrence: recurrenceSchema,
   metadata: projectMetadataSchema,
+  tags: z.array(z.string().max(50)).max(20).optional(),
 });
 
 // Group schemas
