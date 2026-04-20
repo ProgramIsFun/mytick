@@ -11,8 +11,10 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const filter: any = { userId: req.userId };
     const tag = req.query.tag as string;
     const q = req.query.q as string;
+    const projectId = req.query.projectId as string;
     if (tag) filter.tags = tag;
     if (q) filter.name = { $regex: q, $options: 'i' };
+    if (projectId) filter.projectId = projectId;
     const domains = await Domain.find(filter)
       .populate('registrarAccountId', 'name provider')
       .populate('dnsAccountId', 'name provider')

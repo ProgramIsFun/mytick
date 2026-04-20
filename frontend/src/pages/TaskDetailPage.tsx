@@ -31,11 +31,13 @@ export default function TaskDetailPage() {
   const [titleDraft, setTitleDraft] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [domains, setDomains] = useState<{ _id: string; name: string; expiryDate: string | null }[]>([]);
 
   useEffect(() => {
     if (!id) return;
     api.getTask(id).then(setTask).catch((err: any) => setError(err.message));
     api.getBlocking(id).then(setBlocking).catch(() => setBlocking([]));
+    api.getDomains(undefined, undefined, id).then(setDomains).catch(() => setDomains([]));
   }, [id]);
 
   useEffect(() => {
@@ -185,6 +187,19 @@ export default function TaskDetailPage() {
               </div>
             </div>
           )}
+          {/* Domains */}
+          {domains.length > 0 && (
+            <div className="border border-border rounded-lg p-4 bg-surface">
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">🌐 Domains</h3>
+              {domains.map(d => (
+                <div key={d._id} className="flex items-center gap-2 py-1.5 text-sm">
+                  <a href={`https://${d.name}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">{d.name}</a>
+                  {d.expiryDate && <span className="text-xs text-text-muted">expires {new Date(d.expiryDate).toLocaleDateString()}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Blocked by */}
           {(blockers.length > 0 || isOwner) && (
             <div className="border border-border rounded-lg p-4 bg-surface">

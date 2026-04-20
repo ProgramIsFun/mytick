@@ -102,11 +102,12 @@ export const api = {
     request(`/accounts/${id}`, { method: 'DELETE' }),
 
   // Domains
-  getDomains: (q?: string, tag?: string) => {
+  getDomains: (q?: string, tag?: string, projectId?: string) => {
     let url = '/domains';
     const params = [];
     if (q) params.push(`q=${encodeURIComponent(q)}`);
     if (tag) params.push(`tag=${encodeURIComponent(tag)}`);
+    if (projectId) params.push(`projectId=${projectId}`);
     if (params.length) url += '?' + params.join('&');
     return request(url);
   },
