@@ -32,11 +32,13 @@ export default function TaskDetailPage() {
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [domains, setDomains] = useState<{ _id: string; name: string; expiryDate: string | null }[]>([]);
+  const [subtasks, setSubtasks] = useState<BlockerTask[]>([]);
 
   useEffect(() => {
     if (!id) return;
     api.getTask(id).then(setTask).catch((err: any) => setError(err.message));
     api.getBlocking(id).then(setBlocking).catch(() => setBlocking([]));
+    api.getSubtasks(id).then(setSubtasks).catch(() => setSubtasks([]));
     api.getDomains(undefined, undefined, id).then(setDomains).catch(() => setDomains([]));
   }, [id]);
 
@@ -72,8 +74,8 @@ export default function TaskDetailPage() {
 
   const addSubtask = async () => {
     if (!subtaskTitle.trim()) return;
-    const sub = await api.createTask({ title: subtaskTitle.trim(), blockedBy: [] });
-    setTask(await api.updateTask(task._id, { blockedBy: [...(task.blockedBy || []), sub._id] }));
+    await api.createTask({ title: subtaskTitle.trim(), parentId: task._id });
+    setSubtasks(await api.getSubtasks(task._id));
     setSubtaskTitle('');
   };
 
@@ -200,6 +202,27 @@ export default function TaskDetailPage() {
             </div>
           )}
 
+          {/* Subtasks */}
+          {(subtasks.length > 0 || isOwner) && (
+            <div className="border border-border rounded-lg p-4 bg-surface">
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">Subtasks</h3>
+              {subtasks.map(s => (
+                <div key={s._id} className="flex items-center gap-2 py-1.5 text-sm">
+                  <span>{s.status === 'done' ? '✅' : '⬜'}</span>
+                  <a href={`/tasks/${s._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${s._id}`); }}
+                    className={`flex-1 text-accent hover:underline ${s.status === 'done' ? 'line-through' : ''}`}>{s.title}</a>
+                </div>
+              ))}
+              {subtasks.length === 0 && <p className="text-xs text-text-muted">None</p>}
+              {isOwner && (
+                <form onSubmit={e => { e.preventDefault(); addSubtask(); }} className="flex gap-2 mt-3">
+                  <input placeholder="Add a subtask..." value={subtaskTitle} onChange={e => setSubtaskTitle(e.target.value)} className={`flex-1 ${inputCls}`} />
+                  <button type="submit" className="px-3 py-2 text-sm rounded-md bg-accent text-white hover:bg-accent-hover">+ Add</button>
+                </form>
+              )}
+            </div>
+          )}
+
           {/* Blocked by */}
           {(blockers.length > 0 || isOwner) && (
             <div className="border border-border rounded-lg p-4 bg-surface">
@@ -213,12 +236,6 @@ export default function TaskDetailPage() {
                 </div>
               ))}
               {blockers.length === 0 && <p className="text-xs text-text-muted">None</p>}
-              {isOwner && (
-                <form onSubmit={e => { e.preventDefault(); addSubtask(); }} className="flex gap-2 mt-3">
-                  <input placeholder="Add a subtask..." value={subtaskTitle} onChange={e => setSubtaskTitle(e.target.value)} className={`flex-1 ${inputCls}`} />
-                  <button type="submit" className="px-3 py-2 text-sm rounded-md bg-accent text-white hover:bg-accent-hover">+ Add</button>
-                </form>
-              )}
             </div>
           )}
 

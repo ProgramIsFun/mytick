@@ -328,7 +328,7 @@ router.get('/count', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Get root tasks (not in any other task's blockedBy)
+// Get root tasks (no parent)
 router.get('/roots', async (req: AuthRequest, res: Response) => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -338,9 +338,7 @@ router.get('/roots', async (req: AuthRequest, res: Response) => {
     const type = req.query.type as string;
     const tag = req.query.tag as string;
 
-    const childIds = await Task.distinct('blockedBy', { userId: req.userId, blockedBy: { $ne: [] } });
-
-    const filter: any = { userId: req.userId, _id: { $nin: childIds } };
+    const filter: any = { userId: req.userId, parentId: null };
     if (status) filter.status = status;
     if (type) filter.type = type;
     if (tag) filter.tags = tag;
@@ -362,6 +360,17 @@ router.get('/:id/blocking', async (req: AuthRequest, res: Response) => {
     const tasks = await Task.find({ blockedBy: req.params.id as any, userId: req.userId })
       .select('_id title status')
       .sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get subtasks of a task
+router.get('/:id/subtasks', async (req: AuthRequest, res: Response) => {
+  try {
+    const tasks = await Task.find({ parentId: req.params.id, userId: req.userId })
+      .sort({ pinned: -1, createdAt: -1 });
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -414,7 +423,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  */
 router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, type, metadata, tags, pinned } = req.body;
+    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, type, metadata, tags, pinned, parentId } = req.body;
 
     // Verify user is editor in all assigned groups
     if (groupIds?.length) {
@@ -435,6 +444,7 @@ router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Respo
       visibility: visibility || 'private',
       groupIds: groupIds || [],
       blockedBy: blockedBy || [],
+      parentId: parentId || null,
       deadline: deadline || null,
       recurrence: recurrence || null,
       metadata: metadata || null,
@@ -517,7 +527,7 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
       task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
     }
 
-    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline', 'recurrence', 'type', 'metadata', 'tags', 'pinned'];
+    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'parentId', 'deadline', 'recurrence', 'type', 'metadata', 'tags', 'pinned'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (task as any)[key] = req.body[key];
     }

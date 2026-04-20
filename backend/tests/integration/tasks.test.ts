@@ -311,29 +311,29 @@ describe('task status filter', () => {
 });
 
 describe('root tasks endpoint', () => {
-  it('should return only root tasks (not in any blockedBy)', async () => {
+  it('should return only root tasks (no parentId)', async () => {
     const { token: freshToken } = await createTestUser('roots@test.com', 'rootsuser');
     const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
       .send({ title: 'Parent' });
     const child = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
-      .send({ title: 'Child', blockedBy: [parent.body._id] });
+      .send({ title: 'Child', parentId: parent.body._id });
     const standalone = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
       .send({ title: 'Standalone' });
 
     const res = await request(app).get('/api/tasks/roots').set('Authorization', `Bearer ${freshToken}`);
     expect(res.status).toBe(200);
     const ids = res.body.tasks.map((t: any) => t._id);
-    expect(ids).toContain(child.body._id);
+    expect(ids).toContain(parent.body._id);
     expect(ids).toContain(standalone.body._id);
-    expect(ids).not.toContain(parent.body._id);
+    expect(ids).not.toContain(child.body._id);
   });
 
   it('should support status filter', async () => {
     const { token: freshToken } = await createTestUser('roots2@test.com', 'rootsuser2');
-    const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
       .send({ title: 'P' });
     await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
-      .send({ title: 'C', blockedBy: [parent.body._id] });
+      .send({ title: 'C' });
 
     const res = await request(app).get('/api/tasks/roots?status=pending').set('Authorization', `Bearer ${freshToken}`);
     expect(res.status).toBe(200);
@@ -348,6 +348,34 @@ describe('root tasks endpoint', () => {
     expect(res.status).toBe(200);
     const titles = res.body.tasks.map((t: any) => t.title);
     expect(titles).not.toContain('User1 task');
+  });
+});
+
+describe('subtasks endpoint', () => {
+  it('should return subtasks of a task', async () => {
+    const { token: freshToken } = await createTestUser('subtask@test.com', 'subtaskuser');
+    const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Parent task' });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Sub 1', parentId: parent.body._id });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Sub 2', parentId: parent.body._id });
+
+    const res = await request(app).get(`/api/tasks/${parent.body._id}/subtasks`).set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(2);
+    const titles = res.body.map((t: any) => t.title);
+    expect(titles).toContain('Sub 1');
+    expect(titles).toContain('Sub 2');
+  });
+
+  it('should return empty for task with no subtasks', async () => {
+    const { token: freshToken } = await createTestUser('nosub@test.com', 'nosubuser');
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Lonely' });
+    const res = await request(app).get(`/api/tasks/${task.body._id}/subtasks`).set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(0);
   });
 });
 

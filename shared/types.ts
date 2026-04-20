@@ -15,6 +15,7 @@ export interface Task {
   groupIds: string[];
   shareToken: string;
   blockedBy: string[];
+  parentId: string | null;
   deadline: string | null;
   recurrence: Recurrence | null;
   metadata: ProjectMetadata | null;
