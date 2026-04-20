@@ -28,11 +28,17 @@ export const api = {
     request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Tasks
-  getTasks: (page = 1, limit = 20, type?: string) => request(`/tasks?page=${page}&limit=${limit}${type ? `&type=${type}` : ''}`),
+  getTasks: (page = 1, limit = 20, type?: string, tag?: string, q?: string) => {
+    let url = `/tasks?page=${page}&limit=${limit}`;
+    if (type) url += `&type=${type}`;
+    if (tag) url += `&tag=${encodeURIComponent(tag)}`;
+    if (q) url += `&q=${encodeURIComponent(q)}`;
+    return request(url);
+  },
   getTask: (id: string) => request(`/tasks/${id}`),
   getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   getCalendar: (from: string, to: string) => request(`/tasks/calendar?from=${from}&to=${to}`),
-  createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[]; deadline?: string; recurrence?: { freq: string; interval: number } | null }) =>
+  createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[]; deadline?: string; recurrence?: { freq: string; interval: number } | null; type?: string; tags?: string[]; metadata?: Record<string, unknown> | null }) =>
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, data: Record<string, unknown>) =>
     request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),

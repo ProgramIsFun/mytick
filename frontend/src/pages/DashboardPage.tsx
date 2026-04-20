@@ -30,15 +30,22 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<Tab>('tasks');
   const [showGroupTasks, setShowGroupTasks] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
+  const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   const loadTasks = async (p = page) => {
     try {
-      const res = await api.getTasks(p, 20, typeFilter);
+      const res = await api.getTasks(p, 20, typeFilter, tagFilter, searchQuery || undefined);
       setTasks(res.tasks); setTotalPages(res.totalPages); setPage(res.page);
+      // Collect unique tags
+      const tags = new Set<string>(allTags);
+      res.tasks.forEach((t: any) => t.tags?.forEach((tag: string) => tags.add(tag)));
+      setAllTags([...tags].sort());
     } catch (err: any) { setError(err.message); }
   };
 
@@ -46,10 +53,14 @@ export default function DashboardPage() {
   const loadCounts = async () => { try { setCounts(await api.getTasks(1, 1).then(() => ({})).catch(() => ({}))); } catch {} };
 
   useEffect(() => { loadTasks(); loadGroups(); }, []);
-  useEffect(() => { loadTasks(1); }, [typeFilter]);
+  useEffect(() => { loadTasks(1); }, [typeFilter, tagFilter]);
+  useEffect(() => {
+    const t = setTimeout(() => loadTasks(1), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   const handleCreate = async (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number } | null) => {
-    await api.createTask({ title, groupIds, visibility: groupIds.length > 0 ? 'group' : 'private', deadline, recurrence });
+    await api.createTask({ title, groupIds, visibility: groupIds.length > 0 ? 'group' : 'private', deadline, recurrence, type: typeFilter === 'project' ? 'project' : 'task' });
     loadTasks();
   };
 
@@ -128,6 +139,17 @@ export default function DashboardPage() {
                     {label}
                   </button>
                 ))}
+                {allTags.length > 0 && (
+                  <>
+                    <span className="text-text-muted text-xs mx-1">|</span>
+                    {allTags.map(t => (
+                      <button key={t} onClick={() => setTagFilter(tagFilter === t ? undefined : t)}
+                        className={`px-2 py-0.5 text-[11px] rounded-full transition-colors ${tagFilter === t ? 'bg-accent text-white' : 'bg-surface-secondary text-text-muted hover:text-text-primary'}`}>
+                        {t}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
               <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
                 <input
@@ -139,6 +161,14 @@ export default function DashboardPage() {
                 Show group tasks
               </label>
             </div>
+
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 mb-3"
+            />
 
             {error && <div className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-md mb-3">{error}</div>}
 

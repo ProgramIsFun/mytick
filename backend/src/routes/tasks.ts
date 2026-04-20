@@ -264,6 +264,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const status = req.query.status as string;
     const type = req.query.type as string;
     const tag = req.query.tag as string;
+    const q = req.query.q as string;
 
     const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
     const groupIds = userGroups.map(g => g._id);
@@ -277,6 +278,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     if (status) filter.status = status;
     if (type) filter.type = type;
     if (tag) filter.tags = tag;
+    if (q) filter.title = { $regex: q, $options: 'i' };
 
     const [tasks, total] = await Promise.all([
       Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),

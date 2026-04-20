@@ -445,6 +445,54 @@ describe('task metadata (project)', () => {
   });
 });
 
+describe('task search', () => {
+  it('should search by title', async () => {
+    const { token: freshToken } = await createTestUser('search@test.com', 'searchuser');
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Deploy to production' });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Fix login bug' });
+    const res = await request(app).get('/api/tasks?q=deploy').set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks.every((t: any) => /deploy/i.test(t.title))).toBe(true);
+  });
+
+  it('should be case insensitive', async () => {
+    const { token: freshToken } = await createTestUser('search2@test.com', 'searchuser2');
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'URGENT task' });
+    const res = await request(app).get('/api/tasks?q=urgent').set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks).toHaveLength(1);
+  });
+});
+
+describe('task tag filter', () => {
+  it('should filter by tag', async () => {
+    const { token: freshToken } = await createTestUser('tagfilter@test.com', 'tagfilter');
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Work task', tags: ['work'] });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Personal task', tags: ['personal'] });
+    const res = await request(app).get('/api/tasks?tag=work').set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks).toHaveLength(1);
+    expect(res.body.tasks[0].title).toBe('Work task');
+  });
+
+  it('should combine tag and type filters', async () => {
+    const { token: freshToken } = await createTestUser('tagtype@test.com', 'tagtype');
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Work project', type: 'project', tags: ['work'] });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'Work task', type: 'task', tags: ['work'] });
+    const res = await request(app).get('/api/tasks?tag=work&type=project').set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks).toHaveLength(1);
+    expect(res.body.tasks[0].title).toBe('Work project');
+  });
+});
+
 describe('task count endpoint', () => {
   it('should return counts by status', async () => {
     const res = await request(app).get('/api/tasks/count').set('Authorization', `Bearer ${token}`);
