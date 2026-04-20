@@ -111,6 +111,11 @@ export default function AccountsPage() {
                       {a.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>)}
                     </div>
                   )}
+                  {a.url && (
+                    <a href={a.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-xs px-2 py-1 rounded-md border border-border hover:bg-surface-hover">
+                      Open ↗
+                    </a>
+                  )}
                   <span className="text-xs text-text-muted">{isExpanded ? '▲' : '▼'}</span>
                 </div>
                 {isExpanded && (
