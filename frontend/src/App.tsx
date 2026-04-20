@@ -38,8 +38,8 @@ export default function App() {
             <Route path="/accounts" element={<PrivateRoute><AccountsPage /></PrivateRoute>} />
             <Route path="/domains" element={<PrivateRoute><DomainsPage /></PrivateRoute>} />
             <Route path="/share/:token" element={<SharedTaskPage />} />
-            <Route path="/@:username" element={<ProfilePage />} />
-            <Route path="/@:username/tasks" element={<PublicTasksPage />} />
+            <Route path="/u/:username" element={<ProfilePage />} />
+            <Route path="/u/:username/tasks" element={<PublicTasksPage />} />
           </Routes>
           <Footer />
         </BrowserRouter>

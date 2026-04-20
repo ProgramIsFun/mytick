@@ -42,7 +42,7 @@ export default function ProfilePage() {
           <p className="text-sm text-text-muted mt-1">@{profile.username}</p>
           <div className="flex gap-3 mt-3">
             <span className="text-xs text-text-muted">{profile.projects.length} public project{profile.projects.length !== 1 ? 's' : ''}</span>
-            <a href={`/@${profile.username}/tasks`} onClick={e => { e.preventDefault(); navigate(`/@${profile.username}/tasks`); }} className="text-xs text-accent hover:underline">View tasks →</a>
+            <a href={`/u/${profile.username}/tasks`} onClick={e => { e.preventDefault(); navigate(`/u/${profile.username}/tasks`); }} className="text-xs text-accent hover:underline">View tasks →</a>
           </div>
         </div>
       </header>
