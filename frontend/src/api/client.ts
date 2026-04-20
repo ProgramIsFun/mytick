@@ -100,4 +100,21 @@ export const api = {
     request(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteAccount: (id: string) =>
     request(`/accounts/${id}`, { method: 'DELETE' }),
+
+  // Domains
+  getDomains: (q?: string, tag?: string) => {
+    let url = '/domains';
+    const params = [];
+    if (q) params.push(`q=${encodeURIComponent(q)}`);
+    if (tag) params.push(`tag=${encodeURIComponent(tag)}`);
+    if (params.length) url += '?' + params.join('&');
+    return request(url);
+  },
+  getDomain: (id: string) => request(`/domains/${id}`),
+  createDomain: (data: Record<string, unknown>) =>
+    request('/domains', { method: 'POST', body: JSON.stringify(data) }),
+  updateDomain: (id: string, data: Record<string, unknown>) =>
+    request(`/domains/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteDomain: (id: string) =>
+    request(`/domains/${id}`, { method: 'DELETE' }),
 };

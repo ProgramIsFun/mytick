@@ -128,3 +128,20 @@ export interface Account {
   createdAt: string;
   updatedAt: string;
 }
+
+// Domains
+export interface Domain {
+  _id: string;
+  userId: string;
+  name: string;
+  registrarAccountId: string | { _id: string; name: string; provider: string } | null;
+  dnsAccountId: string | { _id: string; name: string; provider: string } | null;
+  expiryDate: string | null;
+  autoRenew: boolean;
+  nameservers: string[];
+  sslProvider: string;
+  notes: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}

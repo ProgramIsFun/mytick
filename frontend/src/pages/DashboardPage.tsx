@@ -110,6 +110,12 @@ export default function DashboardPage() {
               🔑 Accounts
             </button>
             <button
+              onClick={() => navigate('/domains')}
+              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+            >
+              🌐 Domains
+            </button>
+            <button
               onClick={() => navigate('/settings')}
               className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
             >
