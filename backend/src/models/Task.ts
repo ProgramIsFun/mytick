@@ -44,6 +44,7 @@ export interface ITask extends Document {
   recurrence: IRecurrence | null;
   metadata: IProjectMetadata | null;
   tags: string[];
+  pinned: boolean;
   createdAt: Date;
 }
 
@@ -78,6 +79,7 @@ const taskSchema = new Schema<ITask>({
     default: null,
   },
   tags: [{ type: String, trim: true }],
+  pinned: { type: Boolean, default: false },
   descriptionHistory: [{
     description: { type: String },
     savedAt: { type: Date, default: Date.now },

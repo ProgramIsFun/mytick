@@ -8,7 +8,12 @@ router.use(auth);
 // List accounts
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const accounts = await Account.find({ userId: req.userId }).sort({ createdAt: -1 });
+    const filter: any = { userId: req.userId };
+    const tag = req.query.tag as string;
+    const q = req.query.q as string;
+    if (tag) filter.tags = tag;
+    if (q) filter.name = { $regex: q, $options: 'i' };
+    const accounts = await Account.find(filter).sort({ createdAt: -1 });
     res.json(accounts);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -29,11 +34,12 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create account
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, provider, credentials } = req.body;
+    const { name, provider, url, username, notes, tags, credentials } = req.body;
     if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
     const account = await Account.create({
       userId: req.userId, name, provider,
-      credentials: credentials || [],
+      url: url || '', username: username || '', notes: notes || '',
+      tags: tags || [], credentials: credentials || [],
     });
     res.status(201).json(account);
   } catch (err) {
@@ -46,7 +52,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const account = await Account.findOne({ _id: req.params.id, userId: req.userId });
     if (!account) return res.status(404).json({ error: 'Not found' });
-    const allowed = ['name', 'provider', 'credentials'];
+    const allowed = ['name', 'provider', 'url', 'username', 'notes', 'tags', 'credentials'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (account as any)[key] = req.body[key];
     }

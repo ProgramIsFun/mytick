@@ -11,6 +11,7 @@ interface Task {
   shareToken: string;
   deadline: string | null;
   tags?: string[];
+  pinned?: boolean;
   metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: unknown[]; members?: unknown[] } | null;
 }
 
@@ -88,10 +89,15 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
         {badge.label}
       </span>
 
+      {task.pinned && <span className="text-xs" title="Pinned">📌</span>}
+
       <span className="text-xs" title={task.visibility}>{visIcon}</span>
 
       {isOwner && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onUpdate(task._id, { pinned: !task.pinned })} className="text-xs px-2 py-1 rounded hover:bg-surface-hover border border-transparent" title={task.pinned ? 'Unpin' : 'Pin'}>
+            {task.pinned ? '📌' : '📍'}
+          </button>
           {task.visibility === 'public' && (
             <button onClick={copyLink} className="text-xs px-2 py-1 rounded hover:bg-surface-hover border border-border">
               {copied ? '✅' : '🔗'}

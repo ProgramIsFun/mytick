@@ -85,9 +85,16 @@ export const api = {
     request('/auth/fcm-tokens'),
 
   // Accounts
-  getAccounts: () => request('/accounts'),
+  getAccounts: (q?: string, tag?: string) => {
+    let url = '/accounts';
+    const params = [];
+    if (q) params.push(`q=${encodeURIComponent(q)}`);
+    if (tag) params.push(`tag=${encodeURIComponent(tag)}`);
+    if (params.length) url += '?' + params.join('&');
+    return request(url);
+  },
   getAccount: (id: string) => request(`/accounts/${id}`),
-  createAccount: (data: { name: string; provider: string; vaultId?: string; loginVaultId?: string }) =>
+  createAccount: (data: Record<string, unknown>) =>
     request('/accounts', { method: 'POST', body: JSON.stringify(data) }),
   updateAccount: (id: string, data: Record<string, unknown>) =>
     request(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),

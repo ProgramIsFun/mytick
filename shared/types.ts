@@ -19,6 +19,7 @@ export interface Task {
   recurrence: Recurrence | null;
   metadata: ProjectMetadata | null;
   tags: string[];
+  pinned: boolean;
   descriptionHistory: DescriptionVersion[];
   createdAt: string;
   updatedAt: string;
@@ -119,6 +120,10 @@ export interface Account {
   userId: string;
   name: string;
   provider: ServiceProvider;
+  url: string;
+  username: string;
+  notes: string;
+  tags: string[];
   credentials: Credential[];
   createdAt: string;
   updatedAt: string;

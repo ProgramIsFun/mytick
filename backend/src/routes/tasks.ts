@@ -281,7 +281,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     if (q) filter.title = { $regex: q, $options: 'i' };
 
     const [tasks, total] = await Promise.all([
-      Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Task.find(filter).sort({ pinned: -1, createdAt: -1 }).skip(skip).limit(limit),
       Task.countDocuments(filter),
     ]);
 
@@ -346,7 +346,7 @@ router.get('/roots', async (req: AuthRequest, res: Response) => {
     if (tag) filter.tags = tag;
 
     const [tasks, total] = await Promise.all([
-      Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Task.find(filter).sort({ pinned: -1, createdAt: -1 }).skip(skip).limit(limit),
       Task.countDocuments(filter),
     ]);
 
@@ -414,7 +414,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  */
 router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, type, metadata, tags } = req.body;
+    const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, type, metadata, tags, pinned } = req.body;
 
     // Verify user is editor in all assigned groups
     if (groupIds?.length) {
@@ -439,6 +439,7 @@ router.post('/', validate(createTaskSchema), async (req: AuthRequest, res: Respo
       recurrence: recurrence || null,
       metadata: metadata || null,
       tags: tags || [],
+      pinned: pinned || false,
       shareToken: nanoid(12),
     });
 
@@ -516,7 +517,7 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
       task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
     }
 
-    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline', 'recurrence', 'type', 'metadata', 'tags'];
+    const allowed = ['title', 'description', 'status', 'visibility', 'groupIds', 'blockedBy', 'deadline', 'recurrence', 'type', 'metadata', 'tags', 'pinned'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (task as any)[key] = req.body[key];
     }

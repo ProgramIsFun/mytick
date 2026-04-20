@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [tab, setTab] = useState<Tab>('tasks');
   const [showGroupTasks, setShowGroupTasks] = useState(false);
+  const [showDone, setShowDone] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
   const [tagFilter, setTagFilter] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,6 +104,12 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => navigate('/accounts')}
+              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+            >
+              🔑 Accounts
+            </button>
+            <button
               onClick={() => navigate('/settings')}
               className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
             >
@@ -160,6 +167,15 @@ export default function DashboardPage() {
                 />
                 Show group tasks
               </label>
+              <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showDone}
+                  onChange={() => setShowDone(!showDone)}
+                  className="rounded border-border accent-accent"
+                />
+                Show done
+              </label>
             </div>
 
             <input
@@ -178,7 +194,7 @@ export default function DashboardPage() {
                   No tasks yet. Create one above!
                 </div>
               ) : (
-                tasks.filter(t => showGroupTasks || t.userId === user?.id).map(task => (
+                tasks.filter(t => (showGroupTasks || t.userId === user?.id) && (showDone || (t.status !== 'done' && t.status !== 'abandoned'))).map(task => (
                   <TaskItem
                     key={task._id}
                     task={task}

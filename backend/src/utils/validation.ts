@@ -78,6 +78,7 @@ export const createTaskSchema = z.object({
   recurrence: recurrenceSchema,
   metadata: projectMetadataSchema,
   tags: z.array(z.string().max(50)).max(20).optional(),
+  pinned: z.boolean().optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -92,6 +93,7 @@ export const updateTaskSchema = z.object({
   recurrence: recurrenceSchema,
   metadata: projectMetadataSchema,
   tags: z.array(z.string().max(50)).max(20).optional(),
+  pinned: z.boolean().optional(),
 });
 
 // Group schemas

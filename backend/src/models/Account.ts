@@ -11,7 +11,11 @@ export interface IAccount extends Document {
   userId: Types.ObjectId;
   name: string;
   provider: ServiceProvider;
-  credentials: ICredential[];    // flat list — includes login creds, API keys, everything
+  url: string;
+  username: string;
+  notes: string;
+  tags: string[];
+  credentials: ICredential[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +29,10 @@ const accountSchema = new Schema<IAccount>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true, trim: true },
   provider: { type: String, enum: ['mongodb_atlas', 'firebase', 'render', 'aws', 'stripe', 'github', 'banking', 'email', 'custom'], required: true },
+  url: { type: String, default: '', trim: true },
+  username: { type: String, default: '', trim: true },
+  notes: { type: String, default: '', trim: true },
+  tags: [{ type: String, trim: true }],
   credentials: [credentialSchema],
 }, { timestamps: true });
 
