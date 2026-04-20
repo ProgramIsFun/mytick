@@ -45,28 +45,51 @@ const recurrenceSchema = z.object({
   byDay: z.array(z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'])).optional(),
 }).nullable().optional();
 
+const projectMetadataSchema = z.object({
+  projectType: z.enum(['software', 'personal', 'business', 'other']).optional(),
+  repoUrl: z.string().optional(),
+  localPath: z.string().optional(),
+  environments: z.array(z.string()).optional(),
+  services: z.array(z.object({
+    accountId: z.string(),
+    role: z.string(),
+    env: z.string().optional(),
+    mappings: z.array(z.object({
+      target: z.string(),
+      envVar: z.string(),
+      vaultId: z.string(),
+    })).optional(),
+  })).optional(),
+  members: z.array(z.object({
+    userId: z.string(),
+    role: z.enum(['editor', 'viewer']),
+  })).optional(),
+}).nullable().optional();
+
 // Task schemas
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(500),
   description: z.string().max(5000).optional(),
+  type: z.enum(['task', 'project']).optional(),
   visibility: z.enum(['private', 'group', 'public']).optional(),
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
-  projectIds: z.array(z.string()).optional(),
   deadline: z.string().datetime().nullable().optional(),
   recurrence: recurrenceSchema,
+  metadata: projectMetadataSchema,
 });
 
 export const updateTaskSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(5000).optional(),
+  type: z.enum(['task', 'project']).optional(),
   status: z.enum(['pending', 'in_progress', 'on_hold', 'done', 'abandoned']).optional(),
   visibility: z.enum(['private', 'group', 'public']).optional(),
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
-  projectIds: z.array(z.string()).optional(),
   deadline: z.string().datetime().nullable().optional(),
   recurrence: recurrenceSchema,
+  metadata: projectMetadataSchema,
 });
 
 // Group schemas

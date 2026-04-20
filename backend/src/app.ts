@@ -6,7 +6,6 @@ import authRoutes from './routes/auth';
 import taskRoutes from './routes/tasks';
 import groupRoutes from './routes/groups';
 import accountRoutes from './routes/accounts';
-import projectRoutes from './routes/projects';
 import contextRoutes from './routes/context';
 
 const app = express();
@@ -36,7 +35,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/accounts', accountRoutes);
-app.use('/api/projects', projectRoutes);
 app.use('/api/context', contextRoutes);
 app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 app.get('/api/health', async (_req, res) => {

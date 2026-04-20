@@ -13,19 +13,36 @@ export interface IRecurrence {
   byDay?: ('MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU')[];
 }
 
+export type TaskType = 'task' | 'project';
+
+export interface IProjectMetadata {
+  projectType: 'software' | 'personal' | 'business' | 'other';
+  repoUrl: string;
+  localPath: string;
+  environments: string[];
+  services: {
+    accountId: Types.ObjectId;
+    role: string;
+    env: string;
+    mappings: { target: string; envVar: string; vaultId: string }[];
+  }[];
+  members: { userId: Types.ObjectId; role: 'editor' | 'viewer' }[];
+}
+
 export interface ITask extends Document {
   userId: Types.ObjectId;
   title: string;
   description: string;
+  type: TaskType;
   status: 'pending' | 'in_progress' | 'on_hold' | 'done' | 'abandoned';
   visibility: 'private' | 'group' | 'public';
   groupIds: Types.ObjectId[];
   shareToken: string;
   descriptionHistory: IDescriptionVersion[];
   blockedBy: Types.ObjectId[];
-  projectIds: Types.ObjectId[];
   deadline: Date | null;
   recurrence: IRecurrence | null;
+  metadata: IProjectMetadata | null;
   createdAt: Date;
 }
 
@@ -33,6 +50,7 @@ const taskSchema = new Schema<ITask>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, default: '', trim: true },
+  type: { type: String, enum: ['task', 'project'], default: 'task' },
   status: { type: String, enum: ['pending', 'in_progress', 'on_hold', 'done', 'abandoned'], default: 'pending' },
   visibility: { type: String, enum: ['private', 'group', 'public'], default: 'private' },
   groupIds: [{ type: Schema.Types.ObjectId, ref: 'Group' }],
@@ -42,7 +60,6 @@ const taskSchema = new Schema<ITask>({
   // Embedded = 1 query. Separate collection = 2 queries for every read, at any scale.
   // If relationships become the core product, migrate to a graph DB (Neo4j), not a separate collection.
   blockedBy: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
-  projectIds: [{ type: Schema.Types.ObjectId, ref: 'Project' }],
   deadline: { type: Date, default: null },
   recurrence: {
     type: {
@@ -54,6 +71,10 @@ const taskSchema = new Schema<ITask>({
     },
     default: null,
     _id: false,
+  },
+  metadata: {
+    type: Schema.Types.Mixed,
+    default: null,
   },
   descriptionHistory: [{
     description: { type: String },

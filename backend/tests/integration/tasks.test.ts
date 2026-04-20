@@ -351,35 +351,97 @@ describe('root tasks endpoint', () => {
   });
 });
 
-describe('task projectIds', () => {
-  it('should create task with projectIds', async () => {
+describe('task type', () => {
+  it('should default to type task', async () => {
     const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Project task', projectIds: ['aaaaaaaaaaaaaaaaaaaaaaaa'] });
+      .send({ title: 'Regular task' });
     expect(res.status).toBe(201);
-    expect(res.body.projectIds).toEqual(['aaaaaaaaaaaaaaaaaaaaaaaa']);
+    expect(res.body.type).toBe('task');
   });
 
-  it('should create task without projectIds', async () => {
+  it('should create a project type', async () => {
     const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Standalone task' });
+      .send({ title: 'My Project', type: 'project' });
     expect(res.status).toBe(201);
-    expect(res.body.projectIds).toEqual([]);
+    expect(res.body.type).toBe('project');
   });
 
-  it('should update projectIds', async () => {
+  it('should update type from task to project', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Move me' });
+      .send({ title: 'Promote me' });
     const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
-      .send({ projectIds: ['bbbbbbbbbbbbbbbbbbbbbbbb'] });
+      .send({ type: 'project' });
     expect(res.status).toBe(200);
-    expect(res.body.projectIds).toEqual(['bbbbbbbbbbbbbbbbbbbbbbbb']);
+    expect(res.body.type).toBe('project');
   });
 
-  it('should assign task to multiple projects', async () => {
+  it('should filter by type', async () => {
+    const res = await request(app).get('/api/tasks?type=project').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks.every((t: any) => t.type === 'project')).toBe(true);
+    expect(res.body.tasks.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should filter roots by type', async () => {
+    const { token: freshToken } = await createTestUser('typeroots@test.com', 'typeroots');
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'A project', type: 'project' });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
+      .send({ title: 'A task', type: 'task' });
+    const res = await request(app).get('/api/tasks/roots?type=project').set('Authorization', `Bearer ${freshToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tasks.every((t: any) => t.type === 'project')).toBe(true);
+  });
+
+  it('should reject invalid type', async () => {
     const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Multi project', projectIds: ['aaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbb'] });
+      .send({ title: 'Bad type', type: 'invalid' });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('task metadata (project)', () => {
+  it('should create project with metadata', async () => {
+    const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'MyTick',
+        type: 'project',
+        metadata: {
+          projectType: 'software',
+          repoUrl: 'https://github.com/example/mytick',
+          localPath: '/Users/me/mytick',
+          services: [{ accountId: 'aaaaaaaaaaaaaaaaaaaaaaaa', role: 'database' }],
+        },
+      });
     expect(res.status).toBe(201);
-    expect(res.body.projectIds).toHaveLength(2);
+    expect(res.body.type).toBe('project');
+    expect(res.body.metadata.repoUrl).toBe('https://github.com/example/mytick');
+    expect(res.body.metadata.services).toHaveLength(1);
+  });
+
+  it('should create task without metadata', async () => {
+    const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Plain task' });
+    expect(res.status).toBe(201);
+    expect(res.body.metadata).toBeNull();
+  });
+
+  it('should update metadata', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Update meta', type: 'project', metadata: { repoUrl: 'old' } });
+    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ metadata: { repoUrl: 'new-url' } });
+    expect(res.status).toBe(200);
+    expect(res.body.metadata.repoUrl).toBe('new-url');
+  });
+
+  it('should clear metadata with null', async () => {
+    const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Clear meta', type: 'project', metadata: { repoUrl: 'x' } });
+    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+      .send({ metadata: null });
+    expect(res.status).toBe(200);
+    expect(res.body.metadata).toBeNull();
   });
 });
 

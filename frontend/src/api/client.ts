@@ -28,7 +28,7 @@ export const api = {
     request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Tasks
-  getTasks: (page = 1, limit = 20) => request(`/tasks?page=${page}&limit=${limit}`),
+  getTasks: (page = 1, limit = 20, type?: string) => request(`/tasks?page=${page}&limit=${limit}${type ? `&type=${type}` : ''}`),
   getTask: (id: string) => request(`/tasks/${id}`),
   getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   getCalendar: (from: string, to: string) => request(`/tasks/calendar?from=${from}&to=${to}`),
@@ -87,19 +87,4 @@ export const api = {
     request(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteAccount: (id: string) =>
     request(`/accounts/${id}`, { method: 'DELETE' }),
-
-  // Projects
-  getProjects: () => request('/projects'),
-  getProject: (id: string) => request(`/projects/${id}`),
-  createProject: (data: { name: string; description?: string; repoUrl?: string; localPath?: string; services?: unknown[] }) =>
-    request('/projects', { method: 'POST', body: JSON.stringify(data) }),
-  updateProject: (id: string, data: Record<string, unknown>) =>
-    request(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteProject: (id: string) =>
-    request(`/projects/${id}`, { method: 'DELETE' }),
-  getProjectsByAccount: (accountId: string) => request(`/projects/by-account/${accountId}`),
-  addProjectMember: (id: string, userId: string, role: string = 'viewer') =>
-    request(`/projects/${id}/members`, { method: 'POST', body: JSON.stringify({ userId, role }) }),
-  removeProjectMember: (id: string, userId: string) =>
-    request(`/projects/${id}/members/${userId}`, { method: 'DELETE' }),
 };

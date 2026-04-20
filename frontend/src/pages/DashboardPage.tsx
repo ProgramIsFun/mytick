@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [tab, setTab] = useState<Tab>('tasks');
   const [showGroupTasks, setShowGroupTasks] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -36,7 +37,7 @@ export default function DashboardPage() {
 
   const loadTasks = async (p = page) => {
     try {
-      const res = await api.getTasks(p);
+      const res = await api.getTasks(p, 20, typeFilter);
       setTasks(res.tasks); setTotalPages(res.totalPages); setPage(res.page);
     } catch (err: any) { setError(err.message); }
   };
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const loadCounts = async () => { try { setCounts(await api.getTasks(1, 1).then(() => ({})).catch(() => ({}))); } catch {} };
 
   useEffect(() => { loadTasks(); loadGroups(); }, []);
+  useEffect(() => { loadTasks(1); }, [typeFilter]);
 
   const handleCreate = async (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number } | null) => {
     await api.createTask({ title, groupIds, visibility: groupIds.length > 0 ? 'group' : 'private', deadline, recurrence });
@@ -90,12 +92,6 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/projects')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              📁 Projects
-            </button>
-            <button
               onClick={() => navigate('/settings')}
               className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
             >
@@ -118,9 +114,21 @@ export default function DashboardPage() {
             <TaskForm groups={groups.filter(g => g.members.some(m => m.userId === user?.id && m.role === 'editor'))} onCreate={handleCreate} />
 
             <div className="flex items-center justify-between mt-6 mb-3">
-              <h2 className="text-sm font-medium text-text-secondary">
-                {tasks.length} task{tasks.length !== 1 ? 's' : ''}
-              </h2>
+              <div className="flex items-center gap-1">
+                {([['All', undefined], ['Tasks', 'task'], ['Projects', 'project']] as [string, string | undefined][]).map(([label, value]) => (
+                  <button
+                    key={label}
+                    onClick={() => setTypeFilter(value)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                      typeFilter === value
+                        ? 'bg-accent/10 text-accent font-medium'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
                 <input
                   type="checkbox"

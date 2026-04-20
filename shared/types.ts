@@ -2,20 +2,22 @@
 
 export type TaskStatus = 'pending' | 'in_progress' | 'on_hold' | 'done' | 'abandoned';
 export type TaskVisibility = 'private' | 'group' | 'public';
+export type TaskType = 'task' | 'project';
 
 export interface Task {
   _id: string;
   userId: string;
   title: string;
   description: string;
+  type: TaskType;
   status: TaskStatus;
   visibility: TaskVisibility;
   groupIds: string[];
   shareToken: string;
   blockedBy: string[];
-  projectIds: string[];
   deadline: string | null;
   recurrence: Recurrence | null;
+  metadata: ProjectMetadata | null;
   descriptionHistory: DescriptionVersion[];
   createdAt: string;
   updatedAt: string;
@@ -80,22 +82,16 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
   abandoned: '#6b7280',
 };
 
-// Project management
-export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'banking' | 'email' | 'custom';
+// Project management (embedded in Task with type='project')
+export type ProjectSubtype = 'software' | 'personal' | 'business' | 'other';
 
-export interface Credential {
-  vaultId: string;   // Bitwarden item UUID (one key-value pair)
-  key: string;       // human label, e.g. "MONGODB_URI"
-}
-
-export interface Account {
-  _id: string;
-  userId: string;
-  name: string;
-  provider: ServiceProvider;
-  credentials: Credential[];
-  createdAt: string;
-  updatedAt: string;
+export interface ProjectMetadata {
+  projectType: ProjectSubtype;
+  repoUrl: string;
+  localPath: string;
+  environments: string[];
+  services: ProjectService[];
+  members: ProjectMember[];
 }
 
 export interface EnvMapping {
@@ -104,31 +100,25 @@ export interface EnvMapping {
   vaultId: string;      // Bitwarden item UUID for this specific value
 }
 
-export type ProjectType = 'software' | 'personal' | 'business' | 'other';
-
-export interface ProjectService {
-  accountId: string;
-  role: string;
-  env: string;
-  mappings: EnvMapping[];
-}
-
 export interface ProjectMember {
   userId: string;
   role: 'editor' | 'viewer';
 }
 
-export interface Project {
+// Service accounts (kept as separate collection)
+export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'banking' | 'email' | 'custom';
+
+export interface Credential {
+  vaultId: string;
+  key: string;
+}
+
+export interface Account {
   _id: string;
   userId: string;
   name: string;
-  description: string;
-  type: ProjectType;
-  repoUrl: string;
-  localPath: string;
-  environments: string[];
-  services: ProjectService[];
-  members: ProjectMember[];
+  provider: ServiceProvider;
+  credentials: Credential[];
   createdAt: string;
   updatedAt: string;
 }

@@ -5,10 +5,12 @@ interface Task {
   _id: string;
   title: string;
   status: string;
+  type?: string;
   visibility: string;
   groupIds: string[];
   shareToken: string;
   deadline: string | null;
+  metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: unknown[]; members?: unknown[] } | null;
 }
 
 interface Group { _id: string; name: string; }
@@ -61,8 +63,12 @@ export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: 
 
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/tasks/${task._id}`)}>
         <div className={`text-sm font-medium truncate ${isDone ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+          {task.type === 'project' && <span className="mr-1">📁</span>}
           {task.title}
         </div>
+        {task.metadata?.repoUrl && (
+          <div className="text-xs text-text-muted mt-0.5 truncate">🔗 {task.metadata.repoUrl}</div>
+        )}
         {task.deadline && (
           <div className="text-xs text-text-muted mt-0.5">
             📅 {new Date(task.deadline).toLocaleDateString()}
