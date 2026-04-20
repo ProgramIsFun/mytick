@@ -67,6 +67,23 @@ router.get('/user/:userId', async (req, res: Response) => {
 });
 
 // Public: list tasks by username
+// Public: user profile with public projects
+router.get('/u/:username/profile', async (req, res: Response) => {
+  try {
+    const User = (await import('../models/User')).default;
+    const user = await User.findOne({ username: req.params.username as string });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const projects = await Task.find({ userId: user._id, visibility: 'public', type: 'project' }).sort({ pinned: -1, createdAt: -1 });
+    res.json({
+      username: user.username,
+      name: user.name,
+      projects: projects.map(p => ({ _id: p._id, title: p.title, description: p.description, status: p.status, metadata: (p as any).metadata, tags: (p as any).tags, createdAt: p.createdAt })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/u/:username', async (req, res: Response) => {
   try {
     const User = (await import('../models/User')).default;

@@ -38,6 +38,7 @@ export const api = {
   getTask: (id: string) => request(`/tasks/${id}`),
   getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   getSubtasks: (id: string) => request(`/tasks/${id}/subtasks`),
+  getProfile: (username: string) => request(`/tasks/u/${username}/profile`),
   getCalendar: (from: string, to: string) => request(`/tasks/calendar?from=${from}&to=${to}`),
   createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[]; parentId?: string; deadline?: string; recurrence?: { freq: string; interval: number } | null; type?: string; tags?: string[]; metadata?: Record<string, unknown> | null }) =>
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),

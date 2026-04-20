@@ -9,6 +9,7 @@ import TaskDetailPage from './pages/TaskDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import AccountsPage from './pages/AccountsPage';
 import DomainsPage from './pages/DomainsPage';
+import ProfilePage from './pages/ProfilePage';
 import { usePushNotifications } from './hooks/usePushNotifications';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/accounts" element={<PrivateRoute><AccountsPage /></PrivateRoute>} />
             <Route path="/domains" element={<PrivateRoute><DomainsPage /></PrivateRoute>} />
             <Route path="/share/:token" element={<SharedTaskPage />} />
+            <Route path="/@:username" element={<ProfilePage />} />
             <Route path="/@:username/tasks" element={<PublicTasksPage />} />
           </Routes>
           <Footer />
