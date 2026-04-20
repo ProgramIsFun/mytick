@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage';
 import AccountsPage from './pages/AccountsPage';
 import DomainsPage from './pages/DomainsPage';
 import ProfilePage from './pages/ProfilePage';
+import LandingPage from './pages/LandingPage';
 import { usePushNotifications } from './hooks/usePushNotifications';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -19,10 +20,10 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return token ? <>{children}</> : <Navigate to="/login" />;
 }
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
+function HomeRoute() {
   const { token, loading } = useAuth();
   if (loading) return null;
-  return token ? <Navigate to="/" /> : <>{children}</>;
+  return token ? <PrivateRoute><DashboardPage /></PrivateRoute> : <LandingPage />;
 }
 
 export default function App() {
@@ -31,8 +32,8 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-            <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/tasks/:id" element={<PrivateRoute><TaskDetailPage /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
             <Route path="/accounts" element={<PrivateRoute><AccountsPage /></PrivateRoute>} />
