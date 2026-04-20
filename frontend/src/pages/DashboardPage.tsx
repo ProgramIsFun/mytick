@@ -36,7 +36,6 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [counts, setCounts] = useState<Record<string, number>>({});
   const [allTags, setAllTags] = useState<string[]>([]);
 
   const loadTasks = async (p = page) => {
@@ -51,7 +50,6 @@ export default function DashboardPage() {
   };
 
   const loadGroups = async () => { try { setGroups(await api.getGroups()); } catch {} };
-  const loadCounts = async () => { try { setCounts(await api.getTasks(1, 1).then(() => ({})).catch(() => ({}))); } catch {} };
 
   useEffect(() => { loadTasks(); loadGroups(); }, []);
   useEffect(() => { loadTasks(1); }, [typeFilter, tagFilter]);

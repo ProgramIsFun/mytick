@@ -33,17 +33,11 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   abandoned: { label: 'Abandoned', cls: 'bg-gray/15 text-gray' },
 };
 
-export default function TaskItem({ task, groups, isOwner, onUpdate, onDelete }: Props) {
+export default function TaskItem({ task, groups: _groups, isOwner, onUpdate, onDelete }: Props) {
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const isDone = task.status === 'done';
   const badge = STATUS_BADGE[task.status] || STATUS_BADGE.pending;
-
-  const cycleStatus = () => {
-    const order = ['pending', 'in_progress', 'done'];
-    const next = order[(order.indexOf(task.status) + 1) % order.length];
-    onUpdate(task._id, { status: next });
-  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/share/${task.shareToken}`);
