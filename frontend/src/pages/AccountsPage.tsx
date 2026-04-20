@@ -128,7 +128,9 @@ export default function AccountsPage() {
                         <span className="text-text-muted">Credentials:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {a.credentials.map((c, i) => (
-                            <span key={i} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">{c.key}</span>
+                            <span key={i} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted cursor-pointer" title={`vaultId: ${c.vaultId}`} onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.vaultId); }}>
+                              {c.key} 📋
+                            </span>
                           ))}
                         </div>
                         <p className="text-[10px] text-text-muted mt-1 italic">🔒 Values in Bitwarden</p>

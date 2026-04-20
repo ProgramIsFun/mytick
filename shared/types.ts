@@ -134,6 +134,7 @@ export interface Domain {
   _id: string;
   userId: string;
   name: string;
+  projectId: string | { _id: string; title: string; type: string } | null;
   registrarAccountId: string | { _id: string; name: string; provider: string } | null;
   dnsAccountId: string | { _id: string; name: string; provider: string } | null;
   expiryDate: string | null;

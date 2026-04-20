@@ -16,6 +16,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const domains = await Domain.find(filter)
       .populate('registrarAccountId', 'name provider')
       .populate('dnsAccountId', 'name provider')
+      .populate('projectId', 'title type')
       .sort({ expiryDate: 1 });
     res.json(domains);
   } catch (err) {
@@ -28,7 +29,8 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const domain = await Domain.findOne({ _id: req.params.id, userId: req.userId })
       .populate('registrarAccountId', 'name provider')
-      .populate('dnsAccountId', 'name provider');
+      .populate('dnsAccountId', 'name provider')
+      .populate('projectId', 'title type');
     if (!domain) return res.status(404).json({ error: 'Not found' });
     res.json(domain);
   } catch (err) {
@@ -39,10 +41,11 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, registrarAccountId, dnsAccountId, expiryDate, autoRenew, nameservers, sslProvider, notes, tags } = req.body;
+    const { name, projectId, registrarAccountId, dnsAccountId, expiryDate, autoRenew, nameservers, sslProvider, notes, tags } = req.body;
     if (!name) return res.status(400).json({ error: 'name required' });
     const domain = await Domain.create({
       userId: req.userId, name,
+      projectId: projectId || null,
       registrarAccountId: registrarAccountId || null,
       dnsAccountId: dnsAccountId || null,
       expiryDate: expiryDate || null,
@@ -63,7 +66,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const domain = await Domain.findOne({ _id: req.params.id, userId: req.userId });
     if (!domain) return res.status(404).json({ error: 'Not found' });
-    const allowed = ['name', 'registrarAccountId', 'dnsAccountId', 'expiryDate', 'autoRenew', 'nameservers', 'sslProvider', 'notes', 'tags'];
+    const allowed = ['name', 'projectId', 'registrarAccountId', 'dnsAccountId', 'expiryDate', 'autoRenew', 'nameservers', 'sslProvider', 'notes', 'tags'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (domain as any)[key] = req.body[key];
     }

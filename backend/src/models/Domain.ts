@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IDomain extends Document {
   userId: Types.ObjectId;
   name: string;
+  projectId: Types.ObjectId | null;
   registrarAccountId: Types.ObjectId | null;
   dnsAccountId: Types.ObjectId | null;
   expiryDate: Date | null;
@@ -18,6 +19,7 @@ export interface IDomain extends Document {
 const domainSchema = new Schema<IDomain>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true, trim: true },
+  projectId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
   registrarAccountId: { type: Schema.Types.ObjectId, ref: 'Account', default: null },
   dnsAccountId: { type: Schema.Types.ObjectId, ref: 'Account', default: null },
   expiryDate: { type: Date, default: null },
