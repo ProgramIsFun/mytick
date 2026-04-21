@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
+import { PageSpinner } from '../components/Spinner';
 
 interface DescriptionVersion { description: string; savedAt: string; }
 interface Task { _id: string; title: string; description: string; status: string; visibility: string; groupIds: string[]; shareToken: string; userId: string; descriptionHistory: DescriptionVersion[]; blockedBy: string[]; createdAt: string; type?: string; tags?: string[]; metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: { accountId: string; role: string; env?: string; mappings?: { target: string; envVar: string; vaultId: string }[] }[]; members?: { userId: string; role: string }[] } | null; }
@@ -57,7 +58,7 @@ export default function TaskDetailPage() {
     </div>
   );
 
-  if (!task) return <div className="min-h-screen bg-surface flex items-center justify-center text-text-muted">Loading...</div>;
+  if (!task) return <PageSpinner />;
 
   const isOwner = task.userId === user?.id;
   const badge = STATUS_BADGE[task.status] || STATUS_BADGE.pending;

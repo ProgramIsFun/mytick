@@ -12,17 +12,18 @@ import DomainsPage from './pages/DomainsPage';
 import ProfilePage from './pages/ProfilePage';
 import LandingPage from './pages/LandingPage';
 import { usePushNotifications } from './hooks/usePushNotifications';
+import { PageSpinner } from './components/Spinner';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
   usePushNotifications();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   return token ? <>{children}</> : <Navigate to="/login" />;
 }
 
 function HomeRoute() {
   const { token, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <PageSpinner />;
   return token ? <PrivateRoute><DashboardPage /></PrivateRoute> : <LandingPage />;
 }
 

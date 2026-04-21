@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { PageSpinner } from '../components/Spinner';
 
 interface Project {
   _id: string; title: string; description: string; status: string;
@@ -32,7 +33,7 @@ export default function ProfilePage() {
     </div>
   );
 
-  if (!profile) return <div className="min-h-screen bg-surface flex items-center justify-center text-text-muted">Loading...</div>;
+  if (!profile) return <PageSpinner />;
 
   return (
     <div className="min-h-screen bg-surface">

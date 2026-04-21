@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import TaskItem from '../components/TaskItem';
 import TaskForm from '../components/TaskForm';
 import CalendarView from '../components/CalendarView';
+import Spinner from '../components/Spinner';
 import GroupsPage from './GroupsPage';
 
 interface Task {
@@ -37,9 +38,11 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
 
   const loadTasks = async (p = page) => {
     try {
+      setLoadingTasks(true);
       const res = await api.getTasks(p, 20, typeFilter, tagFilter, searchQuery || undefined);
       setTasks(res.tasks); setTotalPages(res.totalPages); setPage(res.page);
       // Collect unique tags
@@ -47,6 +50,7 @@ export default function DashboardPage() {
       res.tasks.forEach((t: any) => t.tags?.forEach((tag: string) => tags.add(tag)));
       setAllTags([...tags].sort());
     } catch (err: any) { setError(err.message); }
+    finally { setLoadingTasks(false); }
   };
 
   const loadGroups = async () => { try { setGroups(await api.getGroups()); } catch {} };
@@ -193,7 +197,9 @@ export default function DashboardPage() {
             {error && <div className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-md mb-3">{error}</div>}
 
             <div className="border border-border rounded-lg overflow-hidden bg-surface">
-              {tasks.length === 0 ? (
+              {loadingTasks ? (
+                <Spinner text="Loading tasks..." />
+              ) : tasks.length === 0 ? (
                 <div className="text-center py-12 text-text-muted text-sm">
                   No tasks yet. Create one above!
                 </div>
