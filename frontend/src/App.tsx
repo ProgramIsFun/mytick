@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage';
 import AccountsPage from './pages/AccountsPage';
 import DomainsPage from './pages/DomainsPage';
 import ProfilePage from './pages/ProfilePage';
+import ContextPage from './pages/ContextPage';
 import LandingPage from './pages/LandingPage';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import { PageSpinner } from './components/Spinner';
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
             <Route path="/accounts" element={<PrivateRoute><AccountsPage /></PrivateRoute>} />
             <Route path="/domains" element={<PrivateRoute><DomainsPage /></PrivateRoute>} />
+            <Route path="/context" element={<PrivateRoute><ContextPage /></PrivateRoute>} />
             <Route path="/share/:token" element={<SharedTaskPage />} />
             <Route path="/u/:username" element={<ProfilePage />} />
             <Route path="/u/:username/tasks" element={<PublicTasksPage />} />

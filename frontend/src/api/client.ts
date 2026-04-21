@@ -120,4 +120,12 @@ export const api = {
     request(`/domains/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteDomain: (id: string) =>
     request(`/domains/${id}`, { method: 'DELETE' }),
+
+  // Context
+  getContextEntries: () => request('/context'),
+  getContext: (key: string) => request(`/context/${key}`),
+  setContext: (key: string, value: string) =>
+    request(`/context/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
+  deleteContext: (key: string) =>
+    request(`/context/${key}`, { method: 'DELETE' }),
 };

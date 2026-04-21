@@ -118,6 +118,12 @@ export default function DashboardPage() {
               🌐 Domains
             </button>
             <button
+              onClick={() => navigate('/context')}
+              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+            >
+              📋 Context
+            </button>
+            <button
               onClick={() => navigate('/settings')}
               className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
             >
