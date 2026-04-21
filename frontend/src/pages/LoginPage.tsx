@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +21,7 @@ export default function LoginPage() {
         ? await api.register({ email, password, name, username })
         : await api.login({ email, password });
       login(res.token, res.user);
+      navigate('/');
     } catch (err: any) {
       setError(err.message);
     }
