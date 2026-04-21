@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
+import { PageSpinner } from '../components/Spinner';
 
 export default function SharedTaskPage() {
   const { token } = useParams<{ token: string }>();
@@ -18,7 +19,7 @@ export default function SharedTaskPage() {
     </div>
   );
 
-  if (!task) return <div className="min-h-screen bg-surface flex items-center justify-center text-text-muted">Loading...</div>;
+  if (!task) return <PageSpinner />;
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center">

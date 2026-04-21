@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import Spinner from '../components/Spinner';
 
 interface Account { _id: string; name: string; provider: string; }
 interface Domain {
@@ -19,9 +20,11 @@ export default function DomainsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: '', registrarAccountId: '', dnsAccountId: '', expiryDate: '', autoRenew: false, nameservers: '', sslProvider: '', notes: '' });
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const load = () => {
-    api.getDomains(search || undefined).then(setDomains);
+    setLoading(true);
+    api.getDomains(search || undefined).then(setDomains).finally(() => setLoading(false));
     api.getAccounts().then(setAccounts);
   };
   useEffect(() => { load(); }, []);
@@ -138,7 +141,7 @@ export default function DomainsPage() {
               </div>
             );
           })}
-          {domains.length === 0 && <div className="text-center py-12 text-text-muted text-sm">No domains yet</div>}
+          {loading ? <Spinner text="Loading domains..." /> : domains.length === 0 ? <div className="text-center py-12 text-text-muted text-sm">No domains yet</div> : null}
         </div>
       </main>
     </div>

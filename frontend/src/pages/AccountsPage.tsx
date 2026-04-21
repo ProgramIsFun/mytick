@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import Spinner from '../components/Spinner';
 
 interface Credential { vaultId: string; key: string; }
 interface Account {
@@ -29,8 +30,9 @@ export default function AccountsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: '', provider: 'custom', url: '', username: '', notes: '' });
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const load = () => api.getAccounts(search || undefined).then(setAccounts);
+  const load = () => { setLoading(true); api.getAccounts(search || undefined).then(setAccounts).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
 
@@ -91,7 +93,7 @@ export default function AccountsPage() {
         />
 
         <div className="space-y-2">
-          {accounts.map(a => {
+          {loading ? <Spinner text="Loading accounts..." /> : accounts.length === 0 ? <div className="text-center py-12 text-text-muted text-sm">No accounts yet</div> : accounts.map(a => {
             const prov = PROVIDERS[a.provider] || PROVIDERS.custom;
             const isExpanded = expanded === a._id;
             return (
@@ -144,7 +146,6 @@ export default function AccountsPage() {
               </div>
             );
           })}
-          {accounts.length === 0 && <div className="text-center py-12 text-text-muted text-sm">No accounts yet</div>}
         </div>
       </main>
     </div>
