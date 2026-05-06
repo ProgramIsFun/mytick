@@ -36,6 +36,7 @@ export default function TaskDetailPage() {
   const [subtasks, setSubtasks] = useState<BlockerTask[]>([]);
   const [showDoneSubtasks, setShowDoneSubtasks] = useState(false);
   const [subtaskLimit, setSubtaskLimit] = useState(10);
+  const [accounts, setAccounts] = useState<{ _id: string; name: string; provider: string }[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -44,6 +45,14 @@ export default function TaskDetailPage() {
     api.getSubtasks(id).then(setSubtasks).catch(() => setSubtasks([]));
     api.getDomains(undefined, undefined, id).then(setDomains).catch(() => setDomains([]));
   }, [id]);
+
+  useEffect(() => {
+    if (!task?.metadata?.services) return;
+    const accountIds = [...new Set(task.metadata.services.map(s => s.accountId).filter(Boolean))];
+    if (accountIds.length === 0) return;
+    Promise.all(accountIds.map(id => api.getAccount(id).catch(() => null)))
+      .then(results => setAccounts(results.filter(Boolean) as any));
+  }, [task?.metadata?.services]);
 
   useEffect(() => {
     if (!task?.blockedBy?.length) { setBlockers([]); return; }
@@ -190,6 +199,18 @@ export default function TaskDetailPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+          {/* Accounts */}
+          {accounts.length > 0 && (
+            <div className="border border-border rounded-lg p-4 bg-surface">
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">🔑 Accounts</h3>
+              {accounts.map(a => (
+                <div key={a._id} className="flex items-center gap-2 py-1.5 text-sm">
+                  <span className="text-text-primary">{a.name}</span>
+                  <span className="text-xs text-text-muted">({a.provider})</span>
+                </div>
+              ))}
             </div>
           )}
           {/* Domains */}
