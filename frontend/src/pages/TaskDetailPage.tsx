@@ -34,6 +34,8 @@ export default function TaskDetailPage() {
   const [tagInput, setTagInput] = useState('');
   const [domains, setDomains] = useState<{ _id: string; name: string; expiryDate: string | null }[]>([]);
   const [subtasks, setSubtasks] = useState<BlockerTask[]>([]);
+  const [showDoneSubtasks, setShowDoneSubtasks] = useState(false);
+  const [subtaskLimit, setSubtaskLimit] = useState(10);
 
   useEffect(() => {
     if (!id) return;
@@ -206,15 +208,33 @@ export default function TaskDetailPage() {
           {/* Subtasks */}
           {(subtasks.length > 0 || isOwner) && (
             <div className="border border-border rounded-lg p-4 bg-surface">
-              <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">Subtasks</h3>
-              {subtasks.map(s => (
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide">Subtasks</h3>
+                {subtasks.filter(s => s.status === 'done').length > 0 && (
+                  <button
+                    onClick={() => setShowDoneSubtasks(!showDoneSubtasks)}
+                    className="text-xs text-text-muted hover:text-text-primary"
+                  >
+                    {showDoneSubtasks ? 'Hide' : 'Show'} done ({subtasks.filter(s => s.status === 'done').length})
+                  </button>
+                )}
+              </div>
+              {subtasks.filter(s => showDoneSubtasks || s.status !== 'done').slice(0, subtaskLimit).map(s => (
                 <div key={s._id} className="flex items-center gap-2 py-1.5 text-sm">
                   <span>{s.status === 'done' ? '✅' : '⬜'}</span>
                   <a href={`/tasks/${s._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${s._id}`); }}
                     className={`flex-1 text-accent hover:underline ${s.status === 'done' ? 'line-through' : ''}`}>{s.title}</a>
                 </div>
               ))}
-              {subtasks.length === 0 && <p className="text-xs text-text-muted">None</p>}
+              {subtasks.filter(s => showDoneSubtasks || s.status !== 'done').length === 0 && <p className="text-xs text-text-muted">None</p>}
+              {subtasks.filter(s => showDoneSubtasks || s.status !== 'done').length > subtaskLimit && (
+                <button
+                  onClick={() => setSubtaskLimit(subtaskLimit + 10)}
+                  className="text-xs text-accent hover:underline mt-2"
+                >
+                  Load {Math.min(10, subtasks.filter(s => showDoneSubtasks || s.status !== 'done').length - subtaskLimit)} more...
+                </button>
+              )}
               {isOwner && (
                 <form onSubmit={e => { e.preventDefault(); addSubtask(); }} className="flex gap-2 mt-3">
                   <input placeholder="Add a subtask..." value={subtaskTitle} onChange={e => setSubtaskTitle(e.target.value)} className={`flex-1 ${inputCls}`} />
