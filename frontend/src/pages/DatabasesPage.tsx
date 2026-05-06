@@ -214,7 +214,13 @@ export default function DatabasesPage() {
                       </div>
                     </div>
                     {db.accountId && (
-                      <span className="text-xs text-text-muted">🔗 {db.accountId.name}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${db.accountId._id}`); }}
+                        className="text-xs px-2 py-1 rounded-md border border-border text-text-muted hover:text-text-primary hover:bg-surface-hover"
+                        title="View account details"
+                      >
+                        🔗 {db.accountId.name}
+                      </button>
                     )}
                     {db.backupEnabled && (
                       <span className="text-xs text-text-muted">Last backup: {timeSince(db.lastBackupAt)}</span>

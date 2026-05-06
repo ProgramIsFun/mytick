@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
@@ -25,6 +25,8 @@ const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-su
 
 export default function AccountsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -35,6 +37,15 @@ export default function AccountsPage() {
   const load = () => { setLoading(true); api.getAccounts(search || undefined).then(setAccounts).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
+  
+  useEffect(() => {
+    if (highlightId && accounts.length > 0) {
+      setExpanded(highlightId);
+      setTimeout(() => {
+        document.getElementById(`account-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [highlightId, accounts]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +108,11 @@ export default function AccountsPage() {
             const prov = PROVIDERS[a.provider] || PROVIDERS.custom;
             const isExpanded = expanded === a._id;
             return (
-              <div key={a._id} className="border border-border rounded-lg bg-surface overflow-hidden">
+              <div 
+                key={a._id} 
+                id={`account-${a._id}`}
+                className={`border rounded-lg bg-surface overflow-hidden ${highlightId === a._id ? 'border-accent ring-2 ring-accent/20' : 'border-border'}`}
+              >
                 <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover" onClick={() => setExpanded(isExpanded ? null : a._id)}>
                   <span className="text-xl">{prov.emoji}</span>
                   <div className="flex-1 min-w-0">
