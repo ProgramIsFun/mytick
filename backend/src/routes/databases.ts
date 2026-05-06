@@ -54,7 +54,7 @@ router.get('/backupable', async (req: AuthRequest, res: Response) => {
     const databases = await Database.find({
       userId: req.userId,
       backupEnabled: true,
-    }).select('name type secretRefs backupRetentionDays backupFrequency');
+    }).select('name type secretRefs backupRetentionDays backupFrequency lastBackupAt');
     
     res.json(databases.map(db => ({
       id: db._id,
@@ -63,6 +63,7 @@ router.get('/backupable', async (req: AuthRequest, res: Response) => {
       secretRefs: db.secretRefs,
       retentionDays: db.backupRetentionDays,
       frequency: db.backupFrequency,
+      lastBackupAt: db.lastBackupAt,
     })));
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -91,6 +92,50 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     
     if (!database) return res.status(404).json({ error: 'Not found' });
     res.json(database);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /databases/{id}/backup-completed:
+ *   post:
+ *     summary: Mark backup as completed (called by backup service)
+ *     tags: [Databases]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               backupSize: { type: string, example: "245MB" }
+ *               s3Key: { type: string, example: "mytick/mongodb/backup-20260506.gz" }
+ *     responses:
+ *       200: { description: Backup timestamp updated }
+ *       404: { description: Database not found }
+ */
+router.post('/:id/backup-completed', async (req: AuthRequest, res: Response) => {
+  try {
+    const database = await Database.findByIdAndUpdate(
+      req.params.id,
+      { 
+        lastBackupAt: new Date(),
+        $inc: { __v: 1 }  // Increment version for tracking
+      },
+      { new: true }
+    );
+    
+    if (!database) return res.status(404).json({ error: 'Database not found' });
+    
+    res.json({ 
+      message: 'Backup timestamp updated',
+      databaseId: database._id,
+      lastBackupAt: database.lastBackupAt
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

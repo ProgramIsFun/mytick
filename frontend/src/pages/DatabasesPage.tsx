@@ -162,6 +162,8 @@ export default function DatabasesPage() {
                   <div>
                     <label className="text-xs text-text-muted block mb-1">Frequency</label>
                     <select value={form.backupFrequency} onChange={e => setForm({ ...form, backupFrequency: e.target.value })} className={inputCls}>
+                      <option value="hourly">Hourly</option>
+                      <option value="6hours">Every 6 Hours</option>
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>
                     </select>

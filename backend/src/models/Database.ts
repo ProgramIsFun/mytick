@@ -16,7 +16,7 @@ export interface IDatabase extends Document {
   database: string;
   backupEnabled: boolean;
   backupRetentionDays: number;
-  backupFrequency: 'daily' | 'weekly';
+  backupFrequency: 'hourly' | '6hours' | 'daily' | 'weekly';
   lastBackupAt: Date | null;
   accountId: Types.ObjectId | null;
   tags: string[];
@@ -41,7 +41,7 @@ const databaseSchema = new Schema<IDatabase>({
   database: { type: String, default: '' },
   backupEnabled: { type: Boolean, default: false },
   backupRetentionDays: { type: Number, default: 30 },
-  backupFrequency: { type: String, enum: ['daily', 'weekly'], default: 'daily' },
+  backupFrequency: { type: String, enum: ['hourly', '6hours', 'daily', 'weekly'], default: 'daily' },
   lastBackupAt: { type: Date, default: null },
   accountId: { type: Schema.Types.ObjectId, ref: 'Account', default: null },
   tags: { type: [String], default: [] },

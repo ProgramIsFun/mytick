@@ -179,3 +179,60 @@ describe('database secretRef validation', () => {
     expect(res.body.secretRefs[0].field).toBe('password');
   });
 });
+
+describe('database backup workflow', () => {
+  let databaseId: string;
+
+  it('should create database with backup enabled', async () => {
+    const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Production MongoDB',
+        type: 'mongodb',
+        backupEnabled: true,
+        backupFrequency: '6hours',
+        backupRetentionDays: 90
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.backupEnabled).toBe(true);
+    expect(res.body.backupFrequency).toBe('6hours');
+    expect(res.body.lastBackupAt).toBeNull();
+    databaseId = res.body._id;
+  });
+
+  it('should list in backupable endpoint', async () => {
+    const res = await request(app).get('/api/databases/backupable').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.find((db: any) => db.id === databaseId)).toBeTruthy();
+    expect(res.body.find((db: any) => db.id === databaseId).frequency).toBe('6hours');
+  });
+
+  it('should update lastBackupAt when backup completes', async () => {
+    const beforeUpdate = new Date();
+    
+    const res = await request(app)
+      .post(`/api/databases/${databaseId}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        backupSize: '245MB',
+        s3Key: 'mytick/mongodb/backup-20260506.gz'
+      });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Backup timestamp updated');
+    expect(res.body.lastBackupAt).toBeTruthy();
+    
+    const updatedDb = await request(app)
+      .get(`/api/databases/${databaseId}`)
+      .set('Authorization', `Bearer ${token}`);
+    
+    expect(updatedDb.body.lastBackupAt).toBeTruthy();
+    expect(new Date(updatedDb.body.lastBackupAt).getTime()).toBeGreaterThanOrEqual(beforeUpdate.getTime());
+  });
+
+  it('should return 404 for non-existent database in backup-completed', async () => {
+    const res = await request(app)
+      .post('/api/databases/000000000000000000000000/backup-completed')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+});
