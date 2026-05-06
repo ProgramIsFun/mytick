@@ -107,8 +107,10 @@ describe('scheduleDeadlineAlerts with recurrence', () => {
   });
 
   it('schedules both alerts for monthly task', async () => {
-    const start = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    // Start date such that next occurrence is >24h away
+    const start = new Date(Date.now() + 48 * 60 * 60 * 1000);
     await scheduleDeadlineAlerts(queue, taskId, userId, start, { freq: 'monthly', interval: 1 });
     expect(queue.jobs).toHaveLength(2);
+    expect(queue.jobs.map(j => j.alertType).sort()).toEqual(['1day', '1hour']);
   });
 });
