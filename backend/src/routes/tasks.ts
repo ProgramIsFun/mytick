@@ -531,6 +531,38 @@ router.patch('/:id', validate(updateTaskSchema), async (req: AuthRequest, res: R
     const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
     if (!task) return res.status(404).json({ error: 'Not found' });
 
+    // Validate before marking as done
+    if (req.body.status === 'done') {
+      // Check 1: Incomplete subtasks
+      const incompleteSubtasks = await Task.find({ 
+        parentId: req.params.id, 
+        userId: req.userId,
+        status: { $ne: 'done' } 
+      }).select('_id title status');
+      
+      if (incompleteSubtasks.length > 0) {
+        return res.status(400).json({ 
+          error: 'Cannot mark as done. This task has incomplete subtasks.',
+          incompleteSubtasks: incompleteSubtasks.map(t => ({ id: t._id, title: t.title, status: t.status }))
+        });
+      }
+
+      // Check 2: Incomplete blocking tasks
+      if (task.blockedBy && task.blockedBy.length > 0) {
+        const incompleteBlockingTasks = await Task.find({ 
+          _id: { $in: task.blockedBy }, 
+          status: { $ne: 'done' } 
+        }).select('_id title status');
+        
+        if (incompleteBlockingTasks.length > 0) {
+          return res.status(400).json({ 
+            error: 'Cannot mark as done. This task is blocked by incomplete tasks.',
+            blockingTasks: incompleteBlockingTasks.map(t => ({ id: t._id, title: t.title, status: t.status }))
+          });
+        }
+      }
+    }
+
     if (req.body.blockedBy?.length) {
       if (req.body.blockedBy.includes(req.params.id)) {
         return res.status(400).json({ error: 'A task cannot block itself' });

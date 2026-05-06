@@ -537,3 +537,114 @@ describe('task count endpoint', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('task completion validation', () => {
+  let parentTaskId: string;
+  let subtask1Id: string;
+  let subtask2Id: string;
+  let blockingTaskId: string;
+  let blockedTaskId: string;
+
+  beforeEach(async () => {
+    // Create parent task
+    const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Parent task' });
+    parentTaskId = parent.body._id;
+
+    // Create subtasks
+    const sub1 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Subtask 1', parentId: parentTaskId });
+    subtask1Id = sub1.body._id;
+
+    const sub2 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Subtask 2', parentId: parentTaskId });
+    subtask2Id = sub2.body._id;
+
+    // Create blocking/blocked tasks
+    const blocking = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Blocking task' });
+    blockingTaskId = blocking.body._id;
+
+    const blocked = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Blocked task', blockedBy: [blockingTaskId] });
+    blockedTaskId = blocked.body._id;
+  });
+
+  it('should prevent marking parent as done when subtasks are incomplete', async () => {
+    const res = await request(app).patch(`/api/tasks/${parentTaskId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+    
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('incomplete subtasks');
+    expect(res.body.incompleteSubtasks).toHaveLength(2);
+    expect(res.body.incompleteSubtasks[0].title).toBeDefined();
+  });
+
+  it('should allow marking parent as done when all subtasks are done', async () => {
+    // Mark both subtasks as done
+    await request(app).patch(`/api/tasks/${subtask1Id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+    
+    await request(app).patch(`/api/tasks/${subtask2Id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+
+    // Now parent should be markable as done
+    const res = await request(app).patch(`/api/tasks/${parentTaskId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('done');
+  });
+
+  it('should prevent marking blocked task as done when blocking tasks are incomplete', async () => {
+    const res = await request(app).patch(`/api/tasks/${blockedTaskId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+    
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('blocked by incomplete tasks');
+    expect(res.body.blockingTasks).toHaveLength(1);
+    expect(res.body.blockingTasks[0].title).toBe('Blocking task');
+  });
+
+  it('should allow marking blocked task as done when blocking tasks are done', async () => {
+    // Mark blocking task as done
+    await request(app).patch(`/api/tasks/${blockingTaskId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+
+    // Now blocked task should be markable as done
+    const res = await request(app).patch(`/api/tasks/${blockedTaskId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('done');
+  });
+
+  it('should allow updating other fields even with incomplete subtasks', async () => {
+    const res = await request(app).patch(`/api/tasks/${parentTaskId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Updated title', status: 'in_progress' });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Updated title');
+    expect(res.body.status).toBe('in_progress');
+  });
+
+  it('should allow marking as done without subtasks or blockedBy', async () => {
+    const simple = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Simple task' });
+    
+    const res = await request(app).patch(`/api/tasks/${simple.body._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'done' });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('done');
+  });
+});
