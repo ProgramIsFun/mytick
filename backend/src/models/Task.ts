@@ -88,4 +88,11 @@ const taskSchema = new Schema<ITask>({
   }],
 }, { timestamps: true });
 
+// Indexes for common queries
+taskSchema.index({ userId: 1, createdAt: -1 }); // List user's tasks
+taskSchema.index({ userId: 1, status: 1 }); // Filter by status
+taskSchema.index({ userId: 1, type: 1 }); // Filter by type (task/project)
+taskSchema.index({ parentId: 1 }); // Subtask queries
+taskSchema.index({ userId: 1, pinned: 1, createdAt: -1 }); // Pinned tasks first
+
 export default mongoose.model<ITask>('Task', taskSchema);

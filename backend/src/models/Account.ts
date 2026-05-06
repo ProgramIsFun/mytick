@@ -38,4 +38,9 @@ const accountSchema = new Schema<IAccount>({
   credentials: [credentialSchema],
 }, { timestamps: true });
 
+// Indexes for common queries
+accountSchema.index({ userId: 1, createdAt: -1 }); // List user's accounts
+accountSchema.index({ userId: 1, provider: 1 }); // Filter by provider
+accountSchema.index({ parentAccountId: 1 }); // Sub-account queries
+
 export default mongoose.model<IAccount>('Account', accountSchema);

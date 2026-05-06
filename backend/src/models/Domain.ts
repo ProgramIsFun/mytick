@@ -30,4 +30,11 @@ const domainSchema = new Schema<IDomain>({
   tags: [{ type: String, trim: true }],
 }, { timestamps: true });
 
+// Indexes for common queries
+domainSchema.index({ userId: 1, createdAt: -1 }); // List user's domains
+domainSchema.index({ projectId: 1 }); // Project lookup
+domainSchema.index({ registrarAccountId: 1 }); // Account lookup
+domainSchema.index({ dnsAccountId: 1 }); // DNS account lookup
+domainSchema.index({ userId: 1, expiryDate: 1 }); // Expiry tracking
+
 export default mongoose.model<IDomain>('Domain', domainSchema);

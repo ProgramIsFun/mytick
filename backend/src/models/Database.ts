@@ -50,5 +50,7 @@ const databaseSchema = new Schema<IDatabase>({
 
 databaseSchema.index({ userId: 1, name: 1 });
 databaseSchema.index({ backupEnabled: 1 });
+databaseSchema.index({ accountId: 1 }); // Account lookup
+databaseSchema.index({ userId: 1, type: 1 }); // Filter by database type
 
 export default model<IDatabase>('Database', databaseSchema);
