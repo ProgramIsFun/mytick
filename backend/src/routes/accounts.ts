@@ -20,6 +20,19 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get sub-accounts of an account
+router.get('/:id/sub-accounts', async (req: AuthRequest, res: Response) => {
+  try {
+    const subAccounts = await Account.find({ 
+      parentAccountId: req.params.id, 
+      userId: req.userId 
+    }).sort({ createdAt: -1 });
+    res.json(subAccounts);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get account by ID
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
@@ -34,10 +47,11 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create account
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, provider, url, username, notes, tags, credentials } = req.body;
+    const { name, provider, parentAccountId, url, username, notes, tags, credentials } = req.body;
     if (!name || !provider) return res.status(400).json({ error: 'name and provider required' });
     const account = await Account.create({
       userId: req.userId, name, provider,
+      parentAccountId: parentAccountId || null,
       url: url || '', username: username || '', notes: notes || '',
       tags: tags || [], credentials: credentials || [],
     });
@@ -52,7 +66,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const account = await Account.findOne({ _id: req.params.id, userId: req.userId });
     if (!account) return res.status(404).json({ error: 'Not found' });
-    const allowed = ['name', 'provider', 'url', 'username', 'notes', 'tags', 'credentials'];
+    const allowed = ['name', 'provider', 'parentAccountId', 'url', 'username', 'notes', 'tags', 'credentials'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (account as any)[key] = req.body[key];
     }

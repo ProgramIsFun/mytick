@@ -16,7 +16,7 @@ describe('database CRUD', () => {
   let databaseId: string;
   let accountId: string;
 
-  it('should create a database with secretRef', async () => {
+  it('should create a database with secretRefs', async () => {
     const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Test MongoDB',
@@ -24,11 +24,11 @@ describe('database CRUD', () => {
         host: 'cluster.example.net',
         port: 27017,
         database: 'testdb',
-        secretRef: {
+        secretRefs: [{
           provider: 'bitwarden',
           itemId: 'test-vault-id-123',
           field: 'connectionUri'
-        },
+        }],
         backupEnabled: true,
         backupRetentionDays: 30,
         backupFrequency: 'daily',
@@ -39,7 +39,8 @@ describe('database CRUD', () => {
     expect(res.body.name).toBe('Test MongoDB');
     expect(res.body.type).toBe('mongodb');
     expect(res.body.host).toBe('cluster.example.net');
-    expect(res.body.secretRef).toMatchObject({
+    expect(res.body.secretRefs).toHaveLength(1);
+    expect(res.body.secretRefs[0]).toMatchObject({
       provider: 'bitwarden',
       itemId: 'test-vault-id-123',
       field: 'connectionUri'
@@ -48,7 +49,7 @@ describe('database CRUD', () => {
     databaseId = res.body._id;
   });
 
-  it('should create a database without secretRef', async () => {
+  it('should create a database without secretRefs', async () => {
     const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Test PostgreSQL',
@@ -59,7 +60,7 @@ describe('database CRUD', () => {
       });
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('Test PostgreSQL');
-    expect(res.body.secretRef).toBeNull();
+    expect(res.body.secretRefs).toEqual([]);
   });
 
   it('should require name and type', async () => {
@@ -87,15 +88,15 @@ describe('database CRUD', () => {
       .send({
         name: 'Updated MongoDB',
         backupEnabled: false,
-        secretRef: {
+        secretRefs: [{
           provider: '1password',
           itemId: 'new-item-id'
-        }
+        }]
       });
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Updated MongoDB');
     expect(res.body.backupEnabled).toBe(false);
-    expect(res.body.secretRef.provider).toBe('1password');
+    expect(res.body.secretRefs[0].provider).toBe('1password');
   });
 
   it('should link database to account', async () => {
@@ -156,25 +157,25 @@ describe('database secretRef validation', () => {
         .send({
           name: `Test ${provider}`,
           type: 'mongodb',
-          secretRef: { provider, itemId: `test-id-${provider}` }
+          secretRefs: [{ provider, itemId: `test-id-${provider}` }]
         });
       expect(res.status).toBe(201);
-      expect(res.body.secretRef.provider).toBe(provider);
+      expect(res.body.secretRefs[0].provider).toBe(provider);
     }
   });
 
-  it('should accept secretRef with optional field', async () => {
+  it('should accept secretRefs with optional field', async () => {
     const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Test with Field',
         type: 'postgres',
-        secretRef: {
+        secretRefs: [{
           provider: 'bitwarden',
           itemId: 'vault-123',
           field: 'password'
-        }
+        }]
       });
     expect(res.status).toBe(201);
-    expect(res.body.secretRef.field).toBe('password');
+    expect(res.body.secretRefs[0].field).toBe('password');
   });
 });

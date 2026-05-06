@@ -7,6 +7,7 @@ interface Credential { vaultId: string; key: string; }
 interface Account {
   _id: string; name: string; provider: string; url: string;
   username: string; notes: string; tags: string[]; credentials: Credential[];
+  parentAccountId: string | null;
 }
 
 const PROVIDERS: Record<string, { emoji: string; label: string }> = {
@@ -30,7 +31,7 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: '', provider: 'custom', url: '', username: '', notes: '' });
+  const [form, setForm] = useState({ name: '', provider: 'custom', parentAccountId: '', url: '', username: '', notes: '' });
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +52,7 @@ export default function AccountsPage() {
     e.preventDefault();
     if (!form.name) return;
     await api.createAccount(form);
-    setForm({ name: '', provider: 'custom', url: '', username: '', notes: '' });
+    setForm({ name: '', provider: 'custom', parentAccountId: '', url: '', username: '', notes: '' });
     setCreating(false);
     load();
   };
@@ -84,6 +85,10 @@ export default function AccountsPage() {
                 {Object.entries(PROVIDERS).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
               </select>
             </div>
+            <select value={form.parentAccountId} onChange={e => setForm({ ...form, parentAccountId: e.target.value })} className={inputCls}>
+              <option value="">No parent account (root)</option>
+              {accounts.map(acc => <option key={acc._id} value={acc._id}>{PROVIDERS[acc.provider]?.emoji || '⚙️'} {acc.name}</option>)}
+            </select>
             <div className="grid grid-cols-2 gap-3">
               <input placeholder="URL" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={inputCls} />
               <input placeholder="Username / Email" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} className={inputCls} />
@@ -137,6 +142,17 @@ export default function AccountsPage() {
                 </div>
                 {isExpanded && (
                   <div className="border-t border-border-light px-4 py-3 bg-surface-secondary space-y-2 text-sm">
+                    {a.parentAccountId && (
+                      <div>
+                        <span className="text-text-muted">Parent Account:</span>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${a.parentAccountId}`); window.location.reload(); }}
+                          className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
+                        >
+                          View Parent ↑
+                        </button>
+                      </div>
+                    )}
                     {a.url && <div><span className="text-text-muted">URL:</span> <a href={a.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">{a.url}</a></div>}
                     {a.username && <div><span className="text-text-muted">Username:</span> <span className="text-text-primary">{a.username}</span></div>}
                     {a.notes && <div><span className="text-text-muted">Notes:</span> <span className="text-text-secondary whitespace-pre-wrap">{a.notes}</span></div>}
@@ -151,6 +167,23 @@ export default function AccountsPage() {
                           ))}
                         </div>
                         <p className="text-[10px] text-text-muted mt-1 italic">🔒 Values in Bitwarden</p>
+                      </div>
+                    )}
+                    {/* Sub-accounts */}
+                    {accounts.filter(sub => sub.parentAccountId === a._id).length > 0 && (
+                      <div>
+                        <span className="text-text-muted">Sub-accounts ({accounts.filter(sub => sub.parentAccountId === a._id).length}):</span>
+                        <div className="mt-1 space-y-1">
+                          {accounts.filter(sub => sub.parentAccountId === a._id).map(sub => (
+                            <button
+                              key={sub._id}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${sub._id}`); window.location.reload(); }}
+                              className="text-xs px-2 py-1 rounded bg-surface border border-border hover:bg-surface-hover flex items-center gap-1"
+                            >
+                              {PROVIDERS[sub.provider]?.emoji || '⚙️'} {sub.name}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                     <div className="pt-2">
