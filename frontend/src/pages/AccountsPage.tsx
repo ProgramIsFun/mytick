@@ -159,11 +159,27 @@ export default function AccountsPage() {
                     {a.credentials.length > 0 && (
                       <div>
                         <span className="text-text-muted">Credentials:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-wrap gap-2 mt-1">
                           {a.credentials.map((c, i) => (
-                            <span key={i} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted cursor-pointer" title={`vaultId: ${c.vaultId}`} onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.vaultId); }}>
-                              {c.key} 📋
-                            </span>
+                            <div key={i} className="flex items-center gap-1">
+                              <span 
+                                className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted cursor-pointer hover:bg-surface-hover" 
+                                title={`Copy vault ID: ${c.vaultId}`} 
+                                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.vaultId); }}
+                              >
+                                {c.key} 📋
+                              </span>
+                              <a
+                                href={`https://vault.bitwarden.com/#/vault?itemId=${c.vaultId}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
+                                title="Open in Bitwarden web vault"
+                              >
+                                View ↗
+                              </a>
+                            </div>
                           ))}
                         </div>
                         <p className="text-[10px] text-text-muted mt-1 italic">🔒 Values in Bitwarden</p>
