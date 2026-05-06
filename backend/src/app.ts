@@ -8,6 +8,7 @@ import groupRoutes from './routes/groups';
 import accountRoutes from './routes/accounts';
 import domainRoutes from './routes/domains';
 import contextRoutes from './routes/context';
+import databaseRoutes from './routes/databases';
 
 const app = express();
 app.use(cors());
@@ -38,6 +39,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/domains', domainRoutes);
 app.use('/api/context', contextRoutes);
+app.use('/api/databases', databaseRoutes);
 app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 app.get('/api/health', async (_req, res) => {
   const dbOk = mongoose.connection.readyState === 1;

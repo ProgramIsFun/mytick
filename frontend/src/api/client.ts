@@ -121,6 +121,27 @@ export const api = {
   deleteDomain: (id: string) =>
     request(`/domains/${id}`, { method: 'DELETE' }),
 
+  // Databases
+  getDatabases: (q?: string, type?: string, backupEnabled?: boolean) => {
+    let url = '/databases';
+    const params = [];
+    if (q) params.push(`search=${encodeURIComponent(q)}`);
+    if (type) params.push(`type=${type}`);
+    if (backupEnabled !== undefined) params.push(`backupEnabled=${backupEnabled}`);
+    if (params.length) url += '?' + params.join('&');
+    return request(url);
+  },
+  getDatabase: (id: string) => request(`/databases/${id}`),
+  getBackupableDatabases: () => request('/databases/backupable'),
+  createDatabase: (data: Record<string, unknown>) =>
+    request('/databases', { method: 'POST', body: JSON.stringify(data) }),
+  updateDatabase: (id: string, data: Record<string, unknown>) =>
+    request(`/databases/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteDatabase: (id: string) =>
+    request(`/databases/${id}`, { method: 'DELETE' }),
+  markBackupSuccess: (id: string) =>
+    request(`/databases/${id}/backup-success`, { method: 'POST' }),
+
   // Context
   getContextEntries: () => request('/context'),
   getContext: (key: string) => request(`/context/${key}`),
