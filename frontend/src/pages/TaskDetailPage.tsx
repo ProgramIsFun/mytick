@@ -206,10 +206,15 @@ export default function TaskDetailPage() {
             <div className="border border-border rounded-lg p-4 bg-surface">
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">🔑 Accounts</h3>
               {accounts.map(a => (
-                <div key={a._id} className="flex items-center gap-2 py-1.5 text-sm">
+                <button
+                  key={a._id}
+                  onClick={() => navigate(`/accounts?highlight=${a._id}`)}
+                  className="flex items-center gap-2 py-1.5 text-sm w-full text-left hover:bg-surface-hover rounded px-2 -mx-2 transition-colors"
+                >
                   <span className="text-text-primary">{a.name}</span>
                   <span className="text-xs text-text-muted">({a.provider})</span>
-                </div>
+                  <span className="ml-auto text-xs text-accent opacity-0 group-hover:opacity-100">→</span>
+                </button>
               ))}
             </div>
           )}

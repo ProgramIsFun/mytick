@@ -216,7 +216,7 @@ export default function DatabasesPage() {
                     {db.accountId && (
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${db.accountId._id}`); }}
-                        className="text-xs px-2 py-1 rounded-md border border-border text-text-muted hover:text-text-primary hover:bg-surface-hover"
+                        className="text-xs px-2 py-1 rounded-md border border-border text-text-secondary hover:text-accent hover:border-accent hover:bg-accent/5 transition-colors"
                         title="View account details"
                       >
                         🔗 {db.accountId.name}
