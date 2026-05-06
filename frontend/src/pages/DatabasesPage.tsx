@@ -3,10 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
+interface SecretRef {
+  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'custom';
+  itemId: string;
+  field?: string;
+}
+
 interface Account { _id: string; name: string; provider: string; }
 interface Database {
   _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; connectionUri: string; backupEnabled: boolean;
+  database: string; secretRef: SecretRef | null; backupEnabled: boolean;
   backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
   accountId: Account | null; tags: string[]; notes: string;
   createdAt: string;
@@ -30,7 +36,8 @@ export default function DatabasesPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
-    name: '', type: 'mongodb', host: '', port: '', database: '', connectionUri: '',
+    name: '', type: 'mongodb', host: '', port: '', database: '',
+    secretProvider: 'bitwarden' as SecretRef['provider'], secretItemId: '', secretField: '',
     backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily',
     accountId: '', notes: ''
   });
@@ -49,11 +56,25 @@ export default function DatabasesPage() {
     e.preventDefault();
     if (!form.name || !form.type) return;
     await api.createDatabase({
-      ...form,
+      name: form.name,
+      type: form.type,
+      host: form.host,
       port: form.port ? parseInt(form.port) : null,
+      database: form.database,
+      secretRef: form.secretItemId ? {
+        provider: form.secretProvider,
+        itemId: form.secretItemId,
+        field: form.secretField || undefined,
+      } : null,
+      backupEnabled: form.backupEnabled,
+      backupRetentionDays: form.backupRetentionDays,
+      backupFrequency: form.backupFrequency,
+      accountId: form.accountId || null,
+      notes: form.notes,
     });
     setForm({
-      name: '', type: 'mongodb', host: '', port: '', database: '', connectionUri: '',
+      name: '', type: 'mongodb', host: '', port: '', database: '',
+      secretProvider: 'bitwarden', secretItemId: '', secretField: '',
       backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily',
       accountId: '', notes: ''
     });
@@ -103,7 +124,20 @@ export default function DatabasesPage() {
                 {Object.entries(DB_TYPES).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
               </select>
             </div>
-            <input placeholder="Connection URI (optional)" value={form.connectionUri} onChange={e => setForm({ ...form, connectionUri: e.target.value })} className={inputCls} />
+            <div className="border border-border rounded-lg p-3 bg-surface-secondary">
+              <label className="text-xs font-medium text-text-muted block mb-2">Secret Manager (optional)</label>
+              <div className="grid grid-cols-3 gap-2">
+                <select value={form.secretProvider} onChange={e => setForm({ ...form, secretProvider: e.target.value as SecretRef['provider'] })} className={inputCls}>
+                  <option value="bitwarden">🔐 Bitwarden</option>
+                  <option value="1password">🔑 1Password</option>
+                  <option value="lastpass">🔒 LastPass</option>
+                  <option value="vault">🏦 Vault</option>
+                  <option value="custom">⚙️ Custom</option>
+                </select>
+                <input placeholder="Item ID" value={form.secretItemId} onChange={e => setForm({ ...form, secretItemId: e.target.value })} className={inputCls} />
+                <input placeholder="Field (optional)" value={form.secretField} onChange={e => setForm({ ...form, secretField: e.target.value })} className={inputCls} />
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-3">
               <input placeholder="Host" value={form.host} onChange={e => setForm({ ...form, host: e.target.value })} className={inputCls} />
               <input placeholder="Port" type="number" value={form.port} onChange={e => setForm({ ...form, port: e.target.value })} className={inputCls} />
@@ -190,10 +224,28 @@ export default function DatabasesPage() {
 
                   {isExpanded && (
                     <div className="border-t border-border px-4 py-3 bg-surface-secondary space-y-3">
-                      {db.connectionUri && (
+                      {db.secretRef && (
                         <div>
-                          <label className="text-xs font-medium text-text-muted block mb-1">Connection URI</label>
-                          <div className="text-xs text-text-primary font-mono bg-surface px-2 py-1.5 rounded border border-border truncate">{db.connectionUri}</div>
+                          <label className="text-xs font-medium text-text-muted block mb-1">Secret Reference</label>
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs px-2 py-1 rounded bg-surface border border-border">
+                              {db.secretRef.provider === 'bitwarden' && '🔐 Bitwarden'}
+                              {db.secretRef.provider === '1password' && '🔑 1Password'}
+                              {db.secretRef.provider === 'lastpass' && '🔒 LastPass'}
+                              {db.secretRef.provider === 'vault' && '🏦 Vault'}
+                              {db.secretRef.provider === 'custom' && '⚙️ Custom'}
+                            </div>
+                            <div className="text-xs text-text-primary font-mono bg-surface px-2 py-1.5 rounded border border-border flex-1 truncate">
+                              {db.secretRef.itemId}{db.secretRef.field && ` → ${db.secretRef.field}`}
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(db.secretRef!.itemId); }}
+                              className="text-xs px-2 py-1.5 rounded-md border border-border text-text-secondary hover:bg-surface-hover"
+                              title="Copy Item ID"
+                            >
+                              📋
+                            </button>
+                          </div>
                         </div>
                       )}
                       {db.notes && (
