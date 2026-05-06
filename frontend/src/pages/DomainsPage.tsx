@@ -4,10 +4,12 @@ import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
 interface Account { _id: string; name: string; provider: string; }
+interface Project { _id: string; title: string; }
 interface Domain {
   _id: string; name: string; expiryDate: string | null; autoRenew: boolean;
   nameservers: string[]; sslProvider: string; notes: string; tags: string[];
   registrarAccountId: Account | null; dnsAccountId: Account | null;
+  projectId: Project | null;
 }
 
 const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40";
@@ -127,8 +129,39 @@ export default function DomainsPage() {
                 </div>
                 {isExpanded && (
                   <div className="border-t border-border-light px-4 py-3 bg-surface-secondary space-y-2 text-sm">
-                    {d.registrarAccountId && <div><span className="text-text-muted">Registrar:</span> <span className="text-text-primary">{(d.registrarAccountId as Account).name}</span></div>}
-                    {d.dnsAccountId && <div><span className="text-text-muted">DNS:</span> <span className="text-text-primary">{(d.dnsAccountId as Account).name}</span></div>}
+                    {d.projectId && (
+                      <div>
+                        <span className="text-text-muted">Project:</span> 
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${(d.projectId as Project)._id}`); }}
+                          className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
+                        >
+                          {(d.projectId as Project).title} →
+                        </button>
+                      </div>
+                    )}
+                    {d.registrarAccountId && (
+                      <div>
+                        <span className="text-text-muted">Registrar:</span> 
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${(d.registrarAccountId as Account)._id}`); }}
+                          className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
+                        >
+                          {(d.registrarAccountId as Account).name} →
+                        </button>
+                      </div>
+                    )}
+                    {d.dnsAccountId && (
+                      <div>
+                        <span className="text-text-muted">DNS:</span> 
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${(d.dnsAccountId as Account)._id}`); }}
+                          className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
+                        >
+                          {(d.dnsAccountId as Account).name} →
+                        </button>
+                      </div>
+                    )}
                     {d.nameservers.length > 0 && <div><span className="text-text-muted">Nameservers:</span> <span className="font-mono text-xs text-text-secondary">{d.nameservers.join(', ')}</span></div>}
                     {d.sslProvider && <div><span className="text-text-muted">SSL:</span> <span className="text-text-primary">{d.sslProvider}</span></div>}
                     {d.expiryDate && <div><span className="text-text-muted">Expires:</span> <span className="text-text-primary">{new Date(d.expiryDate).toLocaleDateString()}</span></div>}
