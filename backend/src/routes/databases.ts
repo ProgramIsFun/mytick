@@ -54,13 +54,13 @@ router.get('/backupable', async (req: AuthRequest, res: Response) => {
     const databases = await Database.find({
       userId: req.userId,
       backupEnabled: true,
-    }).select('name type secretRef backupRetentionDays backupFrequency');
+    }).select('name type secretRefs backupRetentionDays backupFrequency');
     
     res.json(databases.map(db => ({
       id: db._id,
       name: db.name,
       type: db.type,
-      secretRef: db.secretRef,
+      secretRefs: db.secretRefs,
       retentionDays: db.backupRetentionDays,
       frequency: db.backupFrequency,
     })));
@@ -113,7 +113,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  *             properties:
  *               name: { type: string }
  *               type: { type: string, enum: [mongodb, postgres, mysql, redis, sqlite, other] }
- *               secretRef: { type: object, properties: { provider: { type: string }, itemId: { type: string }, field: { type: string } } }
+ *               secretRefs: { type: array, items: { type: object, properties: { provider: { type: string }, itemId: { type: string }, field: { type: string } } } }
  *               host: { type: string }
  *               port: { type: number }
  *               database: { type: string }
@@ -129,7 +129,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  */
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, type, secretRef, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
+    const { name, type, secretRefs, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
     
     if (!name || !type) {
       return res.status(400).json({ error: 'name and type are required' });
@@ -139,7 +139,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       userId: req.userId,
       name,
       type,
-      secretRef: secretRef || null,
+      secretRefs: secretRefs || [],
       host: host || '',
       port: port || null,
       database: database || '',
@@ -179,7 +179,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     
     if (!database) return res.status(404).json({ error: 'Not found' });
     
-    const allowed = ['name', 'type', 'secretRef', 'host', 'port', 'database', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'accountId', 'tags', 'notes'];
+    const allowed = ['name', 'type', 'secretRefs', 'host', 'port', 'database', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'accountId', 'tags', 'notes'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (database as any)[key] = req.body[key];
     }

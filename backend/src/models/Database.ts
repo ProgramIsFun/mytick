@@ -1,7 +1,7 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface ISecretRef {
-  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'custom';
+  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
   itemId: string;
   field?: string;
 }
@@ -10,7 +10,7 @@ export interface IDatabase extends Document {
   userId: Types.ObjectId;
   name: string;
   type: 'mongodb' | 'postgres' | 'mysql' | 'redis' | 'sqlite' | 'other';
-  secretRef: ISecretRef | null;
+  secretRefs: ISecretRef[];
   host: string;
   port: number | null;
   database: string;
@@ -26,7 +26,7 @@ export interface IDatabase extends Document {
 }
 
 const secretRefSchema = new Schema<ISecretRef>({
-  provider: { type: String, enum: ['bitwarden', '1password', 'lastpass', 'vault', 'custom'], required: true },
+  provider: { type: String, enum: ['bitwarden', '1password', 'lastpass', 'vault', 'aws_secrets', 'custom'], required: true },
   itemId: { type: String, required: true },
   field: { type: String, default: '' },
 }, { _id: false });
@@ -35,7 +35,7 @@ const databaseSchema = new Schema<IDatabase>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
   type: { type: String, enum: ['mongodb', 'postgres', 'mysql', 'redis', 'sqlite', 'other'], required: true },
-  secretRef: { type: secretRefSchema, default: null },
+  secretRefs: { type: [secretRefSchema], default: [] },
   host: { type: String, default: '' },
   port: { type: Number, default: null },
   database: { type: String, default: '' },

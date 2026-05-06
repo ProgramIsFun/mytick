@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
 interface SecretRef {
-  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'custom';
+  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
   itemId: string;
   field?: string;
 }
@@ -12,7 +12,7 @@ interface SecretRef {
 interface Account { _id: string; name: string; provider: string; }
 interface Database {
   _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; secretRef: SecretRef | null; backupEnabled: boolean;
+  database: string; secretRefs: SecretRef[]; backupEnabled: boolean;
   backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
   accountId: Account | null; tags: string[]; notes: string;
   createdAt: string;
@@ -61,11 +61,11 @@ export default function DatabasesPage() {
       host: form.host,
       port: form.port ? parseInt(form.port) : null,
       database: form.database,
-      secretRef: form.secretItemId ? {
+      secretRefs: form.secretItemId ? [{
         provider: form.secretProvider,
         itemId: form.secretItemId,
         field: form.secretField || undefined,
-      } : null,
+      }] : [],
       backupEnabled: form.backupEnabled,
       backupRetentionDays: form.backupRetentionDays,
       backupFrequency: form.backupFrequency,
@@ -132,6 +132,7 @@ export default function DatabasesPage() {
                   <option value="1password">🔑 1Password</option>
                   <option value="lastpass">🔒 LastPass</option>
                   <option value="vault">🏦 Vault</option>
+                  <option value="aws_secrets">☁️ AWS Secrets</option>
                   <option value="custom">⚙️ Custom</option>
                 </select>
                 <input placeholder="Item ID" value={form.secretItemId} onChange={e => setForm({ ...form, secretItemId: e.target.value })} className={inputCls} />
@@ -230,27 +231,32 @@ export default function DatabasesPage() {
 
                   {isExpanded && (
                     <div className="border-t border-border px-4 py-3 bg-surface-secondary space-y-3">
-                      {db.secretRef && (
+                      {db.secretRefs && db.secretRefs.length > 0 && (
                         <div>
-                          <label className="text-xs font-medium text-text-muted block mb-1">Secret Reference</label>
-                          <div className="flex items-center gap-2">
-                            <div className="text-xs px-2 py-1 rounded bg-surface border border-border">
-                              {db.secretRef.provider === 'bitwarden' && '🔐 Bitwarden'}
-                              {db.secretRef.provider === '1password' && '🔑 1Password'}
-                              {db.secretRef.provider === 'lastpass' && '🔒 LastPass'}
-                              {db.secretRef.provider === 'vault' && '🏦 Vault'}
-                              {db.secretRef.provider === 'custom' && '⚙️ Custom'}
-                            </div>
-                            <div className="text-xs text-text-primary font-mono bg-surface px-2 py-1.5 rounded border border-border flex-1 truncate">
-                              {db.secretRef.itemId}{db.secretRef.field && ` → ${db.secretRef.field}`}
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(db.secretRef!.itemId); }}
-                              className="text-xs px-2 py-1.5 rounded-md border border-border text-text-secondary hover:bg-surface-hover"
-                              title="Copy Item ID"
-                            >
-                              📋
-                            </button>
+                          <label className="text-xs font-medium text-text-muted block mb-1">Secret References</label>
+                          <div className="space-y-2">
+                            {db.secretRefs.map((ref, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <div className="text-xs px-2 py-1 rounded bg-surface border border-border">
+                                  {ref.provider === 'bitwarden' && '🔐 Bitwarden'}
+                                  {ref.provider === '1password' && '🔑 1Password'}
+                                  {ref.provider === 'lastpass' && '🔒 LastPass'}
+                                  {ref.provider === 'vault' && '🏦 Vault'}
+                                  {ref.provider === 'aws_secrets' && '☁️ AWS Secrets'}
+                                  {ref.provider === 'custom' && '⚙️ Custom'}
+                                </div>
+                                <div className="text-xs text-text-primary font-mono bg-surface px-2 py-1.5 rounded border border-border flex-1 truncate">
+                                  {ref.itemId}{ref.field && ` → ${ref.field}`}
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(ref.itemId); }}
+                                  className="text-xs px-2 py-1.5 rounded-md border border-border text-text-secondary hover:bg-surface-hover"
+                                  title="Copy Item ID"
+                                >
+                                  📋
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
