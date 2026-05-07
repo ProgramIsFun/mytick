@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev for nodemon, ts-node)
-RUN npm ci
+RUN npm install
 
 # Source code will be mounted as volume
 
