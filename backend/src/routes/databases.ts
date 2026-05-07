@@ -102,7 +102,17 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  * @swagger
  * /databases/{id}/backup-completed:
  *   post:
- *     summary: Record backup completion (called by Lambda)
+ *     summary: Record backup completion (called by Lambda after EACH database)
+ *     description: |
+ *       Lambda reports results immediately after each database backup completes.
+ *       
+ *       **Design Decision: Per-Database Reporting (not batched)**
+ *       - Provides real-time progress tracking
+ *       - Protects against Lambda timeout (15min limit)
+ *       - Ensures partial progress saved if Lambda crashes
+ *       - Better debugging with exact timestamps per database
+ *       
+ *       Trade-off: More API calls, but better production resilience.
  *     tags: [Databases]
  *     security: [{ bearerAuth: [] }]
  *     parameters:

@@ -44,6 +44,17 @@ async function fetchDatabases(project) {
 
 /**
  * Report backup completion to MyTick API
+ * 
+ * DESIGN DECISION: Report after EACH database backup (not batched)
+ * 
+ * Why per-database reporting?
+ * 1. Real-time visibility - Users see progress as it happens
+ * 2. Lambda timeout protection - 15min limit, save progress incrementally
+ * 3. Partial failure tracking - Know which specific databases failed
+ * 4. Crash resilience - If Lambda crashes, completed backups are recorded
+ * 5. Better debugging - Exact timestamps and errors per database
+ * 
+ * Trade-off: More API calls (N databases = N calls), but worth it for production resilience
  */
 async function reportBackupResult(project, databaseId, result) {
   const url = new URL(`/databases/${databaseId}/backup-completed`, project.apiUrl);
@@ -93,6 +104,18 @@ async function reportBackupResult(project, databaseId, result) {
 
 /**
  * Backup a single project
+ * 
+ * Process:
+ * 1. Fetch list of databases from MyTick API
+ * 2. For each database:
+ *    a. Retrieve secrets from Bitwarden
+ *    b. Execute backup (mongodump, pg_dump, etc.)
+ *    c. Upload to S3 Glacier
+ *    d. Report result to MyTick API immediately (per-database reporting)
+ * 3. Return summary for Lambda logs
+ * 
+ * Note: Each database reports independently to MyTick for real-time tracking
+ * and Lambda timeout protection. See reportBackupResult() docs for rationale.
  */
 async function backupProject(project) {
   const { getBitwardenSecret } = require('./bitwarden');

@@ -99,7 +99,17 @@ This Terraform configuration creates the following AWS resources:
 4. **Bitwarden SDK** retrieves connection strings using `secretRefs`
 5. **Backup tools** (mongodump, pg_dump, etc.) create backups
 6. **S3 Glacier Instant** stores backups with lifecycle policies
-7. **CloudWatch Alarms** notify via SNS on failures
+7. **Report to MyTick** after EACH database (success or failure)
+8. **CloudWatch Alarms** notify via SNS on failures
+
+### Reporting Strategy
+
+**Per-Database Reporting** (not batched):
+- Lambda reports to MyTick after EACH database backup completes
+- Provides real-time progress tracking in UI
+- Protects against Lambda timeout (15min limit)
+- Ensures partial progress is saved if Lambda crashes
+- Trade-off: More API calls, but better production resilience
 
 ### Data Flow
 
@@ -115,10 +125,11 @@ This Terraform configuration creates the following AWS resources:
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ nexus-backup Lambda (Executor)                              │
-│ 1. Fetch database list from MyTick                          │
-│ 2. Retrieve secrets from Bitwarden                          │
-│ 3. Execute backups (mongodump, pg_dump, etc.)               │
-│ 4. Upload to S3 Glacier                                     │
+│ FOR EACH database:                                          │
+│   1. Retrieve secrets from Bitwarden                        │
+│   2. Execute backup (mongodump, pg_dump, etc.)              │
+│   3. Upload to S3 Glacier                                   │
+│   4. Report result to MyTick (immediate per-DB tracking)    │
 └─────────────────────────────────────────────────────────────┘
                             ↓
                   (Backup files stored)
@@ -128,6 +139,15 @@ This Terraform configuration creates the following AWS resources:
 │ - 365 day retention                                         │
 │ - Encrypted at rest                                         │
 │ - Cost: $0.004/GB/month                                     │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+            (Report back to MyTick per database)
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│ MyTick BackupHistory Collection (MongoDB)                   │
+│ - Stores: All backup attempts with full details             │
+│ - Fields: status, timestamps, size, S3 path, errors         │
+│ - Used by: UI for backup history visualization              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
