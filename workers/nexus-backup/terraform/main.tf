@@ -55,6 +55,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "nexus_backup" {
     id     = "transition-to-glacier"
     status = "Enabled"
 
+    # Apply to all objects in bucket
+    filter {}
+
     transition {
       days          = 0
       storage_class = "GLACIER_IR"
