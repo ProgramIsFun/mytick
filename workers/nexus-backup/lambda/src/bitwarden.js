@@ -1,4 +1,4 @@
-const { BitwardenClient, DeviceType, LogLevel } = require('@bitwarden/sdk-node');
+const { BitwardenClient, DeviceType, LogLevel } = require('@bitwarden/sdk-napi');
 
 let client = null;
 
