@@ -55,17 +55,32 @@ router.get('/backupable', async (req: AuthRequest, res: Response) => {
     const databases = await Database.find({
       userId: req.userId,
       backupEnabled: true,
-    }).select('name type secretRefs backupRetentionDays backupFrequency lastBackupAt');
+    })
+    .select('name type secretRefs secretId backupRetentionDays backupFrequency lastBackupAt')
+    .populate('secretId'); // Populate Secret reference
     
-    res.json(databases.map(db => ({
-      id: db._id,
-      name: db.name,
-      type: db.type,
-      secretRefs: db.secretRefs,
-      retentionDays: db.backupRetentionDays,
-      frequency: db.backupFrequency,
-      lastBackupAt: db.lastBackupAt,
-    })));
+    res.json(databases.map(db => {
+      const secret = db.secretId as any;
+      
+      return {
+        id: db._id,
+        name: db.name,
+        type: db.type,
+        
+        // New: Secret abstraction (if secretId exists)
+        secret: secret ? {
+          provider: secret.provider,
+          providerSecretId: secret.providerSecretId,
+        } : null,
+        
+        // Legacy: For backward compatibility
+        secretRefs: db.secretRefs,
+        
+        retentionDays: db.backupRetentionDays,
+        frequency: db.backupFrequency,
+        lastBackupAt: db.lastBackupAt,
+      };
+    }));
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

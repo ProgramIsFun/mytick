@@ -141,13 +141,26 @@ async function backupProject(project) {
 
     try {
       // Get connection string from Bitwarden
-      const bitwardenRef = db.secretRefs?.find(ref => ref.provider === 'bitwarden');
-      if (!bitwardenRef) {
-        console.warn(`No Bitwarden secret ref for ${db.name}, skipping`);
+      let connectionString;
+      
+      // New: Use Secret abstraction if available
+      if (db.secret && db.secret.provider === 'bitwarden') {
+        console.log(`Fetching secret from Bitwarden Secrets Manager: ${db.secret.providerSecretId}`);
+        connectionString = await getBitwardenSecret(db.secret.providerSecretId);
+      }
+      // Legacy: Fall back to secretRefs for backward compatibility
+      else if (db.secretRefs && db.secretRefs.length > 0) {
+        const bitwardenRef = db.secretRefs.find(ref => ref.provider === 'bitwarden');
+        if (bitwardenRef) {
+          console.log(`Using legacy secretRefs: ${bitwardenRef.itemId}`);
+          connectionString = await getBitwardenSecret(bitwardenRef.itemId, bitwardenRef.field);
+        }
+      }
+      
+      if (!connectionString) {
+        console.warn(`No secret found for ${db.name}, skipping`);
         continue;
       }
-
-      const connectionString = await getBitwardenSecret(bitwardenRef.itemId, bitwardenRef.field);
       
       // Backup based on database type
       switch (db.type) {

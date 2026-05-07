@@ -10,7 +10,8 @@ export interface IDatabase extends Document {
   userId: Types.ObjectId;
   name: string;
   type: 'mongodb' | 'postgres' | 'mysql' | 'redis' | 'sqlite' | 'other';
-  secretRefs: ISecretRef[];
+  secretRefs: ISecretRef[]; // Legacy - kept for backward compatibility
+  secretId: Types.ObjectId | null; // New - reference to Secret collection
   host: string;
   port: number | null;
   database: string;
@@ -35,7 +36,8 @@ const databaseSchema = new Schema<IDatabase>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
   type: { type: String, enum: ['mongodb', 'postgres', 'mysql', 'redis', 'sqlite', 'other'], required: true },
-  secretRefs: { type: [secretRefSchema], default: [] },
+  secretRefs: { type: [secretRefSchema], default: [] }, // Legacy
+  secretId: { type: Schema.Types.ObjectId, ref: 'Secret', default: null }, // New
   host: { type: String, default: '' },
   port: { type: Number, default: null },
   database: { type: String, default: '' },
