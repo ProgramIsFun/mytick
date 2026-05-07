@@ -10,9 +10,10 @@ interface SecretRef {
 }
 
 interface Account { _id: string; name: string; provider: string; }
+interface Secret { _id: string; name: string; provider: string; }
 interface Database {
   _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; secretRefs: SecretRef[]; backupEnabled: boolean;
+  database: string; secretRefs: SecretRef[]; secretId?: Secret | string | null; backupEnabled: boolean;
   backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
   accountId: Account | null; tags: string[]; notes: string;
   createdAt: string;
@@ -233,9 +234,24 @@ export default function DatabasesPage() {
 
                   {isExpanded && (
                     <div className="border-t border-border px-4 py-3 bg-surface-secondary space-y-3">
+                      {db.secretId && (
+                        <div>
+                          <label className="text-xs font-medium text-text-muted block mb-1">🔐 Secret</label>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const secretId = typeof db.secretId === 'object' ? db.secretId._id : db.secretId;
+                              navigate(`/secrets/${secretId}`);
+                            }}
+                            className="text-xs px-3 py-2 rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
+                          >
+                            View Secret →
+                          </button>
+                        </div>
+                      )}
                       {db.secretRefs && db.secretRefs.length > 0 && (
                         <div>
-                          <label className="text-xs font-medium text-text-muted block mb-1">Secret References</label>
+                          <label className="text-xs font-medium text-text-muted block mb-1">Secret References (Legacy)</label>
                           <div className="space-y-2">
                             {db.secretRefs.map((ref, idx) => (
                               <div key={idx} className="flex items-center gap-2">

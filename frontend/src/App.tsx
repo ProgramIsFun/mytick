@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage';
 import AccountsPage from './pages/AccountsPage';
 import DomainsPage from './pages/DomainsPage';
 import DatabasesPage from './pages/DatabasesPage';
+import SecretsPage from './pages/SecretsPage';
 import ProfilePage from './pages/ProfilePage';
 import ContextPage from './pages/ContextPage';
 import LandingPage from './pages/LandingPage';
@@ -42,6 +43,8 @@ export default function App() {
             <Route path="/accounts" element={<PrivateRoute><AccountsPage /></PrivateRoute>} />
             <Route path="/domains" element={<PrivateRoute><DomainsPage /></PrivateRoute>} />
             <Route path="/databases" element={<PrivateRoute><DatabasesPage /></PrivateRoute>} />
+            <Route path="/secrets" element={<PrivateRoute><SecretsPage /></PrivateRoute>} />
+            <Route path="/secrets/:id" element={<PrivateRoute><SecretsPage /></PrivateRoute>} />
             <Route path="/context" element={<PrivateRoute><ContextPage /></PrivateRoute>} />
             <Route path="/share/:token" element={<SharedTaskPage />} />
             <Route path="/u/:username" element={<ProfilePage />} />

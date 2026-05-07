@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
-interface Credential { vaultId: string; key: string; }
+interface Secret { _id: string; name: string; provider: string; }
+interface Credential { vaultId: string; key: string; secretId?: Secret | string | null; }
 interface Account {
   _id: string; name: string; provider: string; url: string;
   username: string; notes: string; tags: string[]; credentials: Credential[];
@@ -162,23 +163,44 @@ export default function AccountsPage() {
                         <div className="flex flex-wrap gap-2 mt-1">
                           {a.credentials.map((c, i) => (
                             <div key={i} className="flex items-center gap-1">
-                              <span 
-                                className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted cursor-pointer hover:bg-surface-hover" 
-                                title={`Copy vault ID: ${c.vaultId}`} 
-                                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.vaultId); }}
-                              >
-                                {c.key} 📋
-                              </span>
-                              <a
-                                href={`https://vault.bitwarden.com/#/vault?itemId=${c.vaultId}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
-                                title="Open in Bitwarden web vault"
-                              >
-                                View ↗
-                              </a>
+                              {c.secretId ? (
+                                <>
+                                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">
+                                    {c.key}
+                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const secretId = typeof c.secretId === 'object' ? c.secretId._id : c.secretId;
+                                      navigate(`/secrets/${secretId}`);
+                                    }}
+                                    className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
+                                    title="View secret"
+                                  >
+                                    🔐 Secret →
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <span 
+                                    className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted cursor-pointer hover:bg-surface-hover" 
+                                    title={`Copy vault ID: ${c.vaultId}`} 
+                                    onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.vaultId); }}
+                                  >
+                                    {c.key} 📋
+                                  </span>
+                                  <a
+                                    href={`https://vault.bitwarden.com/#/vault?itemId=${c.vaultId}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
+                                    title="Open in Bitwarden web vault (Legacy)"
+                                  >
+                                    View ↗
+                                  </a>
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>
