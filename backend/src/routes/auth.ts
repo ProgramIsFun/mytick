@@ -319,4 +319,53 @@ router.get('/lookup', async (req, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/service-token:
+ *   post:
+ *     summary: Generate a service token for external services (Lambda, etc.)
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [service]
+ *             properties:
+ *               service: { type: string, description: 'Service identifier (e.g., nexus-backup)' }
+ *               expiresIn: { type: string, description: 'Token expiration (default: 90d)', default: '90d' }
+ *     responses:
+ *       200: { description: Service token generated }
+ *       401: { description: Unauthorized }
+ */
+router.post('/service-token', async (req, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { service, expiresIn = '90d' } = req.body;
+    if (!service) return res.status(400).json({ error: 'service field required' });
+
+    const serviceToken = jwt.sign(
+      { userId: String(user._id), service },
+      process.env.JWT_SECRET!,
+      { expiresIn }
+    );
+
+    res.json({
+      token: serviceToken,
+      service,
+      userId: user._id,
+      expiresIn
+    });
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
 export default router;
