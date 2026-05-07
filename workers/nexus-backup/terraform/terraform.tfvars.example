@@ -1,0 +1,93 @@
+# ════════════════════════════════════════════════════════════════
+# nexus-backup Terraform Variables
+# ════════════════════════════════════════════════════════════════
+#
+# INSTRUCTIONS:
+# 1. Copy this file: cp terraform.tfvars.example terraform.tfvars
+# 2. Fill in your actual values below
+# 3. terraform.tfvars is git-ignored (safe to store secrets locally)
+#
+# ════════════════════════════════════════════════════════════════
+
+# ────────────────────────────────────────────────────────────────
+# AWS Configuration
+# ────────────────────────────────────────────────────────────────
+
+# S3 bucket name for backup storage (MUST be globally unique!)
+# Examples: "nexus-backups-john-2026", "nexus-backups-12345"
+# Try: https://www.random.org/strings/ for random suffix
+aws_s3_bucket = "nexus-backups-CHANGE-THIS-TO-UNIQUE-NAME"
+
+# AWS region (default: us-east-1)
+# Uncomment to change:
+# aws_region = "us-east-1"
+
+# ────────────────────────────────────────────────────────────────
+# Bitwarden Secrets Manager
+# ────────────────────────────────────────────────────────────────
+
+# Bitwarden Machine Account Access Token
+# 
+# How to get:
+# 1. Go to: https://vault.bitwarden.com
+# 2. Open your organization: "organization name 71"
+# 3. Click: Secrets Manager → Machine accounts
+# 4. Click: New → Name it "nexus-backup-lambda"
+# 5. Copy the access token (looks like: 0.xxxxx.yyyyy:zzzzz)
+# 
+# ⚠️  IMPORTANT: Token only shown once at creation!
+#     If you lost it, create a new machine account.
+#
+# NOTE: Machine accounts only have ONE token (no separate ID)
+#
+BW_CLIENTSECRET = "0.xxxxx-xxxxx-xxxxx:yyyyy-yyyyy-yyyyy"
+
+# ────────────────────────────────────────────────────────────────
+# MyTick API Configuration
+# ────────────────────────────────────────────────────────────────
+
+# Projects to backup (JSON array)
+# 
+# MyTick is the central database registry for ALL projects.
+# The apiUrl points to MyTick backend which stores metadata for:
+# - MyTick databases
+# - EonTrading databases  
+# - Future project databases
+#
+# Fields:
+#   name:         Project identifier (for logging)
+#   apiUrl:       MyTick backend URL
+#   serviceToken: User-specific service token for Lambda
+#
+# How to get serviceToken:
+# 1. Login to MyTick: POST /api/auth/login → get JWT token
+# 2. Generate service token: POST /api/auth/service-token
+#    Headers: Authorization: Bearer <your-jwt>
+#    Body: {"service": "nexus-backup", "expiresIn": "90d"}
+# 3. Copy the returned token and paste below
+#
+# For local MyTick: "http://localhost:4000"
+# For deployed:     "https://api.mytick.app"
+#
+projects = "[{\"name\":\"mytick\",\"apiUrl\":\"http://localhost:4000\",\"serviceToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"}]"
+
+# ────────────────────────────────────────────────────────────────
+# Notes
+# ────────────────────────────────────────────────────────────────
+#
+# Cost estimate: ~$0.34/month (or $0.11/month with AWS free tier)
+# 
+# Resources created:
+# - ECR repository (Lambda container images)
+# - Lambda function (1GB RAM, daily execution)
+# - S3 bucket (Glacier Instant Retrieval storage)
+# - EventBridge rule (daily 2am UTC trigger)
+# - CloudWatch logs + alarm
+# - SNS topic (failure notifications)
+# - IAM role + policy
+# - Remote state backend (S3 + DynamoDB)
+#
+# Backup schedule: Daily at 2am UTC (configurable in main.tf)
+# Retention: 365 days (configurable in main.tf)
+#
+# ════════════════════════════════════════════════════════════════

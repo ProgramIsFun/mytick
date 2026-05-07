@@ -31,3 +31,10 @@ coverage/
 .cache/
 .firebase/
 
+# Terraform
+workers/nexus-backup/terraform/.terraform/
+workers/nexus-backup/terraform/.terraform.lock.hcl
+workers/nexus-backup/terraform/terraform.tfstate
+workers/nexus-backup/terraform/terraform.tfstate.backup
+workers/nexus-backup/terraform/terraform.tfvars
+

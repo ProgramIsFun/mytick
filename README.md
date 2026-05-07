@@ -87,6 +87,21 @@ npm run mcp:dev        # MCP on port 3100
 
 ## 🏗️ Architecture
 
+### Project Structure
+
+```
+mytick/
+├── frontend/          # React web app (Vite + TypeScript)
+├── backend/           # Node.js API server (Express + MongoDB)
+├── mobile/            # React Native mobile app (Expo)
+├── workers/           # Background workers & automation
+│   └── nexus-backup/  # Database backup service (AWS Lambda)
+├── shared/            # Shared types and utilities
+└── scripts/           # Build and deployment scripts
+```
+
+### Data Flow
+
 ```
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
 │   React     │  │   Expo      │  │  AI Agent   │

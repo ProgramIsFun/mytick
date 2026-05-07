@@ -1,0 +1,8 @@
+[
+  {
+    "name": "mytick",
+    "apiUrl": "http://localhost:4000/api",
+    "adminKey": "mytick-admin-key-change-me-in-production",
+    "adminUserId": "69d7a64ca9fc2c22bfe37501"
+  }
+]

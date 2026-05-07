@@ -1,0 +1,24 @@
+{
+  "name": "nexus-backup",
+  "version": "1.0.0",
+  "description": "Universal database backup service using AWS Lambda + Wasabi S3",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "docker build -t nexus-backup .",
+    "local": "node src/index.js"
+  },
+  "keywords": ["backup", "database", "lambda", "s3", "mongodb", "postgresql"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@bitwarden/sdk-node": "^0.4.0",
+    "aws-sdk": "^2.1691.0",
+    "mongodb": "^6.10.0",
+    "pg": "^8.13.1",
+    "mysql2": "^3.11.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
