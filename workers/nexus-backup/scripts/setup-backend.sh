@@ -59,10 +59,12 @@ echo "✅ Confirmed - proceeding with setup..."
 echo ""
 
 # Create S3 bucket for state
-echo "📦 Creating S3 bucket: $BUCKET_NAME"
+echo "📦 Checking S3 bucket: $BUCKET_NAME"
 if aws s3 ls "s3://$BUCKET_NAME" 2>/dev/null; then
-  echo "⚠️  Bucket already exists, skipping..."
+  echo "✅ Bucket already exists"
+  BUCKET_EXISTS=true
 else
+  echo "📦 Creating bucket..."
   aws s3api create-bucket \
     --bucket "$BUCKET_NAME" \
     --region "$REGION" \
@@ -71,17 +73,18 @@ else
     --bucket "$BUCKET_NAME" \
     --region "$REGION"
   echo "✅ Bucket created"
+  BUCKET_EXISTS=false
 fi
 
-# Enable versioning
-echo "🔄 Enabling versioning..."
+# Enable versioning (idempotent - safe to run multiple times)
+echo "🔄 Configuring versioning..."
 aws s3api put-bucket-versioning \
   --bucket "$BUCKET_NAME" \
   --versioning-configuration Status=Enabled
 echo "✅ Versioning enabled"
 
-# Enable encryption
-echo "🔒 Enabling encryption..."
+# Enable encryption (idempotent - safe to run multiple times)
+echo "🔒 Configuring encryption..."
 aws s3api put-bucket-encryption \
   --bucket "$BUCKET_NAME" \
   --server-side-encryption-configuration '{
@@ -93,8 +96,8 @@ aws s3api put-bucket-encryption \
   }'
 echo "✅ Encryption enabled"
 
-# Block public access
-echo "🚫 Blocking public access..."
+# Block public access (idempotent - safe to run multiple times)
+echo "🚫 Configuring public access block..."
 aws s3api put-public-access-block \
   --bucket "$BUCKET_NAME" \
   --public-access-block-configuration \
@@ -127,3 +130,6 @@ echo "2. Run: cd terraform && terraform init"
 echo "3. Terraform will store state securely in S3"
 echo ""
 echo "💰 Estimated cost: ~$0.05/month (S3 + DynamoDB)"
+echo ""
+echo "✅ This script is idempotent - safe to run multiple times!"
+echo ""

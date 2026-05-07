@@ -151,7 +151,6 @@ resource "aws_lambda_function" "nexus_backup" {
     variables = {
       BW_CLIENTSECRET = var.BW_CLIENTSECRET
       AWS_S3_BUCKET   = var.aws_s3_bucket
-      AWS_REGION      = var.aws_region
       PROJECTS        = var.projects
     }
   }
