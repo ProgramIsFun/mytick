@@ -21,7 +21,7 @@ export async function createTestUser(email = 'test@test.com', username = 'testus
   const res = await request(app).post('/api/auth/register').send({
     email, password: 'password123', name: 'Test User', username,
   });
-  return { token: res.body.token, user: res.body.user };
+  return { token: res.body.token, user: res.body.user, userId: res.body.user._id };
 }
 
 export { app };
