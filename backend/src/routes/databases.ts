@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import Database from '../models/Database';
+import BackupHistory from '../models/BackupHistory';
 import { auth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -101,42 +102,78 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  * @swagger
  * /databases/{id}/backup-completed:
  *   post:
- *     summary: Mark backup as completed (called by backup service)
+ *     summary: Record backup completion (called by Lambda)
  *     tags: [Databases]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { in: path, name: id, required: true, schema: { type: string } }
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [status, startedAt, completedAt, s3Path, s3Bucket]
  *             properties:
- *               backupSize: { type: string, example: "245MB" }
- *               s3Key: { type: string, example: "mytick/mongodb/backup-20260506.gz" }
+ *               status: { type: string, enum: [success, failed, partial] }
+ *               startedAt: { type: string, format: date-time }
+ *               completedAt: { type: string, format: date-time }
+ *               sizeBytes: { type: number }
+ *               s3Path: { type: string }
+ *               s3Bucket: { type: string }
+ *               errorMessage: { type: string }
+ *               metadata: { type: object }
+ *               triggeredBy: { type: string, enum: [scheduled, manual] }
+ *               lambdaRequestId: { type: string }
  *     responses:
- *       200: { description: Backup timestamp updated }
+ *       200: { description: Backup recorded }
  *       404: { description: Database not found }
  */
 router.post('/:id/backup-completed', async (req: AuthRequest, res: Response) => {
   try {
-    const database = await Database.findByIdAndUpdate(
-      req.params.id,
-      { 
-        lastBackupAt: new Date(),
-        $inc: { __v: 1 }  // Increment version for tracking
-      },
-      { new: true }
-    );
-    
+    const database = await Database.findById(req.params.id);
     if (!database) return res.status(404).json({ error: 'Database not found' });
-    
-    res.json({ 
-      message: 'Backup timestamp updated',
+
+    const { status, startedAt, completedAt, sizeBytes, s3Path, s3Bucket, errorMessage, metadata, triggeredBy, lambdaRequestId } = req.body;
+
+    // Calculate duration
+    const start = new Date(startedAt);
+    const end = new Date(completedAt);
+    const durationMs = end.getTime() - start.getTime();
+
+    // Create backup history record
+    const backupHistory = await BackupHistory.create({
       databaseId: database._id,
-      lastBackupAt: database.lastBackupAt
+      userId: database.userId,
+      status,
+      startedAt: start,
+      completedAt: end,
+      durationMs,
+      sizeBytes: sizeBytes || 0,
+      s3Path,
+      s3Bucket,
+      errorMessage,
+      metadata: metadata || {},
+      triggeredBy: triggeredBy || 'scheduled',
+      lambdaRequestId,
+    });
+
+    // Update database lastBackupAt only on success
+    if (status === 'success') {
+      await Database.findByIdAndUpdate(database._id, {
+        lastBackupAt: end,
+        $inc: { __v: 1 },
+      });
+    }
+
+    res.json({
+      message: 'Backup recorded',
+      backupId: backupHistory._id,
+      databaseId: database._id,
+      status,
     });
   } catch (err) {
+    console.error('Error recording backup:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -286,6 +323,50 @@ router.post('/:id/backup-success', async (req: AuthRequest, res: Response) => {
     if (!database) return res.status(404).json({ error: 'Not found' });
     res.json(database);
   } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /databases/{id}/backup-history:
+ *   get:
+ *     summary: Get backup history for a database
+ *     tags: [Databases]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *       - { in: query, name: limit, schema: { type: number, default: 50 } }
+ *       - { in: query, name: status, schema: { type: string, enum: [success, failed, partial] } }
+ *     responses:
+ *       200: { description: Backup history list }
+ *       404: { description: Database not found }
+ */
+router.get('/:id/backup-history', async (req: AuthRequest, res: Response) => {
+  try {
+    const database = await Database.findById(req.params.id);
+    if (!database) return res.status(404).json({ error: 'Database not found' });
+
+    // Verify ownership
+    if (database.userId.toString() !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const filter: any = { databaseId: database._id };
+    
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    const history = await BackupHistory.find(filter)
+      .sort({ completedAt: -1 })
+      .limit(limit)
+      .lean();
+
+    res.json(history);
+  } catch (err) {
+    console.error('Error fetching backup history:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

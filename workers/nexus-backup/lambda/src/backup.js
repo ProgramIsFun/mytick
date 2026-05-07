@@ -43,6 +43,55 @@ async function fetchDatabases(project) {
 }
 
 /**
+ * Report backup completion to MyTick API
+ */
+async function reportBackupResult(project, databaseId, result) {
+  const url = new URL(`/databases/${databaseId}/backup-completed`, project.apiUrl);
+  
+  return new Promise((resolve, reject) => {
+    const protocol = url.protocol === 'https:' ? https : http;
+    const body = JSON.stringify(result);
+    
+    const options = {
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${project.serviceToken}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+
+    const req = protocol.request(options, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(JSON.parse(data));
+        } else {
+          console.error(`Failed to report backup: ${res.statusCode} ${data}`);
+          reject(new Error(`API returned ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.error('Error reporting backup:', err);
+      reject(err);
+    });
+    
+    req.write(body);
+    req.end();
+  });
+}
+
+/**
  * Backup a single project
  */
 async function backupProject(project) {
@@ -59,6 +108,10 @@ async function backupProject(project) {
   };
 
   for (const db of databases) {
+    const startedAt = new Date();
+    let backupResult;
+    let error = null;
+
     try {
       // Get connection string from Bitwarden
       const bitwardenRef = db.secretRefs?.find(ref => ref.provider === 'bitwarden');
@@ -70,7 +123,6 @@ async function backupProject(project) {
       const connectionString = await getBitwardenSecret(bitwardenRef.itemId, bitwardenRef.field);
       
       // Backup based on database type
-      let backupResult;
       switch (db.type) {
         case 'mongodb':
           backupResult = await backupMongoDB(db.name, connectionString, project.name);
@@ -79,6 +131,21 @@ async function backupProject(project) {
           console.warn(`Unsupported database type: ${db.type}`);
           continue;
       }
+
+      const completedAt = new Date();
+
+      // Report success to MyTick API
+      await reportBackupResult(project, db.id, {
+        status: 'success',
+        startedAt: startedAt.toISOString(),
+        completedAt: completedAt.toISOString(),
+        sizeBytes: backupResult.size,
+        s3Path: backupResult.s3Path,
+        s3Bucket: process.env.AWS_S3_BUCKET || 'unknown',
+        metadata: backupResult.metadata || {},
+        triggeredBy: 'scheduled',
+        lambdaRequestId: process.env.AWS_REQUEST_ID,
+      });
 
       results.databases.push({
         name: db.name,
@@ -91,11 +158,33 @@ async function backupProject(project) {
       
       console.log(`Successfully backed up ${db.name} (${backupResult.size} bytes)`);
       
-    } catch (error) {
-      console.error(`Failed to backup ${db.name}:`, error);
+    } catch (err) {
+      error = err;
+      const completedAt = new Date();
+      
+      console.error(`Failed to backup ${db.name}:`, err);
+      
+      // Report failure to MyTick API
+      try {
+        await reportBackupResult(project, db.id, {
+          status: 'failed',
+          startedAt: startedAt.toISOString(),
+          completedAt: completedAt.toISOString(),
+          sizeBytes: 0,
+          s3Path: '',
+          s3Bucket: process.env.AWS_S3_BUCKET || 'unknown',
+          errorMessage: err.message,
+          metadata: {},
+          triggeredBy: 'scheduled',
+          lambdaRequestId: process.env.AWS_REQUEST_ID,
+        });
+      } catch (reportErr) {
+        console.error('Failed to report backup failure:', reportErr);
+      }
+      
       results.databases.push({
         name: db.name,
-        error: error.message
+        error: err.message
       });
     }
   }
