@@ -1,0 +1,14 @@
+FROM node:24.14.1-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+# Install all dependencies (including dev for nodemon, ts-node)
+RUN npm ci
+
+# Source code will be mounted as volume
+
+EXPOSE 4000
+
+CMD ["npm", "run", "dev"]
