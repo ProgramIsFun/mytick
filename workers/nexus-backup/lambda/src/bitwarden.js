@@ -1,65 +1,60 @@
-const { BitwardenClient, DeviceType, LogLevel } = require('@bitwarden/sdk-napi');
+const { BitwardenClient } = require('@bitwarden/sdk-napi');
+const { LogLevel } = require('@bitwarden/sdk-napi/binding');
 
 let client = null;
 
 /**
- * Initialize Bitwarden SDK client with service account
+ * Initialize Bitwarden Secrets Manager client
  */
 async function initBitwardenClient() {
   if (client) return client;
 
-  const clientSecret = process.env.BW_CLIENTSECRET;
+  const accessToken = process.env.BW_CLIENTSECRET;
 
-  if (!clientSecret) {
+  if (!accessToken) {
     throw new Error('BW_CLIENTSECRET environment variable required');
   }
 
-  client = new BitwardenClient({
-    deviceType: DeviceType.SDK,
-    logLevel: LogLevel.Info
-  });
+  try {
+    client = new BitwardenClient({
+      apiUrl: "https://api.bitwarden.com",
+      identityUrl: "https://identity.bitwarden.com",
+      userAgent: "nexus-backup/1.0"
+    }, LogLevel.Info);
 
-  // Login with service account access token
-  await client.auth().loginAccessToken(clientSecret, null);
+    // Login with access token (Secrets Manager token)
+    await client.auth().loginAccessToken(accessToken);
 
-  console.log('Bitwarden client initialized');
-  return client;
+    console.log('Bitwarden Secrets Manager client initialized');
+    return client;
+  } catch (error) {
+    console.error('Failed to initialize Bitwarden client:', error);
+    throw error;
+  }
 }
 
 /**
- * Get secret from Bitwarden vault
- * @param {string} itemId - Bitwarden item UUID
- * @param {string} field - Optional field name within the item
+ * Get secret from Bitwarden Secrets Manager
+ * @param {string} secretId - Secret UUID (not vault item ID)
  */
-async function getBitwardenSecret(itemId, field = null) {
+async function getBitwardenSecret(secretId) {
   const bw = await initBitwardenClient();
   
   try {
-    const item = await bw.vault().get(itemId);
+    const response = await bw.secrets().get(secretId);
     
-    if (!item) {
-      throw new Error(`Item ${itemId} not found in vault`);
+    if (!response || !response.data) {
+      throw new Error(`Secret ${secretId} not found`);
     }
 
-    // If it's a secure note, return the notes field
-    if (item.type === 2) {
-      return item.notes;
-    }
-
-    // If it's a login item
-    if (item.login) {
-      if (field) {
-        return item.login[field] || item.login.password;
-      }
-      return item.login.password || item.login.username;
-    }
-
-    throw new Error(`Unsupported item type for ${itemId}`);
+    // Return the secret value
+    return response.data.value;
     
   } catch (error) {
-    console.error(`Error fetching secret ${itemId}:`, error);
+    console.error(`Error fetching secret ${secretId}:`, error.message);
     throw error;
   }
 }
 
 module.exports = { initBitwardenClient, getBitwardenSecret };
+

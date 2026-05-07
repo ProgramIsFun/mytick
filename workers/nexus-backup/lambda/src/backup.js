@@ -6,7 +6,10 @@ const { URL } = require('url');
  * Fetch databases that need backup from project API
  */
 async function fetchDatabases(project) {
-  const url = new URL('/databases/backupable', project.apiUrl);
+  // Construct full URL by appending to apiUrl
+  const fullUrl = `${project.apiUrl}/databases/backupable`;
+  const url = new URL(fullUrl);
+  console.log(`Fetching databases from: ${url.href}`);
   
   return new Promise((resolve, reject) => {
     const protocol = url.protocol === 'https:' ? https : http;
@@ -57,7 +60,8 @@ async function fetchDatabases(project) {
  * Trade-off: More API calls (N databases = N calls), but worth it for production resilience
  */
 async function reportBackupResult(project, databaseId, result) {
-  const url = new URL(`/databases/${databaseId}/backup-completed`, project.apiUrl);
+  const fullUrl = `${project.apiUrl}/databases/${databaseId}/backup-completed`;
+  const url = new URL(fullUrl);
   
   return new Promise((resolve, reject) => {
     const protocol = url.protocol === 'https:' ? https : http;
