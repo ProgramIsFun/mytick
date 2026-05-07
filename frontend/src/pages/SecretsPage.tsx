@@ -48,6 +48,18 @@ export default function SecretsPage() {
   const [secret, setSecret] = useState<Secret | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    provider: 'bitwarden' as const,
+    providerSecretId: '',
+    type: 'api_key' as const,
+    tags: [] as string[],
+  });
+  const [tagInput, setTagInput] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -70,6 +82,83 @@ export default function SecretsPage() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.providerSecretId) {
+      alert('Name and Provider Secret ID are required');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const method = isEditing ? 'PATCH' : 'POST';
+      const url = isEditing ? `/api/secrets/${secret?._id}` : '/api/secrets';
+      
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        setShowForm(false);
+        setFormData({
+          name: '',
+          description: '',
+          provider: 'bitwarden',
+          providerSecretId: '',
+          type: 'api_key',
+          tags: [],
+        });
+        setTagInput('');
+        load();
+      } else {
+        alert('Error saving secret');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!secret || !window.confirm('Delete this secret? This action cannot be undone.')) return;
+
+    try {
+      const res = await fetch(`/api/secrets/${secret._id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+
+      if (res.ok) {
+        navigate('/secrets');
+      } else {
+        alert('Error deleting secret');
+      }
+    } catch (err) {
+      alert('Error deleting secret');
+    }
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()],
+      }));
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tag),
+    }));
+  };
+
   useEffect(() => { load(); }, [id]);
   useEffect(() => { if (!id) { const t = setTimeout(load, 300); return () => clearTimeout(t); } }, [search]);
 
@@ -83,8 +172,37 @@ export default function SecretsPage() {
           <button onClick={() => navigate('/secrets')} className="text-sm text-accent hover:underline mb-2">
             ← Back to Secrets
           </button>
-          <h1 className="text-3xl font-bold text-text-primary">{secret.name}</h1>
-          <p className="text-sm text-text-muted mt-1">{secret.description}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-text-primary">{secret.name}</h1>
+              <p className="text-sm text-text-muted mt-1">{secret.description}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setIsEditing(true);
+                  setFormData({
+                    name: secret.name,
+                    description: secret.description,
+                    provider: secret.provider,
+                    providerSecretId: secret.providerSecretId,
+                    type: secret.type,
+                    tags: secret.tags,
+                  });
+                  setShowForm(true);
+                }}
+                className="px-4 py-2 rounded bg-accent text-white text-sm hover:bg-opacity-90"
+              >
+                ✏️ Edit
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 rounded bg-red-600 text-white text-sm hover:bg-red-700"
+              >
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
@@ -170,10 +288,186 @@ export default function SecretsPage() {
   }
 
   // List view
+  if (showForm) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="mb-6">
+          <button onClick={() => {
+            setShowForm(false);
+            setIsEditing(false);
+            setFormData({
+              name: '',
+              description: '',
+              provider: 'bitwarden',
+              providerSecretId: '',
+              type: 'api_key',
+              tags: [],
+            });
+          }} className="text-sm text-accent hover:underline mb-2">
+            ← Back
+          </button>
+          <h1 className="text-3xl font-bold text-text-primary">{isEditing ? 'Edit Secret' : 'Create Secret'}</h1>
+        </div>
+
+        <form onSubmit={handleSubmit} className="bg-surface rounded-lg border border-border p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Name *</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
+              placeholder="e.g., Production MongoDB"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Description</label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
+              placeholder="Optional description"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Provider *</label>
+              <select
+                value={formData.provider}
+                onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value as any }))}
+                className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
+              >
+                <option value="bitwarden">🔐 Bitwarden</option>
+                <option value="1password">🔑 1Password</option>
+                <option value="lastpass">🔒 LastPass</option>
+                <option value="vault">🏦 Vault</option>
+                <option value="aws_secrets">☁️ AWS Secrets</option>
+                <option value="custom">⚙️ Custom</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Type *</label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
+              >
+                <option value="api_key">🔑 API Key</option>
+                <option value="password">🔒 Password</option>
+                <option value="connection_string">🔗 Connection String</option>
+                <option value="certificate">📜 Certificate</option>
+                <option value="token">🎫 Token</option>
+                <option value="other">📦 Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Provider Secret ID *</label>
+            <input
+              type="text"
+              value={formData.providerSecretId}
+              onChange={(e) => setFormData(prev => ({ ...prev, providerSecretId: e.target.value }))}
+              className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
+              placeholder="e.g., Bitwarden item UUID"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Tags</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
+                className="flex-1 px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary text-sm"
+                placeholder="Add a tag and press Enter"
+              />
+              <button
+                type="button"
+                onClick={addTag}
+                className="px-3 py-2 rounded border border-border text-sm hover:bg-surface-hover"
+              >
+                Add
+              </button>
+            </div>
+            {formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map(tag => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-secondary border border-border text-text-primary text-sm"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="text-text-muted hover:text-text-primary"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t border-border">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 rounded bg-accent text-white hover:bg-opacity-90 disabled:opacity-50"
+            >
+              {submitting ? 'Saving...' : isEditing ? 'Update Secret' : 'Create Secret'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setIsEditing(false);
+              }}
+              className="px-4 py-2 rounded border border-border hover:bg-surface-hover"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // List view
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-text-primary">🔐 Secrets</h1>
+        <button
+          onClick={() => {
+            setIsEditing(false);
+            setFormData({
+              name: '',
+              description: '',
+              provider: 'bitwarden',
+              providerSecretId: '',
+              type: 'api_key',
+              tags: [],
+            });
+            setShowForm(true);
+          }}
+          className="px-4 py-2 rounded bg-accent text-white hover:bg-opacity-90"
+        >
+          + Create Secret
+        </button>
       </div>
 
       <input

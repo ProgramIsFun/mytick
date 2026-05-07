@@ -16,6 +16,21 @@ services:
     env_file:
       - ./backend/.env
 
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    container_name: mytick-backend-test
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=test
+    env_file:
+      - ./backend/.env
+    entrypoint: ["npm", "test"]
+    profiles: ["test"]
+
   frontend:
     build:
       context: ./frontend
@@ -28,3 +43,4 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
