@@ -26,6 +26,8 @@ export const api = {
   getMe: () => request('/auth/me'),
   updateMe: (data: { username?: string; name?: string; newPassword?: string }) =>
     request('/auth/me', { method: 'PATCH', body: JSON.stringify(data) }),
+  generateServiceToken: (service: string, expiresIn?: string) =>
+    request('/auth/service-token', { method: 'POST', body: JSON.stringify({ service, expiresIn }) }),
 
   // Tasks
   getTasks: (page = 1, limit = 20, type?: string, tag?: string, q?: string) => {

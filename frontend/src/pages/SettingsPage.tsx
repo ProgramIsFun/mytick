@@ -68,6 +68,114 @@ function DebugPushSection() {
   );
 }
 
+function ServiceTokenSection() {
+  const [service, setService] = useState('nexus-backup');
+  const [expiresIn, setExpiresIn] = useState('90d');
+  const [generatedToken, setGeneratedToken] = useState('');
+  const [status, setStatus] = useState('');
+  const [showToken, setShowToken] = useState(false);
+
+  const handleGenerate = async () => {
+    setStatus('Generating...');
+    setGeneratedToken('');
+    try {
+      const res = await api.generateServiceToken(service, expiresIn);
+      setGeneratedToken(res.token);
+      setShowToken(true);
+      setStatus(`✅ Token generated (expires in ${res.expiresIn})`);
+    } catch (e: any) {
+      setStatus(`❌ ${e.message}`);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedToken);
+    setStatus('✅ Copied to clipboard');
+  };
+
+  return (
+    <div className="border border-border rounded-lg p-5 bg-surface mt-6">
+      <h3 className="text-sm font-semibold text-text-primary mb-2">🔑 Service Tokens</h3>
+      <p className="text-xs text-text-muted mb-4">
+        Generate tokens for external services like Lambda backup functions. Each token is tied to your user account for audit trails.
+      </p>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs font-medium text-text-secondary mb-1 block">Service Name</label>
+          <input 
+            value={service} 
+            onChange={e => setService(e.target.value)}
+            placeholder="e.g., nexus-backup, monitoring"
+            className={inputCls}
+          />
+        </div>
+        
+        <div>
+          <label className="text-xs font-medium text-text-secondary mb-1 block">Expires In</label>
+          <select 
+            value={expiresIn} 
+            onChange={e => setExpiresIn(e.target.value)}
+            className={inputCls}
+          >
+            <option value="7d">7 days</option>
+            <option value="30d">30 days</option>
+            <option value="90d">90 days (recommended)</option>
+            <option value="180d">180 days</option>
+            <option value="365d">1 year</option>
+          </select>
+        </div>
+
+        <button 
+          onClick={handleGenerate}
+          className="px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors w-full"
+        >
+          Generate Token
+        </button>
+
+        {status && <p className="text-xs text-text-secondary">{status}</p>}
+
+        {generatedToken && (
+          <div className="mt-4 p-3 bg-surface-secondary rounded-md border border-border">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium text-text-secondary">Generated Token</label>
+              <button 
+                onClick={() => setShowToken(!showToken)}
+                className="text-xs text-accent hover:underline"
+              >
+                {showToken ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {showToken && (
+              <>
+                <pre className="text-[10px] font-mono text-text-primary bg-background p-2 rounded border border-border overflow-x-auto mb-2">
+                  {generatedToken}
+                </pre>
+                <button 
+                  onClick={handleCopy}
+                  className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-surface-hover transition-colors w-full"
+                >
+                  📋 Copy to Clipboard
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 p-3 bg-accent/5 rounded-md border border-accent/20">
+        <p className="text-xs font-medium text-accent mb-1">⚠️ Security Notice</p>
+        <ul className="text-xs text-text-muted space-y-1">
+          <li>• Store tokens securely (e.g., AWS Secrets Manager, Terraform variables)</li>
+          <li>• Never commit tokens to git repositories</li>
+          <li>• Regenerate tokens before expiry</li>
+          <li>• Each service should have its own token</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user, login: setUser } = useAuth();
   const navigate = useNavigate();
@@ -122,6 +230,7 @@ export default function SettingsPage() {
           </button>
         </div>
 
+        <ServiceTokenSection />
         <DebugPushSection />
       </main>
     </div>
