@@ -20,6 +20,8 @@ export interface IBackupHistory extends Document {
   };
   triggeredBy: 'scheduled' | 'manual';
   lambdaRequestId?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const backupHistorySchema = new Schema<IBackupHistory>({
@@ -30,7 +32,7 @@ const backupHistorySchema = new Schema<IBackupHistory>({
   completedAt: { type: Date, required: true },
   durationMs: { type: Number, required: true },
   sizeBytes: { type: Number, default: 0 },
-  s3Path: { type: String, required: true },
+  s3Path: { type: String, default: '' },
   s3Bucket: { type: String, required: true },
   errorMessage: { type: String },
   metadata: { type: Schema.Types.Mixed, default: {} },
