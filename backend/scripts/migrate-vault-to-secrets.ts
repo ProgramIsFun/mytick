@@ -1,17 +1,26 @@
 /**
- * Migration Script: Vault Items → Secret Collection
+ * PHASE 1 Migration Script: Vault Items → Secret Collection
  * 
- * This script:
+ * This creates the Secret abstraction layer while KEEPING existing vault items.
+ * No Bitwarden Secrets Manager setup needed yet!
+ * 
+ * What it does:
  * 1. Scans Database and Account collections for vault references
- * 2. Creates Secret records for each unique vault item
- * 3. Updates Database/Account records to reference Secret IDs
- * 4. Tracks usage in Secret.usedBy[]
+ * 2. Creates Secret records pointing to EXISTING vault items
+ * 3. Updates Database/Account to reference Secret IDs
+ * 4. Keeps old fields (secretRefs, vaultId) for rollback safety
+ * 
+ * After this: Test everything, then Phase 2 moves to Secrets Manager
  */
 
 import mongoose from 'mongoose';
-import Secret from '../models/Secret';
-import Database from '../models/Database';
-import Account from '../models/Account';
+import dotenv from 'dotenv';
+import Secret from '../src/models/Secret';
+import Database from '../src/models/Database';
+import Account from '../src/models/Account';
+
+// Load environment variables
+dotenv.config();
 
 interface VaultItem {
   vaultId: string;
@@ -113,16 +122,16 @@ async function migrateVaultToSecrets() {
     const secret = await Secret.create({
       userId,
       name,
-      description: `Migrated from vault item ${vaultId}`,
+      description: `PHASE 1: Using vault item ${vaultId}. Later migrate to Secrets Manager.`,
       provider: 'bitwarden',
-      providerSecretId: vaultId, // Note: This is still vault item ID, needs manual update to Secret Manager ID
+      providerSecretId: vaultId, // PHASE 1: This is vault item ID (works with current Lambda)
       type,
-      tags: ['migrated', 'vault-legacy'],
+      tags: ['phase1-migration', 'vault-item'],
       usedBy: item.usedBy
     });
 
     secretMapping.set(vaultId, secret._id);
-    console.log(`    ✅ Created secret: ${secret._id}\n`);
+    console.log(`    ✅ Created secret: ${secret._id} (vault: ${vaultId})\n`);
   }
 
   console.log(`✅ Created ${secretMapping.size} secret records\n`);
@@ -167,16 +176,23 @@ async function migrateVaultToSecrets() {
     }
   }
 
-  console.log('\n✅ Migration complete!\n');
+  console.log('\n✅ PHASE 1 Migration complete!\n');
   console.log('📝 Summary:');
-  console.log(`  - Created ${secretMapping.size} Secret records`);
+  console.log(`  - Created ${secretMapping.size} Secret records (pointing to vault items)`);
   console.log(`  - Updated ${databases.length} Database records`);
   console.log(`  - Updated ${accounts.length} Account records`);
-  console.log('\n⚠️  IMPORTANT NEXT STEPS:');
-  console.log('  1. Create these secrets in Bitwarden Secrets Manager');
-  console.log('  2. Update Secret.providerSecretId with new Secrets Manager IDs');
-  console.log('  3. Update Database/Account schemas to add secretId field');
-  console.log('  4. Test backup Lambda with new Secret abstraction');
+  console.log('\n✅ What Changed:');
+  console.log('  - Database/Account now reference Secret collection');
+  console.log('  - Secrets still use vault items (no Secrets Manager needed yet)');
+  console.log('  - Old fields (secretRefs, vaultId) kept for rollback safety');
+  console.log('\n🧪 Test Now:');
+  console.log('  1. Test MyTick API with new Secret abstraction');
+  console.log('  2. Test backup Lambda (should work with current setup)');
+  console.log('  3. Verify all secrets are accessible');
+  console.log('\n📅 PHASE 2 (Later):');
+  console.log('  1. Create secrets in Bitwarden Secrets Manager');
+  console.log('  2. Update Secret.providerSecretId to Secrets Manager IDs');
+  console.log('  3. Lambda automatically uses Secrets Manager (no code changes!)');
 
   await mongoose.disconnect();
 }
