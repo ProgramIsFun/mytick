@@ -236,7 +236,7 @@ router.post('/:id/backup-completed', async (req: AuthRequest, res: Response) => 
  */
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, type, secretRefs, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
+    const { name, type, secretRefs, secretId, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
     
     if (!name || !type) {
       return res.status(400).json({ error: 'name and type are required' });
@@ -247,6 +247,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       name,
       type,
       secretRefs: secretRefs || [],
+      secretId: secretId || null,
       host: host || '',
       port: port || null,
       database: database || '',

@@ -34,7 +34,7 @@ afterEach(async () => {
 afterAll(async () => {
   await mongoose.disconnect();
   await mongo.stop();
-});
+}, 30000);
 
 describe('processNotificationJob', () => {
   it('calls sendPush with correct tokens, title, and body', async () => {

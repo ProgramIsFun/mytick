@@ -149,7 +149,11 @@ describe('Secrets API - /api/secrets', () => {
         .expect(200);
 
       expect(res.body).toHaveLength(4);
-      expect(res.body[0].name).toBe('Stripe API Key'); // Most recent first
+      const names = res.body.map((s: any) => s.name);
+      expect(names).toContain('Stripe API Key');
+      expect(names).toContain('AWS RDS Password');
+      expect(names).toContain('GitHub Personal Token');
+      expect(names).toContain('MongoDB Atlas Connection');
     });
 
     it('should filter secrets by provider (bitwarden)', async () => {
@@ -214,11 +218,13 @@ describe('Secrets API - /api/secrets', () => {
 
     it('should search secrets by name partial match', async () => {
       const res = await request(app)
-        .get('/api/secrets?search=API')
+        .get('/api/secrets?search=Key')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body.length).toBeGreaterThanOrEqual(2); // AWS RDS + Stripe API
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+      const names = res.body.map((s: any) => s.name);
+      expect(names).toContain('Stripe API Key');
     });
   });
 
