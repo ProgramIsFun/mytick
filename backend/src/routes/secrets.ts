@@ -4,7 +4,7 @@ import Database from '../models/Database';
 import Account from '../models/Account';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates } from '../utils/routeHelpers';
+import { applyUpdates, notFound, badRequest, findOwned } from '../utils/routeHelpers';
 
 const router = Router();
 
@@ -56,7 +56,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     userId: req.userId,
   });
   
-  if (!secret) return res.status(404).json({ error: 'Not found' });
+  if (!secret) return notFound(res);
   res.json(secret);
 }));
 
@@ -90,7 +90,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, description, provider, providerSecretId, type, tags, expiresAt } = req.body;
   
   if (!name || !provider || !providerSecretId || !type) {
-    return res.status(400).json({ error: 'name, provider, providerSecretId, and type are required' });
+    return badRequest(res, 'name, provider, providerSecretId, and type are required');
   }
   
   res.status(201).json(await Secret.create({
@@ -124,7 +124,7 @@ router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     userId: req.userId,
   });
   
-  if (!secret) return res.status(404).json({ error: 'Not found' });
+  if (!secret) return notFound(res);
   
   applyUpdates(secret, req.body, ['name', 'description', 'provider', 'providerSecretId', 'type', 'tags', 'expiresAt', 'lastRotatedAt']);
   await secret.save();
@@ -151,7 +151,7 @@ router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     userId: req.userId,
   });
   
-  if (!secret) return res.status(404).json({ error: 'Not found' });
+  if (!secret) return notFound(res);
   
   const [dbUsage, accountUsage] = await Promise.all([
     Database.findOne({ secretId: req.params.id, userId: req.userId }).select('_id name'),
@@ -188,7 +188,7 @@ router.post('/:id/touch', asyncHandler(async (req: AuthRequest, res: Response) =
     { new: true }
   );
   
-  if (!secret) return res.status(404).json({ error: 'Not found' });
+  if (!secret) return notFound(res);
   res.json(secret);
 }));
 

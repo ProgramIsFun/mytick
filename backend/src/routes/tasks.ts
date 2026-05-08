@@ -5,7 +5,7 @@ import Group from '../models/Group';
 import RecurrenceException from '../models/RecurrenceException';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates } from '../utils/routeHelpers';
+import { applyUpdates, notFound, badRequest, parsePagination, getUserGroupIds, extractViewerId, findOwned, getUserModel } from '../utils/routeHelpers';
 import { validate, createTaskSchema, updateTaskSchema } from '../utils/validation';
 import { notificationQueue } from '../queues';
 import { scheduleDeadlineAlerts } from '../queues/scheduleAlerts';
@@ -16,22 +16,13 @@ const router = Router();
 // Public: view shared task (no auth)
 router.get('/share/:shareToken', asyncHandler(async (req, res: Response) => {
   const task = await Task.findOne({ shareToken: req.params.shareToken });
-  if (!task || task.visibility !== 'public') return res.status(404).json({ error: 'Not found' });
+  if (!task || task.visibility !== 'public') return notFound(res);
   res.json({ title: task.title, description: task.description, status: task.status });
 }));
 
 // Public: list public tasks of a user (no auth)
 router.get('/user/:userId', asyncHandler(async (req, res: Response) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  let viewerId: string | null = null;
-  if (token) {
-    try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-      viewerId = decoded.userId;
-    } catch {}
-  }
-
+  const viewerId = extractViewerId(req as AuthRequest);
   const targetUserId = req.params.userId as string;
 
   if (viewerId === targetUserId) {
@@ -39,8 +30,7 @@ router.get('/user/:userId', asyncHandler(async (req, res: Response) => {
   }
 
   if (viewerId) {
-    const userGroups = await Group.find({ 'members.userId': viewerId }).select('_id');
-    const groupIds = userGroups.map(g => g._id);
+    const groupIds = await getUserGroupIds(viewerId);
     return res.json(await Task.find({
       userId: targetUserId,
       $or: [
@@ -56,9 +46,9 @@ router.get('/user/:userId', asyncHandler(async (req, res: Response) => {
 // Public: list tasks by username
 // Public: user profile with public projects
 router.get('/u/:username/profile', asyncHandler(async (req, res: Response) => {
-  const User = (await import('../models/User')).default;
+  const User = await getUserModel();
   const user = await User.findOne({ username: req.params.username as string });
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!user) return notFound(res, 'User not found');
   const projects = await Task.find({ userId: user._id, visibility: 'public', type: 'project' }).sort({ pinned: -1, createdAt: -1 });
   res.json({
     username: user.username,
@@ -68,20 +58,11 @@ router.get('/u/:username/profile', asyncHandler(async (req, res: Response) => {
 }));
 
 router.get('/u/:username', asyncHandler(async (req, res: Response) => {
-  const User = (await import('../models/User')).default;
+  const User = await getUserModel();
   const targetUser = await User.findOne({ username: req.params.username as string });
-  if (!targetUser) return res.status(404).json({ error: 'User not found' });
+  if (!targetUser) return notFound(res, 'User not found');
 
-  const token = req.headers.authorization?.split(' ')[1];
-  let viewerId: string | null = null;
-  if (token) {
-    try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-      viewerId = decoded.userId;
-    } catch {}
-  }
-
+  const viewerId = extractViewerId(req as AuthRequest);
   const targetUserId = targetUser._id.toString();
 
   if (viewerId === targetUserId) {
@@ -89,8 +70,7 @@ router.get('/u/:username', asyncHandler(async (req, res: Response) => {
   }
 
   if (viewerId) {
-    const userGroups = await Group.find({ 'members.userId': viewerId }).select('_id');
-    const groupIds = userGroups.map(g => g._id);
+    const groupIds = await getUserGroupIds(viewerId);
     return res.json(await Task.find({
       userId: targetUserId,
       $or: [{ visibility: 'public' }, { visibility: 'group', groupIds: { $in: groupIds } }],
@@ -108,7 +88,7 @@ router.get('/calendar', asyncHandler(async (req: AuthRequest, res: Response) => 
   const from = new Date(req.query.from as string);
   const to = new Date(req.query.to as string);
   if (isNaN(from.getTime()) || isNaN(to.getTime())) {
-    return res.status(400).json({ error: 'from and to query params required (ISO dates)' });
+    return badRequest(res, 'from and to query params required (ISO dates)');
   }
 
   const oneTimeTasks = await Task.find({
@@ -166,11 +146,11 @@ router.get('/calendar', asyncHandler(async (req: AuthRequest, res: Response) => 
 
 // Create/update a single recurrence occurrence exception
 router.post('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
-  if (!task || !task.recurrence) return res.status(404).json({ error: 'Recurring task not found' });
+  const task = await findOwned(Task, req);
+  if (!task || !task.recurrence) return notFound(res, 'Recurring task not found');
 
   const { date, status, title, description, newDate } = req.body;
-  if (!date) return res.status(400).json({ error: 'date (ISO) required' });
+  if (!date) return badRequest(res, 'date (ISO) required');
 
   const update: any = {};
   if (status && ['pending', 'done', 'skipped'].includes(status)) update.status = status;
@@ -188,18 +168,18 @@ router.post('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Respo
 // Remove exception (revert occurrence to pending)
 router.delete('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { date } = req.body;
-  if (!date) return res.status(400).json({ error: 'date required' });
+  if (!date) return badRequest(res, 'date required');
   await RecurrenceException.deleteOne({ taskId: req.params.id, date: new Date(date) });
   res.json({ message: 'Exception removed' });
 }));
 
 // End recurrence from a specific date ("this and all following")
 router.post('/:id/end-series', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
-  if (!task || !task.recurrence) return res.status(404).json({ error: 'Recurring task not found' });
+  const task = await findOwned(Task, req);
+  if (!task || !task.recurrence) return notFound(res, 'Recurring task not found');
 
   const { date } = req.body;
-  if (!date) return res.status(400).json({ error: 'date required' });
+  if (!date) return badRequest(res, 'date required');
 
   const endDate = new Date(date);
   task.recurrence.until = new Date(endDate.getTime() - 1);
@@ -228,16 +208,13 @@ router.post('/:id/end-series', asyncHandler(async (req: AuthRequest, res: Respon
  *       200: { description: Paginated task list }
  */
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(req.query);
   const status = req.query.status as string;
   const type = req.query.type as string;
   const tag = req.query.tag as string;
   const q = req.query.q as string;
 
-  const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
-  const groupIds = userGroups.map(g => g._id);
+  const groupIds = await getUserGroupIds(req.userId!);
 
   const filter: any = {
     $or: [
@@ -269,8 +246,7 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       200: { description: Task counts, content: { application/json: { schema: { type: object, properties: { total: { type: integer }, pending: { type: integer }, in_progress: { type: integer }, done: { type: integer } } } } } }
  */
 router.get('/count', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
-  const groupIds = userGroups.map(g => g._id);
+  const groupIds = await getUserGroupIds(req.userId!);
 
   const baseFilter = {
     $or: [
@@ -293,9 +269,7 @@ router.get('/count', asyncHandler(async (req: AuthRequest, res: Response) => {
 
 // Get root tasks (no parent)
 router.get('/roots', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(req.query);
   const status = req.query.status as string;
   const type = req.query.type as string;
   const tag = req.query.tag as string;
@@ -328,8 +302,7 @@ router.get('/:id/subtasks', asyncHandler(async (req: AuthRequest, res: Response)
 
 // Get single task by ID
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const userGroups = await Group.find({ 'members.userId': req.userId }).select('_id');
-  const groupIds = userGroups.map(g => g._id);
+  const groupIds = await getUserGroupIds(req.userId!);
 
   const task = await Task.findOne({
     _id: req.params.id,
@@ -338,7 +311,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
       { visibility: 'group', groupIds: { $in: groupIds } },
     ],
   });
-  if (!task) return res.status(404).json({ error: 'Not found' });
+  if (!task) return notFound(res);
   res.json(task);
 }));
 
@@ -450,8 +423,8 @@ async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
  *       404: { description: Not found }
  */
 router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
-  if (!task) return res.status(404).json({ error: 'Not found' });
+  const task = await findOwned(Task, req);
+  if (!task) return notFound(res);
 
   if (req.body.status === 'done') {
     const incompleteSubtasks = await Task.find({ 
@@ -484,10 +457,10 @@ router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRe
 
   if (req.body.blockedBy?.length) {
     if (req.body.blockedBy.includes(req.params.id)) {
-      return res.status(400).json({ error: 'A task cannot block itself' });
+      return badRequest(res, 'A task cannot block itself');
     }
     if (await hasCycle(req.params.id as string, req.body.blockedBy)) {
-      return res.status(400).json({ error: 'Circular dependency detected' });
+      return badRequest(res, 'Circular dependency detected');
     }
   }
 
@@ -508,12 +481,12 @@ router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRe
 
 // Rollback description to a history version (owner only)
 router.post('/:id/rollback/:index', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const task = await Task.findOne({ _id: req.params.id, userId: req.userId });
-  if (!task) return res.status(404).json({ error: 'Not found' });
+  const task = await findOwned(Task, req);
+  if (!task) return notFound(res);
 
   const idx = parseInt(req.params.index as string);
   if (isNaN(idx) || idx < 0 || idx >= task.descriptionHistory.length) {
-    return res.status(400).json({ error: 'Invalid history index' });
+    return badRequest(res, 'Invalid history index');
   }
 
   task.descriptionHistory.push({ description: task.description, savedAt: new Date() });
@@ -526,7 +499,7 @@ router.post('/:id/rollback/:index', asyncHandler(async (req: AuthRequest, res: R
 // Delete task (owner only)
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!task) return res.status(404).json({ error: 'Not found' });
+  if (!task) return notFound(res);
   await Task.updateMany({ blockedBy: task._id }, { $pull: { blockedBy: task._id } });
   await notificationQueue.cancelByTask(task._id.toString());
   await RecurrenceException.deleteMany({ taskId: task._id });

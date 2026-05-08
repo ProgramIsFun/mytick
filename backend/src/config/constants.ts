@@ -11,3 +11,5 @@ export const JWT_EXPIRY = '7d';
 export const SERVICE_TOKEN_EXPIRY = '90d';
 export const DEFAULT_RETENTION_DAYS = 30;
 export const NOTIFY_POLL_INTERVAL_MS = 60_000;
+
+export const RESERVED_USERNAMES = ['admin', 'api', 'login', 'register', 'settings', 'profile', 'share', 'tasks', 'groups', 'public', 'about', 'help', 'support'];

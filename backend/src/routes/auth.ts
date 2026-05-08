@@ -6,7 +6,7 @@ import { auth, AuthRequest, requireAdminKey } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { validate, registerSchema, loginSchema, oauthSchema, updateProfileSchema } from '../utils/validation';
 import { notFound, badRequest } from '../utils/routeHelpers';
-import { BCRYPT_ROUNDS, JWT_EXPIRY, SERVICE_TOKEN_EXPIRY } from '../config/constants';
+import { BCRYPT_ROUNDS, JWT_EXPIRY, SERVICE_TOKEN_EXPIRY, RESERVED_USERNAMES } from '../config/constants';
 
 const router = Router();
 
@@ -18,7 +18,6 @@ function userResponse(user: any) {
   return { id: user._id, email: user.email, username: user.username, name: user.name };
 }
 
-const RESERVED_USERNAMES = ['admin', 'api', 'login', 'register', 'settings', 'profile', 'share', 'tasks', 'groups', 'public', 'about', 'help', 'support'];
 
 /**
  * @swagger
@@ -184,7 +183,7 @@ router.patch('/me', auth, asyncHandler(async (req: AuthRequest, res: Response) =
 // Register/update FCM device token
 router.post('/fcm-token', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { fcmToken, provider, device } = req.body;
-  if (!fcmToken) return res.status(400).json({ error: 'fcmToken required' });
+  if (!fcmToken) return badRequest(res, 'fcmToken required');
   const pushProvider = provider || 'fcm';
   const pushDevice = device || req.headers['user-agent'] || '';
   await User.updateOne({ _id: req.userId }, {
@@ -200,7 +199,7 @@ router.post('/fcm-token', auth, asyncHandler(async (req: AuthRequest, res: Respo
 // Remove FCM device token (logout)
 router.delete('/fcm-token', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { fcmToken } = req.body;
-  if (!fcmToken) return res.status(400).json({ error: 'fcmToken required' });
+  if (!fcmToken) return badRequest(res, 'fcmToken required');
   await User.updateOne({ _id: req.userId }, {
     $pull: { fcmTokens: fcmToken, pushTokens: { token: fcmToken } },
   });
@@ -234,7 +233,7 @@ router.post('/test-push', auth, asyncHandler(async (req: AuthRequest, res: Respo
 router.get('/users', asyncHandler(async (req, res: Response) => {
   if (!requireAdminKey(req, res)) return;
   const users = await User.find().select('_id email username name');
-  res.json(users.map(u => ({ id: u._id, email: u.email, username: u.username, name: u.name })));
+  res.json(users.map(u => userResponse(u)));
 }));
 
 // Lookup user by email (admin only)

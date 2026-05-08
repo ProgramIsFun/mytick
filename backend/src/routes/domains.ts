@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import Domain from '../models/Domain';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates } from '../utils/routeHelpers';
+import { applyUpdates, notFound, badRequest, findOwned } from '../utils/routeHelpers';
 
 const router = Router();
 router.use(auth);
@@ -28,13 +28,13 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     .populate('registrarAccountId', 'name provider')
     .populate('dnsAccountId', 'name provider')
     .populate('projectId', 'title type');
-  if (!domain) return res.status(404).json({ error: 'Not found' });
+  if (!domain) return notFound(res);
   res.json(domain);
 }));
 
 router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, projectId, registrarAccountId, dnsAccountId, expiryDate, autoRenew, nameservers, sslProvider, notes, tags } = req.body;
-  if (!name) return res.status(400).json({ error: 'name required' });
+  if (!name) return badRequest(res, 'name required');
   const domain = await Domain.create({
     userId: req.userId, name,
     projectId: projectId || null,
@@ -51,8 +51,8 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
 }));
 
 router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const domain = await Domain.findOne({ _id: req.params.id, userId: req.userId });
-  if (!domain) return res.status(404).json({ error: 'Not found' });
+  const domain = await findOwned(Domain, req);
+  if (!domain) return notFound(res);
   applyUpdates(domain, req.body, ['name', 'projectId', 'registrarAccountId', 'dnsAccountId', 'expiryDate', 'autoRenew', 'nameservers', 'sslProvider', 'notes', 'tags']);
   await domain.save();
   res.json(domain);
@@ -60,7 +60,7 @@ router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
 
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const domain = await Domain.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!domain) return res.status(404).json({ error: 'Not found' });
+  if (!domain) return notFound(res);
   res.json({ message: 'Deleted' });
 }));
 

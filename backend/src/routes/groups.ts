@@ -3,19 +3,20 @@ import Group from '../models/Group';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { validate, createGroupSchema, addMemberSchema } from '../utils/validation';
+import { notFound, getUserModel } from '../utils/routeHelpers';
 
 const router = Router();
 router.use(auth);
 
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const User = (await import('../models/User')).default;
+  const User = await getUserModel();
   const groups = await Group.find({
     $or: [{ ownerId: req.userId }, { 'members.userId': req.userId }],
   }).lean();
 
   const userIds = [...new Set(groups.flatMap(g => g.members.map(m => m.userId.toString())))];
   const users = await User.find({ _id: { $in: userIds } }).select('_id username name').lean();
-  const userMap = Object.fromEntries(users.map(u => [u._id.toString(), { username: u.username, name: u.name }]));
+  const userMap = Object.fromEntries(users.map((u: any) => [u._id.toString(), { username: u.username, name: u.name }]));
 
   const enriched = groups.map(g => ({
     ...g,
@@ -44,14 +45,14 @@ router.post('/:id/members', validate(addMemberSchema), asyncHandler(async (req: 
 
   let targetId = userId;
   if (!targetId) {
-    const User = (await import('../models/User')).default;
+    const User = await getUserModel();
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) return notFound(res, 'User not found');
     targetId = user._id.toString();
   }
 
   const group = await Group.findOne({ _id: req.params.id, ownerId: req.userId });
-  if (!group) return res.status(404).json({ error: 'Not found' });
+  if (!group) return notFound(res);
 
   const already = group.members.some(m => m.userId.toString() === targetId);
   if (already) return res.status(409).json({ error: 'Already a member' });
@@ -63,7 +64,7 @@ router.post('/:id/members', validate(addMemberSchema), asyncHandler(async (req: 
 
 router.delete('/:id/members/:userId', asyncHandler(async (req: AuthRequest, res: Response) => {
   const group = await Group.findOne({ _id: req.params.id, ownerId: req.userId });
-  if (!group) return res.status(404).json({ error: 'Not found' });
+  if (!group) return notFound(res);
   group.members = group.members.filter(m => m.userId.toString() !== req.params.userId) as any;
   await group.save();
   res.json(group);
@@ -71,7 +72,7 @@ router.delete('/:id/members/:userId', asyncHandler(async (req: AuthRequest, res:
 
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const group = await Group.findOneAndDelete({ _id: req.params.id, ownerId: req.userId });
-  if (!group) return res.status(404).json({ error: 'Not found' });
+  if (!group) return notFound(res);
   res.json({ message: 'Deleted' });
 }));
 

@@ -3,7 +3,7 @@ import Database from '../models/Database';
 import BackupHistory from '../models/BackupHistory';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates } from '../utils/routeHelpers';
+import { applyUpdates, notFound, badRequest, findOwned, parseBackupHistoryLimit, forbidden } from '../utils/routeHelpers';
 
 const router = Router();
 
@@ -117,7 +117,7 @@ router.get('/backupable', asyncHandler(async (req: AuthRequest, res: Response) =
  *       404: { description: Not found }
  */
 router.get('/backup-history', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+  const limit = parseBackupHistoryLimit(req.query);
   const filter: any = { userId: req.userId };
   if (req.query.status) filter.status = req.query.status;
 
@@ -134,7 +134,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     userId: req.userId,
   }).populate('accountId', 'name provider').populate('secretId');
   
-  if (!database) return res.status(404).json({ error: 'Not found' });
+  if (!database) return notFound(res);
   res.json(database);
 }));
 
@@ -181,7 +181,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  */
 router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: Response) => {
   const database = await Database.findById(req.params.id);
-  if (!database) return res.status(404).json({ error: 'Database not found' });
+  if (!database) return notFound(res, 'Database not found');
 
   const { status, startedAt, completedAt, sizeBytes, s3Path, s3Bucket, errorMessage, metadata, triggeredBy, lambdaRequestId } = req.body;
 
@@ -255,7 +255,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, type, secretId, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
   
   if (!name || !type) {
-    return res.status(400).json({ error: 'name and type are required' });
+    return badRequest(res, 'name and type are required');
   }
   
   res.status(201).json(await Database.create({
@@ -294,7 +294,7 @@ router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     userId: req.userId,
   });
   
-  if (!database) return res.status(404).json({ error: 'Not found' });
+  if (!database) return notFound(res);
   
   applyUpdates(database, req.body, ['name', 'type', 'secretId', 'host', 'port', 'database', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'accountId', 'tags', 'notes']);
   console.log('Updating database:', database._id, 'secretId:', database.secretId);
@@ -322,7 +322,7 @@ router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     userId: req.userId,
   });
   
-  if (!database) return res.status(404).json({ error: 'Not found' });
+  if (!database) return notFound(res);
   res.json({ message: 'Deleted' });
 }));
 
@@ -345,7 +345,7 @@ router.post('/:id/backup-success', asyncHandler(async (req: AuthRequest, res: Re
     { new: true }
   );
   
-  if (!database) return res.status(404).json({ error: 'Not found' });
+  if (!database) return notFound(res);
   res.json(database);
 }));
 
@@ -366,13 +366,13 @@ router.post('/:id/backup-success', asyncHandler(async (req: AuthRequest, res: Re
  */
 router.get('/:id/backup-history', asyncHandler(async (req: AuthRequest, res: Response) => {
   const database = await Database.findById(req.params.id);
-  if (!database) return res.status(404).json({ error: 'Database not found' });
+  if (!database) return notFound(res, 'Database not found');
 
   if (database.userId.toString() !== req.userId) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return forbidden(res);
   }
 
-  const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+  const limit = parseBackupHistoryLimit(req.query);
   const filter: any = { databaseId: database._id };
   
   if (req.query.status) {
