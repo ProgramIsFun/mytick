@@ -3,17 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
-interface SecretRef {
-  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
-  itemId: string;
-  field?: string;
-}
-
 interface Account { _id: string; name: string; provider: string; }
 interface Secret { _id: string; name: string; provider: string; }
 interface Database {
   _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; secretRefs: SecretRef[]; secretId?: Secret | string | null; backupEnabled: boolean;
+  database: string; secretId?: Secret | string | null; backupEnabled: boolean;
   backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
   accountId: Account | null; tags: string[]; notes: string;
   createdAt: string;
@@ -33,12 +27,13 @@ const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-su
 export default function DatabasesPage() {
   const navigate = useNavigate();
   const [databases, setDatabases] = useState<Database[]>([]);
+  const [secrets, setSecrets] = useState<Secret[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     name: '', type: 'mongodb', host: '', port: '', database: '',
-    secretProvider: 'bitwarden' as SecretRef['provider'], secretItemId: '', secretField: '',
+    secretId: '',
     backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily',
     accountId: '', notes: ''
   });
@@ -47,8 +42,11 @@ export default function DatabasesPage() {
 
   const load = () => {
     setLoading(true);
-    api.getDatabases(search || undefined).then(setDatabases).finally(() => setLoading(false));
-    api.getAccounts().then(setAccounts);
+    Promise.all([
+      api.getDatabases(search || undefined).then(setDatabases),
+      api.getSecrets().then(setSecrets),
+      api.getAccounts().then(setAccounts)
+    ]).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
@@ -62,11 +60,7 @@ export default function DatabasesPage() {
       host: form.host,
       port: form.port ? parseInt(form.port) : null,
       database: form.database,
-      secretRefs: form.secretItemId ? [{
-        provider: form.secretProvider,
-        itemId: form.secretItemId,
-        field: form.secretField || undefined,
-      }] : [],
+      secretId: form.secretId || null,
       backupEnabled: form.backupEnabled,
       backupRetentionDays: form.backupRetentionDays,
       backupFrequency: form.backupFrequency,
@@ -75,7 +69,7 @@ export default function DatabasesPage() {
     });
     setForm({
       name: '', type: 'mongodb', host: '', port: '', database: '',
-      secretProvider: 'bitwarden', secretItemId: '', secretField: '',
+      secretId: '',
       backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily',
       accountId: '', notes: ''
     });
@@ -126,19 +120,11 @@ export default function DatabasesPage() {
               </select>
             </div>
             <div className="border border-border rounded-lg p-3 bg-surface-secondary">
-              <label className="text-xs font-medium text-text-muted block mb-2">Secret Manager (optional)</label>
-              <div className="grid grid-cols-3 gap-2">
-                <select value={form.secretProvider} onChange={e => setForm({ ...form, secretProvider: e.target.value as SecretRef['provider'] })} className={inputCls}>
-                  <option value="bitwarden">🔐 Bitwarden</option>
-                  <option value="1password">🔑 1Password</option>
-                  <option value="lastpass">🔒 LastPass</option>
-                  <option value="vault">🏦 Vault</option>
-                  <option value="aws_secrets">☁️ AWS Secrets</option>
-                  <option value="custom">⚙️ Custom</option>
-                </select>
-                <input placeholder="Item ID" value={form.secretItemId} onChange={e => setForm({ ...form, secretItemId: e.target.value })} className={inputCls} />
-                <input placeholder="Field (optional)" value={form.secretField} onChange={e => setForm({ ...form, secretField: e.target.value })} className={inputCls} />
-              </div>
+              <label className="text-xs font-medium text-text-muted block mb-2">Secret (optional)</label>
+              <select value={form.secretId} onChange={e => setForm({ ...form, secretId: e.target.value })} className={inputCls}>
+                <option value="">No secret</option>
+                {secrets.map(s => <option key={s._id} value={s._id}>{s.name} ({s.provider})</option>)}
+              </select>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <input placeholder="Host" value={form.host} onChange={e => setForm({ ...form, host: e.target.value })} className={inputCls} />
@@ -237,44 +223,30 @@ export default function DatabasesPage() {
                       {db.secretId && (
                         <div>
                           <label className="text-xs font-medium text-text-muted block mb-1">🔐 Secret</label>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const secretId = typeof db.secretId === 'object' ? db.secretId?._id : db.secretId;
-                              if (secretId) navigate(`/secrets/${secretId}`);
-                            }}
-                            className="text-xs px-3 py-2 rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
-                          >
-                            View Secret →
-                          </button>
-                        </div>
-                      )}
-                      {db.secretRefs && db.secretRefs.length > 0 && (
-                        <div>
-                          <label className="text-xs font-medium text-text-muted block mb-1">Secret References (Legacy)</label>
-                          <div className="space-y-2">
-                            {db.secretRefs.map((ref, idx) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <div className="text-xs px-2 py-1 rounded bg-surface border border-border">
-                                  {ref.provider === 'bitwarden' && '🔐 Bitwarden'}
-                                  {ref.provider === '1password' && '🔑 1Password'}
-                                  {ref.provider === 'lastpass' && '🔒 LastPass'}
-                                  {ref.provider === 'vault' && '🏦 Vault'}
-                                  {ref.provider === 'aws_secrets' && '☁️ AWS Secrets'}
-                                  {ref.provider === 'custom' && '⚙️ Custom'}
-                                </div>
-                                <div className="text-xs text-text-primary font-mono bg-surface px-2 py-1.5 rounded border border-border flex-1 truncate">
-                                  {ref.itemId}{ref.field && ` → ${ref.field}`}
-                                </div>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(ref.itemId); }}
-                                  className="text-xs px-2 py-1.5 rounded-md border border-border text-text-secondary hover:bg-surface-hover"
-                                  title="Copy Item ID"
-                                >
-                                  📋
-                                </button>
-                              </div>
-                            ))}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const secretId = typeof db.secretId === 'object' ? db.secretId?._id : db.secretId;
+                                if (secretId) navigate(`/secrets/${secretId}`);
+                              }}
+                              className="text-xs px-3 py-2 rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
+                            >
+                              View Secret →
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Show modal to update secret
+                                const newSecretId = prompt('Enter new secret ID:', typeof db.secretId === 'object' ? db.secretId?._id : '');
+                                if (newSecretId) {
+                                  api.updateDatabase(db._id, { secretId: newSecretId }).then(() => load());
+                                }
+                              }}
+                              className="text-xs px-3 py-2 rounded-md border border-border hover:bg-surface-hover"
+                            >
+                              ✏️ Update
+                            </button>
                           </div>
                         </div>
                       )}

@@ -35,7 +35,7 @@ export default function AccountDetailPage() {
     if (id) {
       Promise.all([
         api.getAccount(id).then(setAccount),
-        api.getSecrets()
+        api.getSecrets().then(setSecrets)
       ]).then(([_, secrets]) => setSecrets(secrets));
       setLoading(false);
     }
