@@ -3,10 +3,21 @@ import request from 'supertest';
 import { setupTestDB, teardownTestDB, createTestUser, app } from '../helpers';
 
 let token: string;
+let secretId: string;
 
 beforeAll(async () => {
   await setupTestDB();
   ({ token } = await createTestUser());
+  
+  // Create a secret first for database references
+  const secretRes = await request(app).post('/api/secrets').set('Authorization', `Bearer ${token}`)
+    .send({
+      name: 'Test Secret',
+      provider: 'bitwarden',
+      providerSecretId: 'test-vault-id-123',
+      type: 'connection_string'
+    });
+  secretId = secretRes.body._id;
 }, 30000);
 
 afterAll(async () => {
@@ -17,7 +28,7 @@ describe('database CRUD', () => {
   let databaseId: string;
   let accountId: string;
 
-  it('should create a database with secretRefs', async () => {
+  it('should create a database with secretId', async () => {
     const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Test MongoDB',
@@ -25,11 +36,7 @@ describe('database CRUD', () => {
         host: 'cluster.example.net',
         port: 27017,
         database: 'testdb',
-        secretRefs: [{
-          provider: 'bitwarden',
-          itemId: 'test-vault-id-123',
-          field: 'connectionUri'
-        }],
+        secretId,
         backupEnabled: true,
         backupRetentionDays: 30,
         backupFrequency: 'daily',
@@ -40,17 +47,12 @@ describe('database CRUD', () => {
     expect(res.body.name).toBe('Test MongoDB');
     expect(res.body.type).toBe('mongodb');
     expect(res.body.host).toBe('cluster.example.net');
-    expect(res.body.secretRefs).toHaveLength(1);
-    expect(res.body.secretRefs[0]).toMatchObject({
-      provider: 'bitwarden',
-      itemId: 'test-vault-id-123',
-      field: 'connectionUri'
-    });
+    expect(res.body.secretId).toBe(secretId);
     expect(res.body.backupEnabled).toBe(true);
     databaseId = res.body._id;
   });
 
-  it('should create a database without secretRefs', async () => {
+  it('should create a database without secretId', async () => {
     const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Test PostgreSQL',
@@ -61,7 +63,7 @@ describe('database CRUD', () => {
       });
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('Test PostgreSQL');
-    expect(res.body.secretRefs).toEqual([]);
+    expect(res.body.secretId).toBeNull();
   });
 
   it('should require name and type', async () => {
@@ -88,16 +90,11 @@ describe('database CRUD', () => {
     const res = await request(app).patch(`/api/databases/${databaseId}`).set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Updated MongoDB',
-        backupEnabled: false,
-        secretRefs: [{
-          provider: '1password',
-          itemId: 'new-item-id'
-        }]
+        backupEnabled: false
       });
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Updated MongoDB');
     expect(res.body.backupEnabled).toBe(false);
-    expect(res.body.secretRefs[0].provider).toBe('1password');
   });
 
   it('should link database to account', async () => {
@@ -145,39 +142,6 @@ describe('database CRUD', () => {
   it('should return 404 for non-existent database', async () => {
     const res = await request(app).get(`/api/databases/${databaseId}`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(404);
-  });
-});
-
-describe('database secretRef validation', () => {
-  it('should accept all supported secret providers', async () => {
-    const providers: Array<'bitwarden' | '1password' | 'lastpass' | 'vault' | 'custom'> = 
-      ['bitwarden', '1password', 'lastpass', 'vault', 'custom'];
-
-    for (const provider of providers) {
-      const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
-        .send({
-          name: `Test ${provider}`,
-          type: 'mongodb',
-          secretRefs: [{ provider, itemId: `test-id-${provider}` }]
-        });
-      expect(res.status).toBe(201);
-      expect(res.body.secretRefs[0].provider).toBe(provider);
-    }
-  });
-
-  it('should accept secretRefs with optional field', async () => {
-    const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
-      .send({
-        name: 'Test with Field',
-        type: 'postgres',
-        secretRefs: [{
-          provider: 'bitwarden',
-          itemId: 'vault-123',
-          field: 'password'
-        }]
-      });
-    expect(res.status).toBe(201);
-    expect(res.body.secretRefs[0].field).toBe('password');
   });
 });
 
@@ -252,8 +216,7 @@ describe('backup history tracking', () => {
       .send({
         name: 'Test DB for Backup History',
         type: 'mongodb',
-        backupEnabled: true,
-        secretRefs: [{ provider: 'bitwarden', itemId: 'test-123' }]
+        backupEnabled: true
       });
     databaseId = res.body._id;
   });
