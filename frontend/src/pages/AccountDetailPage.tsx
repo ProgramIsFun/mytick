@@ -99,9 +99,13 @@ export default function AccountDetailPage() {
               {account.credentials.map((cred, idx) => (
                 <div key={idx} className="text-sm bg-surface-secondary p-3 rounded border border-border">
                   <div className="text-xs text-text-muted mb-1">Key: {cred.key}</div>
-                  {cred.secretId && typeof cred.secretId === 'object' && (
+                  {cred.secretId && typeof cred.secretId === 'object' ? (
                     <div className="text-xs text-text-muted">
                       Secret: {cred.secretId.name} ({cred.secretId.provider})
+                    </div>
+                  ) : (
+                    <div className="text-xs text-warning">
+                      ⚠️ Secret reference missing - update in <a href="/secrets" className="text-accent hover:underline">Secrets page</a>
                     </div>
                   )}
                 </div>

@@ -173,6 +173,32 @@ export default function SecretsPage() {
 
   if (loading) return <Spinner />;
 
+  // Detail view - handle missing secret
+  if (id && !secret) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="mb-6">
+          <button onClick={() => navigate('/secrets')} className="text-sm text-accent hover:underline mb-2">
+            ← Back to Secrets
+          </button>
+          <h1 className="text-3xl font-bold text-text-primary">Secret Not Found</h1>
+          <p className="text-sm text-text-muted mt-1">The secret you're looking for may have been deleted or doesn't exist.</p>
+        </div>
+        <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
+          <p className="text-sm text-text-primary">
+            If this secret was linked from another page, you may need to update the secret reference.
+          </p>
+          <button
+            onClick={() => navigate('/secrets')}
+            className="px-4 py-2 rounded bg-accent text-white hover:bg-opacity-90"
+          >
+            Go to Secrets List
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Detail view
   if (id && secret) {
     return (

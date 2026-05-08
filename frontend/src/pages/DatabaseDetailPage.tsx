@@ -87,7 +87,7 @@ export default function DatabaseDetailPage() {
           </div>
         )}
 
-        {db.secretId && typeof db.secretId === 'object' && (
+        {db.secretId && typeof db.secretId === 'object' ? (
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
             <button
@@ -96,6 +96,18 @@ export default function DatabaseDetailPage() {
             >
               {db.secretId.name} ({db.secretId.provider})
             </button>
+          </div>
+        ) : db.secretId ? (
+          <div>
+            <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
+            <div className="text-xs text-warning">
+              ⚠️ Secret reference missing - update in <a href="/secrets" className="text-accent hover:underline">Secrets page</a>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
+            <div className="text-xs text-text-muted">No secret configured</div>
           </div>
         )}
 
