@@ -187,16 +187,25 @@ export default function AccountDetailPage() {
                 <button
                   key={secret._id}
                   onClick={async () => {
-                    setAccount(prev => {
-                      if (!prev) return null;
-                      const newCreds = prev.credentials.map(c => 
+                    try {
+                      await api.updateAccount(id!, { credentials: account!.credentials.map(c => 
                         c.key === editingCredential.key 
                           ? { ...c, secretId: secret } 
                           : c
-                      );
-                      return { ...prev, credentials: newCreds };
-                    });
-                    setEditingCredential(null);
+                      )});
+                      setAccount(prev => {
+                        if (!prev) return null;
+                        return { ...prev, credentials: prev.credentials.map(c => 
+                          c.key === editingCredential.key 
+                            ? { ...c, secretId: secret } 
+                            : c
+                        ) };
+                      });
+                      alert('Secret ID updated successfully!');
+                      setEditingCredential(null);
+                    } catch (err) {
+                      alert('Failed to update secret ID');
+                    }
                   }}
                   className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
                 >

@@ -203,9 +203,14 @@ export default function DatabaseDetailPage() {
                 <button
                   key={secret._id}
                   onClick={async () => {
-                    await api.updateDatabase(id!, { secretId: secret._id });
-                    setDb(prev => prev ? { ...prev, secretId: secret } : null);
-                    setShowSecretModal(false);
+                    try {
+                      await api.updateDatabase(id!, { secretId: secret._id });
+                      setDb(prev => prev ? { ...prev, secretId: secret } : null);
+                      alert('Secret ID updated successfully!');
+                      setShowSecretModal(false);
+                    } catch (err) {
+                      alert('Failed to update secret ID');
+                    }
                   }}
                   className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
                 >

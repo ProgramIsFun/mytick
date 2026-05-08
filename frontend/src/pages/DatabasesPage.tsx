@@ -235,12 +235,17 @@ export default function DatabasesPage() {
                               View Secret →
                             </button>
                             <button
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
-                                // Show modal to update secret
                                 const newSecretId = prompt('Enter new secret ID:', typeof db.secretId === 'object' ? db.secretId?._id : '');
                                 if (newSecretId) {
-                                  api.updateDatabase(db._id, { secretId: newSecretId }).then(() => load());
+                                  try {
+                                    await api.updateDatabase(db._id, { secretId: newSecretId });
+                                    alert('Secret ID updated successfully!');
+                                    load();
+                                  } catch (err) {
+                                    alert('Failed to update secret ID');
+                                  }
                                 }
                               }}
                               className="text-xs px-3 py-2 rounded-md border border-border hover:bg-surface-hover"
