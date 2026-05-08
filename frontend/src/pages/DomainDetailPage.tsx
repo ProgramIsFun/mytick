@@ -62,7 +62,7 @@ export default function DomainDetailPage() {
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Registrar Account</label>
             <button
-              onClick={() => navigate(`/accounts/${domain.registrarAccountId._id}`)}
+              onClick={() => navigate(`/accounts/${domain.registrarAccountId!._id}`)}
               className="text-sm text-accent hover:underline"
             >
               {domain.registrarAccountId.name}
@@ -74,7 +74,7 @@ export default function DomainDetailPage() {
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">DNS Account</label>
             <button
-              onClick={() => navigate(`/accounts/${domain.dnsAccountId._id}`)}
+              onClick={() => navigate(`/accounts/${domain.dnsAccountId!._id}`)}
               className="text-sm text-accent hover:underline"
             >
               {domain.dnsAccountId.name}
@@ -130,7 +130,7 @@ export default function DomainDetailPage() {
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Created</label>
-            <p className="text-sm text-text-primary">{new Date(domain._id.slice(0, 8), 16).toLocaleString()}</p>
+            <p className="text-sm text-text-primary">{new Date(parseInt(domain._id.slice(0, 8), 16) * 1000).toLocaleString()}</p>
           </div>
         </div>
       </div>

@@ -32,11 +32,12 @@ export default function DatabaseDetailPage() {
 
   useEffect(() => {
     if (id) {
-      Promise.all([
-        api.getDatabase(id).then(setDb),
-        api.getSecrets()
-      ]).then(([_, secrets]) => setSecrets(secrets));
-      setLoading(false);
+      Promise.all([api.getDatabase(id), api.getSecrets()])
+        .then(([db, secrets]) => {
+          setDb(db);
+          setSecrets(secrets);
+          setLoading(false);
+        });
     }
   }, [id]);
 
@@ -85,7 +86,7 @@ export default function DatabaseDetailPage() {
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Account</label>
             <button
-              onClick={() => navigate(`/accounts/${db.accountId._id}`)}
+              onClick={() => navigate(`/accounts/${db.accountId!._id}`)}
               className="text-sm text-accent hover:underline"
             >
               {db.accountId.name}
@@ -98,7 +99,7 @@ export default function DatabaseDetailPage() {
             <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => navigate(`/secrets/${db.secretId._id}`)}
+                onClick={() => navigate(`/secrets/${(db.secretId as Secret)._id}`)}
                 className="text-sm text-accent hover:underline"
               >
                 {db.secretId.name} ({db.secretId.provider})

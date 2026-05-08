@@ -33,11 +33,12 @@ export default function AccountDetailPage() {
 
   useEffect(() => {
     if (id) {
-      Promise.all([
-        api.getAccount(id).then(setAccount),
-        api.getSecrets().then(setSecrets)
-      ]).then(([_, secrets]) => setSecrets(secrets));
-      setLoading(false);
+      Promise.all([api.getAccount(id), api.getSecrets()])
+        .then(([account, secrets]) => {
+          setAccount(account);
+          setSecrets(secrets);
+          setLoading(false);
+        });
     }
   }, [id]);
 
@@ -151,7 +152,7 @@ export default function AccountDetailPage() {
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Created</label>
-            <p className="text-sm text-text-primary">{new Date(account._id.slice(0, 8), 16).toLocaleString()}</p>
+            <p className="text-sm text-text-primary">{new Date(parseInt(account._id.slice(0, 8), 16) * 1000).toLocaleString()}</p>
           </div>
         </div>
       </div>
