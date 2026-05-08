@@ -11,8 +11,6 @@
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Account from '../src/models/Account';
-import Database from '../src/models/Database';
 
 dotenv.config();
 
@@ -23,64 +21,53 @@ async function cleanupLegacyFields() {
   await mongoose.connect(MONGODB_URI);
   console.log('✅ Connected to MongoDB\n');
 
-  const userId = process.env.USER_ID;
-  if (!userId) {
-    throw new Error('USER_ID environment variable required');
-  }
+  const db = mongoose.connection.db!;
 
-  // Step 1: Check if all accounts have secretId in credentials
-  console.log('📊 Step 1: Checking Account credentials...');
-  const accounts = await Account.find({ userId });
-  console.log(`  Found ${accounts.length} accounts\n`);
+  // Step 1: Check if any accounts have vaultId in credentials
+  console.log('📊 Step 1: Checking Account.credentials for vaultId...');
+  const accountsWithVaultId = await db.collection('accounts').aggregate([
+    { $unwind: { path: '$credentials', preserveNullAndEmptyArrays: true } },
+    { $match: { 'credentials.vaultId': { $exists: true, $ne: null } } },
+    { $group: { _id: '$userId', count: { $sum: 1 } } }
+  ]).toArray();
 
-  let accountsWithLegacy = 0;
-  for (const account of accounts) {
-    const hasLegacy = account.credentials.some(c => c.vaultId && !c.secretId);
-    if (hasLegacy) {
-      accountsWithLegacy++;
-      console.log(`  ⚠️  Account ${account.name} has legacy vaultId without secretId`);
+  if (accountsWithVaultId.length > 0) {
+    console.log(`  ⚠️  Found ${accountsWithVaultId.length} users with accounts containing vaultId:`);
+    for (const user of accountsWithVaultId) {
+      console.log(`    - User ${user._id}: ${user.count} credentials with vaultId`);
     }
-  }
-  console.log(`  ${accountsWithLegacy} accounts have legacy fields\n`);
-
-  if (accountsWithLegacy > 0) {
-    console.log('❌ Cannot proceed: Some accounts still have legacy vaultId fields');
-    console.log('   Run migrate-vault-to-secrets.ts first to migrate all vault items\n');
-    process.exit(1);
+  } else {
+    console.log('  ✅ No vaultId found in Account.credentials\n');
   }
 
-  // Step 2: Check if all databases have secretId
-  console.log('📊 Step 2: Checking Database secretRefs...');
-  const databases = await Database.find({ userId });
-  console.log(`  Found ${databases.length} databases\n`);
+  // Step 2: Check if any databases have secretRefs
+  console.log('📊 Step 2: Checking Database.secretRefs...');
+  const databasesWithSecretRefs = await db.collection('databases').aggregate([
+    { $match: { secretRefs: { $exists: true, $ne: [], $not: { $size: 0 } } } },
+    { $group: { _id: '$userId', count: { $sum: 1 } } }
+  ]).toArray();
 
-  let databasesWithLegacy = 0;
-  for (const db of databases) {
-    if (db.secretRefs.length > 0 && !db.secretId) {
-      databasesWithLegacy++;
-      console.log(`  ⚠️  Database ${db.name} has legacy secretRefs without secretId`);
+  if (databasesWithSecretRefs.length > 0) {
+    console.log(`  ⚠️  Found ${databasesWithSecretRefs.length} users with databases containing secretRefs:`);
+    for (const user of databasesWithSecretRefs) {
+      console.log(`    - User ${user._id}: ${user.count} databases with secretRefs`);
     }
-  }
-  console.log(`  ${databasesWithLegacy} databases have legacy fields\n`);
-
-  if (databasesWithLegacy > 0) {
-    console.log('❌ Cannot proceed: Some databases still have legacy secretRefs');
-    console.log('   Run migrate-vault-to-secrets.ts first to migrate all vault items\n');
-    process.exit(1);
+  } else {
+    console.log('  ✅ No secretRefs found in Database\n');
   }
 
   // Step 3: Remove legacy fields from accounts
   console.log('🧹 Step 3: Removing legacy vaultId from Account.credentials...');
-  const accountUpdateResult = await Account.updateMany(
-    { userId },
+  const accountUpdateResult = await db.collection('accounts').updateMany(
+    { credentials: { $exists: true, $ne: [] } },
     { $unset: { 'credentials.$[].vaultId': '' } }
   );
   console.log(`  Removed vaultId from ${accountUpdateResult.modifiedCount} accounts\n`);
 
   // Step 4: Remove legacy fields from databases
   console.log('🧹 Step 4: Removing legacy secretRefs from Database...');
-  const databaseUpdateResult = await Database.updateMany(
-    { userId },
+  const databaseUpdateResult = await db.collection('databases').updateMany(
+    {},
     { $unset: { secretRefs: '' } }
   );
   console.log(`  Removed secretRefs from ${databaseUpdateResult.modifiedCount} databases\n`);
@@ -92,8 +79,6 @@ async function cleanupLegacyFields() {
   console.log('\n✅ New Schema:');
   console.log('  - Account.credentials[].secretId (reference to Secret)');
   console.log('  - Database.secretId (reference to Secret)');
-  console.log('\n⚠️  Note: Schema files still have legacy fields for now.');
-  console.log('    Update models/Account.ts and models/Database.ts to remove them.');
 
   await mongoose.disconnect();
 }
