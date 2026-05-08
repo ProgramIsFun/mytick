@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type SecretType = 'connection_string' | 'password' | 'api_key' | 'token' | 'certificate' | 'ssh_key' | 'other';
-export type SecretProvider = 'bitwarden' | 'aws_secrets' | '1password' | 'vault' | 'lastpass' | 'custom';
+export type SecretProvider = 'bitwarden' | 'bitwarden_sm' | 'aws_secrets' | '1password' | 'vault' | 'lastpass' | 'custom';
 
 export interface ISecret extends Document {
   userId: Types.ObjectId;
@@ -41,7 +41,7 @@ const secretSchema = new Schema<ISecret>({
   // Provider info
   provider: {
     type: String,
-    enum: ['bitwarden', 'aws_secrets', '1password', 'vault', 'lastpass', 'custom'],
+    enum: ['bitwarden', 'bitwarden_sm', 'aws_secrets', '1password', 'vault', 'lastpass', 'custom'],
     required: true
   },
   providerSecretId: { type: String, required: true, trim: true },

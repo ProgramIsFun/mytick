@@ -6,7 +6,7 @@ interface Secret {
   _id: string;
   name: string;
   description: string;
-  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
+  provider: 'bitwarden' | 'bitwarden_sm' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
   providerSecretId: string;
   type: 'api_key' | 'password' | 'connection_string' | 'certificate' | 'token' | 'other';
   tags: string[];
@@ -17,6 +17,7 @@ interface Secret {
 
 const PROVIDERS: Record<string, { emoji: string; label: string }> = {
   bitwarden: { emoji: '🔐', label: 'Bitwarden' },
+  bitwarden_sm: { emoji: '🔐', label: 'Bitwarden SM' },
   '1password': { emoji: '🔑', label: '1Password' },
   lastpass: { emoji: '🔒', label: 'LastPass' },
   vault: { emoji: '🏦', label: 'Vault' },
@@ -92,10 +93,10 @@ export default function SecretsPage() {
     setSubmitting(true);
     try {
       const method = isEditing ? 'PATCH' : 'POST';
-      const url = isEditing ? `/api/secrets/${secret?._id}` : '/api/secrets';
+      const path = isEditing ? `/secrets/${secret?._id}` : '/secrets';
       
       const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-      const res = await fetch(`${API}${url}`, {
+      const res = await fetch(`${API}${path}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +118,8 @@ export default function SecretsPage() {
         setTagInput('');
         load();
       } else {
-        alert('Error saving secret');
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        alert(err.error || 'Error saving secret');
       }
     } finally {
       setSubmitting(false);
@@ -347,6 +349,7 @@ export default function SecretsPage() {
                 className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
               >
                 <option value="bitwarden">🔐 Bitwarden</option>
+                <option value="bitwarden_sm">🔐 Bitwarden SM</option>
                 <option value="1password">🔑 1Password</option>
                 <option value="lastpass">🔒 LastPass</option>
                 <option value="vault">🏦 Vault</option>
@@ -379,7 +382,7 @@ export default function SecretsPage() {
               value={formData.providerSecretId}
               onChange={(e) => setFormData(prev => ({ ...prev, providerSecretId: e.target.value }))}
               className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
-              placeholder="e.g., Bitwarden item UUID"
+               placeholder="e.g., Bitwarden SM secret ID"
             />
           </div>
 
