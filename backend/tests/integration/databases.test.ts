@@ -442,3 +442,227 @@ describe('backup history tracking', () => {
     expect(dbRes.body.lastBackupAt).toBe(lastBackupAfterSuccess);
   });
 });
+
+describe('all backup history (GET /databases/backup-history)', () => {
+  let db1Id: string;
+  let db2Id: string;
+
+  beforeEach(async () => {
+    const BackupHistory = (await import('../../src/models/BackupHistory')).default;
+    await BackupHistory.deleteMany({});
+
+    const res1 = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
+      .send({ name: 'DB Alpha', type: 'mongodb', backupEnabled: true });
+    db1Id = res1.body._id;
+
+    const res2 = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
+      .send({ name: 'DB Beta', type: 'postgres', backupEnabled: true });
+    db2Id = res2.body._id;
+  });
+
+  it('should return empty array when no backups exist', async () => {
+    const res = await request(app)
+      .get('/api/databases/backup-history')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(0);
+  });
+
+  it('should return backup history across all databases', async () => {
+    const now = new Date();
+
+    await request(app)
+      .post(`/api/databases/${db1Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'success',
+        startedAt: now.toISOString(),
+        completedAt: now.toISOString(),
+        sizeBytes: 1048576,
+        s3Path: 'alpha/backup.gz',
+        s3Bucket: 'test-bucket'
+      });
+
+    await request(app)
+      .post(`/api/databases/${db2Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'failed',
+        startedAt: now.toISOString(),
+        completedAt: now.toISOString(),
+        sizeBytes: 0,
+        s3Path: '',
+        s3Bucket: 'test-bucket',
+        errorMessage: 'Connection refused'
+      });
+
+    const res = await request(app)
+      .get('/api/databases/backup-history')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThanOrEqual(2);
+
+    const dbIds = res.body.map((b: any) => typeof b.databaseId === 'object' ? b.databaseId._id : b.databaseId);
+    expect(dbIds).toContain(db1Id);
+    expect(dbIds).toContain(db2Id);
+  });
+
+  it('should populate databaseId with name and type', async () => {
+    const now = new Date();
+
+    await request(app)
+      .post(`/api/databases/${db1Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'success',
+        startedAt: now.toISOString(),
+        completedAt: now.toISOString(),
+        sizeBytes: 512,
+        s3Path: 'test.gz',
+        s3Bucket: 'test'
+      });
+
+    const res = await request(app)
+      .get('/api/databases/backup-history')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    const record = res.body.find((b: any) =>
+      (typeof b.databaseId === 'object' ? b.databaseId._id : b.databaseId) === db1Id
+    );
+    expect(record).toBeTruthy();
+    expect(record.databaseId).toHaveProperty('name', 'DB Alpha');
+    expect(record.databaseId).toHaveProperty('type', 'mongodb');
+  });
+
+  it('should sort by completedAt descending', async () => {
+    const earlier = new Date(Date.now() - 3600000);
+    const later = new Date();
+
+    await request(app)
+      .post(`/api/databases/${db1Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'success',
+        startedAt: earlier.toISOString(),
+        completedAt: earlier.toISOString(),
+        sizeBytes: 100,
+        s3Path: 'earlier.gz',
+        s3Bucket: 'test'
+      });
+
+    await request(app)
+      .post(`/api/databases/${db2Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'success',
+        startedAt: later.toISOString(),
+        completedAt: later.toISOString(),
+        sizeBytes: 200,
+        s3Path: 'later.gz',
+        s3Bucket: 'test'
+      });
+
+    const res = await request(app)
+      .get('/api/databases/backup-history')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThanOrEqual(2);
+    expect(new Date(res.body[0].completedAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(res.body[1].completedAt).getTime()
+    );
+  });
+
+  it('should filter by status', async () => {
+    const now = new Date();
+
+    await request(app)
+      .post(`/api/databases/${db1Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'success',
+        startedAt: now.toISOString(),
+        completedAt: now.toISOString(),
+        sizeBytes: 100,
+        s3Path: 'ok.gz',
+        s3Bucket: 'test'
+      });
+
+    await request(app)
+      .post(`/api/databases/${db2Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'failed',
+        startedAt: now.toISOString(),
+        completedAt: now.toISOString(),
+        sizeBytes: 0,
+        s3Path: '',
+        s3Bucket: 'test',
+        errorMessage: 'fail'
+      });
+
+    const successRes = await request(app)
+      .get('/api/databases/backup-history?status=success')
+      .set('Authorization', `Bearer ${token}`);
+    expect(successRes.status).toBe(200);
+    expect(successRes.body.every((b: any) => b.status === 'success')).toBe(true);
+
+    const failedRes = await request(app)
+      .get('/api/databases/backup-history?status=failed')
+      .set('Authorization', `Bearer ${token}`);
+    expect(failedRes.status).toBe(200);
+    expect(failedRes.body.every((b: any) => b.status === 'failed')).toBe(true);
+  });
+
+  it('should respect limit parameter', async () => {
+    const now = new Date();
+    for (let i = 0; i < 5; i++) {
+      await request(app)
+        .post(`/api/databases/${db1Id}/backup-completed`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          status: 'success',
+          startedAt: now.toISOString(),
+          completedAt: now.toISOString(),
+          sizeBytes: i * 100,
+          s3Path: `backup-${i}.gz`,
+          s3Bucket: 'test'
+        });
+    }
+
+    const res = await request(app)
+      .get('/api/databases/backup-history?limit=3')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeLessThanOrEqual(3);
+  });
+
+  it('should only return current users backups', async () => {
+    const now = new Date();
+
+    await request(app)
+      .post(`/api/databases/${db1Id}/backup-completed`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'success',
+        startedAt: now.toISOString(),
+        completedAt: now.toISOString(),
+        sizeBytes: 100,
+        s3Path: 'mine.gz',
+        s3Bucket: 'test'
+      });
+
+    const { token: token2 } = await createTestUser('other@test.com', 'otheruser');
+
+    const res = await request(app)
+      .get('/api/databases/backup-history')
+      .set('Authorization', `Bearer ${token2}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBe(0);
+  });
+});

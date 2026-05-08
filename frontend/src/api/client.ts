@@ -145,6 +145,8 @@ export const api = {
     request(`/databases/${id}/backup-success`, { method: 'POST' }),
   getBackupHistory: (id: string, limit = 50) =>
     request(`/databases/${id}/backup-history?limit=${limit}`),
+  getAllBackupHistory: (limit = 50) =>
+    request(`/databases/backup-history?limit=${limit}`),
 
   // Secrets
   getSecrets: () => request('/secrets'),

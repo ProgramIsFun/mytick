@@ -11,15 +11,15 @@ const execAsync = promisify(exec);
  */
 async function backupMongoDB(dbName, connectionString, projectName, dbId) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupDir = `/tmp/${projectName}-${dbName}-${timestamp}`;
+  const safeName = `${projectName}-${dbName}`.replace(/\s+/g, '_');
+  const backupDir = `/tmp/${safeName}-${timestamp}`;
   const archivePath = `${backupDir}.tar.gz`;
 
   try {
     console.log(`Creating MongoDB backup for ${dbName}...`);
     await execAsync(`mongodump --uri="${connectionString}" --out="${backupDir}"`);
 
-    // Compress backup
-    await execAsync(`tar -czf ${archivePath} -C /tmp ${path.basename(backupDir)}`);
+    await execAsync(`tar -czf "${archivePath}" -C /tmp "${path.basename(backupDir)}"`);
 
     // Get file size
     const stats = await fs.stat(archivePath);

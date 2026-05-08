@@ -116,6 +116,18 @@ router.get('/backupable', asyncHandler(async (req: AuthRequest, res: Response) =
  *       200: { description: Database details }
  *       404: { description: Not found }
  */
+router.get('/backup-history', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+  const filter: any = { userId: req.userId };
+  if (req.query.status) filter.status = req.query.status;
+
+  res.json(await BackupHistory.find(filter)
+    .sort({ completedAt: -1 })
+    .limit(limit)
+    .populate('databaseId', 'name type')
+    .lean());
+}));
+
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const database = await Database.findOne({
     _id: req.params.id,
