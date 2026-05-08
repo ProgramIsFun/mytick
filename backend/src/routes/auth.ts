@@ -2,14 +2,16 @@ import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-import { auth, AuthRequest } from '../middleware/auth';
+import { auth, AuthRequest, requireAdminKey } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { validate, registerSchema, loginSchema, oauthSchema, updateProfileSchema } from '../utils/validation';
+import { notFound, badRequest } from '../utils/routeHelpers';
+import { BCRYPT_ROUNDS, JWT_EXPIRY, SERVICE_TOKEN_EXPIRY } from '../config/constants';
 
 const router = Router();
 
 function signToken(userId: unknown) {
-  return jwt.sign({ userId: String(userId) }, process.env.JWT_SECRET!, { expiresIn: '7d' });
+  return jwt.sign({ userId: String(userId) }, process.env.JWT_SECRET!, { expiresIn: JWT_EXPIRY });
 }
 
 function userResponse(user: any) {
@@ -47,12 +49,12 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res:
   const exists = await User.findOne({ email });
   if (exists) return res.status(409).json({ error: 'Email already registered' });
 
-  if (RESERVED_USERNAMES.includes(username.toLowerCase())) return res.status(400).json({ error: 'Username is reserved' });
+  if (RESERVED_USERNAMES.includes(username.toLowerCase())) return badRequest(res, 'Username is reserved');
 
   const usernameTaken = await User.findOne({ username: username.toLowerCase() });
   if (usernameTaken) return res.status(409).json({ error: 'Username already taken' });
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   const user = await User.create({
     email,
     username: username.toLowerCase(),
@@ -139,18 +141,18 @@ router.post('/oauth', validate(oauthSchema), asyncHandler(async (req, res: Respo
  */
 router.get('/me', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await User.findById(req.userId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!user) return notFound(res, 'User not found');
   res.json(userResponse(user));
 }));
 
 // Update profile
 router.patch('/me', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await User.findById(req.userId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!user) return notFound(res, 'User not found');
 
   if (req.body.username !== undefined) {
     const u = req.body.username.toLowerCase();
-    if (RESERVED_USERNAMES.includes(u)) return res.status(400).json({ error: 'Username is reserved' });
+    if (RESERVED_USERNAMES.includes(u)) return badRequest(res, 'Username is reserved');
     const taken = await User.findOne({ username: u, _id: { $ne: user._id } });
     if (taken) return res.status(409).json({ error: 'Username already taken' });
     user.username = u;
@@ -158,10 +160,10 @@ router.patch('/me', auth, asyncHandler(async (req: AuthRequest, res: Response) =
   if (req.body.name !== undefined) user.name = req.body.name;
 
   if (req.body.newPassword !== undefined) {
-    if (req.body.newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    if (!user.email) return res.status(400).json({ error: 'Email required to set a password. Update your email first.' });
+    if (req.body.newPassword.length < 6) return badRequest(res, 'Password must be at least 6 characters');
+    if (!user.email) return badRequest(res, 'Email required to set a password. Update your email first.');
     const localProvider = user.providers.find(p => p.type === 'local');
-    const hash = await bcrypt.hash(req.body.newPassword, 10);
+    const hash = await bcrypt.hash(req.body.newPassword, BCRYPT_ROUNDS);
     if (localProvider) {
       localProvider.passwordHash = hash;
     } else {
@@ -219,35 +221,29 @@ router.post('/test-push', auth, asyncHandler(async (req: AuthRequest, res: Respo
     ...(user?.pushTokens?.filter(t => t.provider === 'fcm').map(t => t.token) || []),
     ...(user?.fcmTokens || []),
   ].filter((t, i, a) => a.indexOf(t) === i);
-  if (!allTokens.length) return res.status(400).json({ error: 'No push tokens registered' });
+  if (!allTokens.length) return badRequest(res, 'No push tokens registered');
   const { sendPush } = await import('../services/fcm');
   const { tokenIndex } = req.body || {};
   const tokens = tokenIndex !== undefined ? [allTokens[tokenIndex]].filter(Boolean) : allTokens;
-  if (!tokens.length) return res.status(400).json({ error: 'Invalid token index' });
+  if (!tokens.length) return badRequest(res, 'Invalid token index');
   await sendPush(tokens, '🔔 Test Notification', 'Push notifications are working!', {});
   res.json({ message: 'Sent', tokens: tokens.length });
 }));
 
 // List all users (admin only)
 router.get('/users', asyncHandler(async (req, res: Response) => {
-  const adminKey = req.headers['x-admin-key'];
-  if (!adminKey || adminKey !== process.env.ADMIN_API_KEY) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  if (!requireAdminKey(req, res)) return;
   const users = await User.find().select('_id email username name');
   res.json(users.map(u => ({ id: u._id, email: u.email, username: u.username, name: u.name })));
 }));
 
 // Lookup user by email (admin only)
 router.get('/lookup', asyncHandler(async (req, res: Response) => {
-  const adminKey = req.headers['x-admin-key'];
-  if (!adminKey || adminKey !== process.env.ADMIN_API_KEY) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  if (!requireAdminKey(req, res)) return;
   const email = req.query.email as string;
-  if (!email) return res.status(400).json({ error: 'Email required' });
+  if (!email) return badRequest(res, 'Email required');
   const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!user) return notFound(res, 'User not found');
   res.json(userResponse(user));
 }));
 
@@ -274,10 +270,10 @@ router.get('/lookup', asyncHandler(async (req, res: Response) => {
  */
 router.post('/service-token', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await User.findById(req.userId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!user) return notFound(res, 'User not found');
 
-  const { service, expiresIn = '90d' } = req.body;
-  if (!service) return res.status(400).json({ error: 'service field required' });
+  const { service, expiresIn = SERVICE_TOKEN_EXPIRY } = req.body;
+  if (!service) return badRequest(res, 'service field required');
 
   const serviceToken = jwt.sign(
     { userId: String(user._id), service },

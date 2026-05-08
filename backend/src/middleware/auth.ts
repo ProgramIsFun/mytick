@@ -6,7 +6,6 @@ export interface AuthRequest extends Request {
 }
 
 export function auth(req: AuthRequest, res: Response, next: NextFunction) {
-  // Admin API key bypass
   const adminKey = req.headers['x-admin-key'];
   if (adminKey && adminKey === process.env.ADMIN_API_KEY) {
     req.userId = req.headers['x-admin-user-id'] as string;
@@ -23,4 +22,13 @@ export function auth(req: AuthRequest, res: Response, next: NextFunction) {
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
+}
+
+export function requireAdminKey(req: Request, res: Response): boolean {
+  const adminKey = req.headers['x-admin-key'];
+  if (!adminKey || adminKey !== process.env.ADMIN_API_KEY) {
+    res.status(403).json({ error: 'Forbidden' });
+    return false;
+  }
+  return true;
 }

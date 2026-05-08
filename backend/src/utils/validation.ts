@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
+import { TASK_TYPES, TASK_STATUSES, VISIBILITY_LEVELS, RECURRENCE_FREQS, WEEKDAYS } from '../config/enums';
 
 export function validate(schema: z.ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -38,11 +39,11 @@ export const updateProfileSchema = z.object({
 });
 
 const recurrenceSchema = z.object({
-  freq: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+  freq: z.enum(RECURRENCE_FREQS),
   interval: z.number().int().min(1),
   until: z.string().datetime().optional(),
   count: z.number().int().min(1).optional(),
-  byDay: z.array(z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'])).optional(),
+  byDay: z.array(z.enum(WEEKDAYS)).optional(),
 }).nullable().optional();
 
 const projectMetadataSchema = z.object({
@@ -70,8 +71,8 @@ const projectMetadataSchema = z.object({
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(500),
   description: z.string().max(5000).optional(),
-  type: z.enum(['task', 'project']).optional(),
-  visibility: z.enum(['private', 'group', 'public']).optional(),
+  type: z.enum(TASK_TYPES).optional(),
+  visibility: z.enum(VISIBILITY_LEVELS).optional(),
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
   parentId: z.string().nullable().optional(),
@@ -85,9 +86,9 @@ export const createTaskSchema = z.object({
 export const updateTaskSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(5000).optional(),
-  type: z.enum(['task', 'project']).optional(),
-  status: z.enum(['pending', 'in_progress', 'on_hold', 'done', 'abandoned']).optional(),
-  visibility: z.enum(['private', 'group', 'public']).optional(),
+  type: z.enum(TASK_TYPES).optional(),
+  status: z.enum(TASK_STATUSES).optional(),
+  visibility: z.enum(VISIBILITY_LEVELS).optional(),
   groupIds: z.array(z.string()).optional(),
   blockedBy: z.array(z.string()).optional(),
   parentId: z.string().nullable().optional(),

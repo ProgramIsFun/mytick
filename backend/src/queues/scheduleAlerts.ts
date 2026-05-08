@@ -1,13 +1,6 @@
 import { NotificationQueue } from './NotificationQueue';
 import { DEADLINE_ALERTS } from '../config/alerts';
-import { RRule, Frequency, Weekday } from 'rrule';
-
-const FREQ_MAP: Record<string, Frequency> = {
-  daily: RRule.DAILY, weekly: RRule.WEEKLY, monthly: RRule.MONTHLY, yearly: RRule.YEARLY,
-};
-const DAY_MAP: Record<string, Weekday> = {
-  MO: RRule.MO, TU: RRule.TU, WE: RRule.WE, TH: RRule.TH, FR: RRule.FR, SA: RRule.SA, SU: RRule.SU,
-};
+import { buildRRule } from '../utils/recurrence';
 
 interface RecurrenceInput {
   freq: string;
@@ -17,12 +10,8 @@ interface RecurrenceInput {
   byDay?: string[];
 }
 
-function makeRule(recurrence: RecurrenceInput, dtstart: Date): RRule {
-  const opts: any = { freq: FREQ_MAP[recurrence.freq], interval: recurrence.interval, dtstart };
-  if (recurrence.until) opts.until = new Date(recurrence.until);
-  if (recurrence.count) opts.count = recurrence.count;
-  if (recurrence.byDay?.length) opts.byweekday = recurrence.byDay.map(d => DAY_MAP[d]);
-  return new RRule(opts);
+function makeRule(recurrence: RecurrenceInput, dtstart: Date) {
+  return buildRRule(recurrence as any, dtstart);
 }
 
 export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: string, userId: string, deadline: Date | null, recurrence?: RecurrenceInput | null) {
@@ -34,7 +23,7 @@ export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: s
 
   if (recurrence) {
     const rule = makeRule(recurrence, new Date(deadline));
-    const next = rule.after(new Date(), true);
+    const next = rule?.after(new Date(), true);
     if (!next) return;
     targetDate = next;
   } else {
@@ -48,7 +37,7 @@ export async function scheduleDeadlineAlerts(queue: NotificationQueue, taskId: s
   let prevOccurrenceMs = 0;
   if (recurrence) {
     const rule = makeRule(recurrence, new Date(deadline));
-    const prev = rule.before(targetDate, false);
+    const prev = rule?.before(targetDate, false);
     if (prev) prevOccurrenceMs = prev.getTime();
   }
 

@@ -1,0 +1,13 @@
+export const BCRYPT_ROUNDS = 10;
+export const NANOID_LENGTH = 12;
+export const MAX_PAGE_LIMIT = 100;
+export const MAX_BACKUP_HISTORY_LIMIT = 200;
+export const DEFAULT_PAGE_LIMIT = 20;
+export const DEFAULT_BACKUP_HISTORY_LIMIT = 50;
+export const RATE_LIMIT_WINDOW_MS = 60_000;
+export const RATE_LIMIT_MAX = 100;
+export const DEFAULT_PORT = 4000;
+export const JWT_EXPIRY = '7d';
+export const SERVICE_TOKEN_EXPIRY = '90d';
+export const DEFAULT_RETENTION_DAYS = 30;
+export const NOTIFY_POLL_INTERVAL_MS = 60_000;
