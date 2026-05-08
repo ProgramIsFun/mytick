@@ -2,12 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Spinner from '../components/Spinner';
 
-interface UsedBy {
-  collection: string;
-  itemId: string;
-  itemName: string;
-}
-
 interface Secret {
   _id: string;
   name: string;
@@ -16,7 +10,6 @@ interface Secret {
   providerSecretId: string;
   type: 'api_key' | 'password' | 'connection_string' | 'certificate' | 'token' | 'other';
   tags: string[];
-  usedBy: UsedBy[];
   lastAccessedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -283,28 +276,6 @@ export default function SecretsPage() {
             </div>
           )}
 
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Used By ({secret.usedBy.length})</label>
-            <div className="space-y-2">
-              {secret.usedBy.map((usage, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-sm">
-                  <span className="px-2 py-1 rounded bg-surface-secondary border border-border text-text-muted text-xs">
-                    {usage.collection}
-                  </span>
-                  <button
-                    onClick={() => navigate(`/${usage.collection}/${usage.itemId}`)}
-                    className="text-accent hover:underline"
-                  >
-                    {usage.itemName} →
-                  </button>
-                </div>
-              ))}
-              {secret.usedBy.length === 0 && (
-                <p className="text-sm text-text-muted italic">Not currently used</p>
-              )}
-            </div>
-          </div>
-
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
             <div>
               <label className="text-xs font-medium text-text-muted block mb-1">Created</label>
@@ -530,9 +501,6 @@ export default function SecretsPage() {
                   </span>
                   <span className="text-xs px-2 py-1 rounded bg-surface-secondary border border-border">
                     {TYPES[s.type]?.emoji} {TYPES[s.type]?.label}
-                  </span>
-                  <span className="text-xs text-text-muted">
-                    Used by {s.usedBy.length} resource{s.usedBy.length !== 1 ? 's' : ''}
                   </span>
                 </div>
               </div>

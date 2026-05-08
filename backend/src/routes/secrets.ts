@@ -1,5 +1,7 @@
 import { Router, Response } from 'express';
 import Secret from '../models/Secret';
+import Database from '../models/Database';
+import Account from '../models/Account';
 import { auth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -109,7 +111,6 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       type,
       tags: tags || [],
       expiresAt: expiresAt || null,
-      usedBy: [],
     });
     
     res.status(201).json(secret);
@@ -175,118 +176,21 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     
     if (!secret) return res.status(404).json({ error: 'Not found' });
     
-    // Check if secret is in use
-    if (secret.usedBy && secret.usedBy.length > 0) {
-      return res.status(400).json({ 
-        error: 'Secret is in use',
-        usedBy: secret.usedBy
-      });
+    // Check if secret is referenced by any Database or Account
+    const [dbUsage, accountUsage] = await Promise.all([
+      Database.findOne({ secretId: req.params.id, userId: req.userId }).select('_id name'),
+      Account.findOne({ 'credentials.secretId': req.params.id, userId: req.userId }).select('_id name'),
+    ]);
+
+    if (dbUsage || accountUsage) {
+      const usedBy = [];
+      if (dbUsage) usedBy.push({ collection: 'databases', itemId: dbUsage._id, itemName: dbUsage.name });
+      if (accountUsage) usedBy.push({ collection: 'accounts', itemId: accountUsage._id, itemName: accountUsage.name });
+      return res.status(400).json({ error: 'Secret is in use', usedBy });
     }
     
     await secret.deleteOne();
     res.json({ message: 'Deleted' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-/**
- * @swagger
- * /secrets/{id}/add-usage:
- *   post:
- *     summary: Add usage tracking to a secret
- *     tags: [Secrets]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [collection, itemId, itemName]
- *             properties:
- *               collection: { type: string }
- *               itemId: { type: string }
- *               itemName: { type: string }
- *     responses:
- *       200: { description: Usage added }
- */
-router.post('/:id/add-usage', async (req: AuthRequest, res: Response) => {
-  try {
-    const { collection, itemId, itemName } = req.body;
-    
-    if (!collection || !itemId || !itemName) {
-      return res.status(400).json({ error: 'collection, itemId, and itemName are required' });
-    }
-    
-    const secret = await Secret.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-    
-    if (!secret) return res.status(404).json({ error: 'Not found' });
-    
-    // Check if usage already exists
-    const exists = secret.usedBy.some(
-      u => u.collection === collection && u.itemId.toString() === itemId
-    );
-    
-    if (!exists) {
-      secret.usedBy.push({ collection, itemId, itemName } as any);
-      await secret.save();
-    }
-    
-    res.json(secret);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-/**
- * @swagger
- * /secrets/{id}/remove-usage:
- *   post:
- *     summary: Remove usage tracking from a secret
- *     tags: [Secrets]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [collection, itemId]
- *             properties:
- *               collection: { type: string }
- *               itemId: { type: string }
- *     responses:
- *       200: { description: Usage removed }
- */
-router.post('/:id/remove-usage', async (req: AuthRequest, res: Response) => {
-  try {
-    const { collection, itemId } = req.body;
-    
-    if (!collection || !itemId) {
-      return res.status(400).json({ error: 'collection and itemId are required' });
-    }
-    
-    const secret = await Secret.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-    
-    if (!secret) return res.status(404).json({ error: 'Not found' });
-    
-    secret.usedBy = secret.usedBy.filter(
-      u => !(u.collection === collection && u.itemId.toString() === itemId)
-    );
-    
-    await secret.save();
-    res.json(secret);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

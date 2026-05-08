@@ -3,6 +3,7 @@ import request from 'supertest';
 import { setupTestDB, teardownTestDB, createTestUser, app } from '../helpers';
 import Secret from '../../src/models/Secret';
 import Database from '../../src/models/Database';
+import Account from '../../src/models/Account';
 
 let token: string;
 let userId: string;
@@ -45,10 +46,10 @@ describe('Secrets API - /api/secrets', () => {
       expect(res.body.providerSecretId).toBe(secretData.providerSecretId);
       expect(res.body.type).toBe(secretData.type);
       expect(res.body.tags).toEqual(secretData.tags);
-      expect(res.body.usedBy).toEqual([]);
       expect(res.body._id).toBeDefined();
       expect(res.body.userId).toBe(userId);
     });
+
 
     it('should create secret with minimal required fields', async () => {
       const res = await request(app)
@@ -240,6 +241,7 @@ describe('Secrets API - /api/secrets', () => {
         description: 'Detailed test secret',
       });
 
+
       const res = await request(app)
         .get(`/api/secrets/${secret._id}`)
         .set('Authorization', `Bearer ${token}`)
@@ -370,7 +372,6 @@ describe('Secrets API - /api/secrets', () => {
         providerSecretId: 'test-delete-123',
         type: 'password',
         tags: [],
-        usedBy: [],
       });
 
       await request(app)
@@ -382,7 +383,7 @@ describe('Secrets API - /api/secrets', () => {
       expect(deleted).toBeNull();
     });
 
-    it('should prevent deleting a secret in use by one resource', async () => {
+    it('should prevent deleting a secret in use by a database', async () => {
       const secret = await Secret.create({
         userId,
         name: 'In Use Secret',
@@ -390,13 +391,14 @@ describe('Secrets API - /api/secrets', () => {
         providerSecretId: 'test-in-use-123',
         type: 'connection_string',
         tags: [],
-        usedBy: [
-          {
-            collection: 'databases',
-            itemId: '507f1f77bcf86cd799439011',
-            itemName: 'Production DB',
-          },
-        ],
+      });
+
+      await Database.create({
+        userId,
+        name: 'Production DB',
+        type: 'mongodb',
+        secretId: secret._id,
+        backupEnabled: true,
       });
 
       const res = await request(app)
@@ -406,6 +408,7 @@ describe('Secrets API - /api/secrets', () => {
 
       expect(res.body.error).toBe('Secret is in use');
       expect(res.body.usedBy).toHaveLength(1);
+      expect(res.body.usedBy[0].collection).toBe('databases');
 
       const stillExists = await Secret.findById(secret._id);
       expect(stillExists).not.toBeNull();
@@ -419,23 +422,21 @@ describe('Secrets API - /api/secrets', () => {
         providerSecretId: 'test-widely-used-123',
         type: 'api_key',
         tags: [],
-        usedBy: [
-          {
-            collection: 'databases',
-            itemId: '507f1f77bcf86cd799439011',
-            itemName: 'Production DB',
-          },
-          {
-            collection: 'accounts',
-            itemId: '507f1f77bcf86cd799439012',
-            itemName: 'AWS Account',
-          },
-          {
-            collection: 'tasks',
-            itemId: '507f1f77bcf86cd799439013',
-            itemName: 'Deploy Task',
-          },
-        ],
+      });
+
+      await Database.create({
+        userId,
+        name: 'Production DB',
+        type: 'mongodb',
+        secretId: secret._id,
+        backupEnabled: true,
+      });
+
+      await Account.create({
+        userId,
+        name: 'AWS Account',
+        provider: 'aws',
+        credentials: [{ secretId: secret._id, key: 'AWS_KEY' }],
       });
 
       const res = await request(app)
@@ -443,194 +444,11 @@ describe('Secrets API - /api/secrets', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(400);
 
-      expect(res.body.usedBy).toHaveLength(3);
-    });
-  });
-
-  describe('POST /api/secrets/:id/add-usage', () => {
-    it('should add usage tracking for a database', async () => {
-      const secret = await Secret.create({
-        userId,
-        name: 'Database Secret',
-        provider: 'bitwarden',
-        providerSecretId: 'test-usage-123',
-        type: 'connection_string',
-        tags: [],
-        usedBy: [],
-      });
-
-      const res = await request(app)
-        .post(`/api/secrets/${secret._id}/add-usage`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          collection: 'databases',
-          itemId: '507f1f77bcf86cd799439011',
-          itemName: 'MyTick Production MongoDB',
-        })
-        .expect(200);
-
-      expect(res.body.usedBy).toHaveLength(1);
-      expect(res.body.usedBy[0].collection).toBe('databases');
-      expect(res.body.usedBy[0].itemName).toBe('MyTick Production MongoDB');
-    });
-
-    it('should add multiple different usages', async () => {
-      const secret = await Secret.create({
-        userId,
-        name: 'Shared Secret',
-        provider: 'bitwarden',
-        providerSecretId: 'test-multi-usage-123',
-        type: 'password',
-        tags: [],
-        usedBy: [],
-      });
-
-      // Add first usage
-      await request(app)
-        .post(`/api/secrets/${secret._id}/add-usage`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          collection: 'databases',
-          itemId: '507f1f77bcf86cd799439011',
-          itemName: 'DB1',
-        })
-        .expect(200);
-
-      // Add second usage
-      const res = await request(app)
-        .post(`/api/secrets/${secret._id}/add-usage`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          collection: 'accounts',
-          itemId: '507f1f77bcf86cd799439012',
-          itemName: 'Account1',
-        })
-        .expect(200);
-
       expect(res.body.usedBy).toHaveLength(2);
     });
-
-    it('should not add duplicate usage', async () => {
-      const itemId = '507f1f77bcf86cd799439011';
-      const secret = await Secret.create({
-        userId,
-        name: 'No Duplicate Test',
-        provider: 'bitwarden',
-        providerSecretId: 'test-no-dup-123',
-        type: 'api_key',
-        tags: [],
-        usedBy: [
-          {
-            collection: 'databases',
-            itemId,
-            itemName: 'Existing DB',
-          },
-        ],
-      });
-
-      const res = await request(app)
-        .post(`/api/secrets/${secret._id}/add-usage`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          collection: 'databases',
-          itemId,
-          itemName: 'Existing DB',
-        })
-        .expect(200);
-
-      expect(res.body.usedBy).toHaveLength(1); // Still only 1
-    });
-
-    it('should require all fields', async () => {
-      const secret = await Secret.create({
-        userId,
-        name: 'Test',
-        provider: 'bitwarden',
-        providerSecretId: 'test-123',
-        type: 'password',
-        tags: [],
-        usedBy: [],
-      });
-
-      await request(app)
-        .post(`/api/secrets/${secret._id}/add-usage`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          collection: 'databases',
-          // Missing itemId and itemName
-        })
-        .expect(400);
-    });
   });
 
-  describe('POST /api/secrets/:id/remove-usage', () => {
-    it('should remove usage tracking', async () => {
-      const itemId = '507f1f77bcf86cd799439011';
-      const secret = await Secret.create({
-        userId,
-        name: 'Remove Usage Test',
-        provider: 'bitwarden',
-        providerSecretId: 'test-remove-123',
-        type: 'connection_string',
-        tags: [],
-        usedBy: [
-          {
-            collection: 'databases',
-            itemId,
-            itemName: 'To Be Removed',
-          },
-        ],
-      });
 
-      const res = await request(app)
-        .post(`/api/secrets/${secret._id}/remove-usage`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          collection: 'databases',
-          itemId,
-        })
-        .expect(200);
-
-      expect(res.body.usedBy).toHaveLength(0);
-    });
-
-    it('should only remove specific usage', async () => {
-      const itemId1 = '507f1f77bcf86cd799439011';
-      const itemId2 = '507f1f77bcf86cd799439012';
-      const secret = await Secret.create({
-        userId,
-        name: 'Selective Remove Test',
-        provider: 'bitwarden',
-        providerSecretId: 'test-selective-123',
-        type: 'api_key',
-        tags: [],
-        usedBy: [
-          {
-            collection: 'databases',
-            itemId: itemId1,
-            itemName: 'DB1',
-          },
-          {
-            collection: 'accounts',
-            itemId: itemId2,
-            itemName: 'Account1',
-          },
-        ],
-      });
-
-      const res = await request(app)
-        .post(`/api/secrets/${secret._id}/remove-usage`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          collection: 'databases',
-          itemId: itemId1,
-        })
-        .expect(200);
-
-      expect(res.body.usedBy).toHaveLength(1);
-      expect(res.body.usedBy[0].collection).toBe('accounts');
-    });
-  });
 
   describe('POST /api/secrets/:id/touch', () => {
     it('should update lastAccessedAt timestamp', async () => {
@@ -697,7 +515,6 @@ describe('Secrets API - /api/secrets', () => {
         providerSecretId: 'bw-integration-123',
         type: 'connection_string',
         tags: [],
-        usedBy: [],
       });
 
       const dbRes = await request(app)
@@ -722,7 +539,6 @@ describe('Secrets API - /api/secrets', () => {
         providerSecretId: 'bw-backupable-123',
         type: 'connection_string',
         tags: [],
-        usedBy: [],
       });
 
       const db = await Database.create({
