@@ -193,14 +193,9 @@ export default function AccountDetailPage() {
                           ? { ...c, secretId: secret } 
                           : c
                       )});
-                      setAccount(prev => {
-                        if (!prev) return null;
-                        return { ...prev, credentials: prev.credentials.map(c => 
-                          c.key === editingCredential.key 
-                            ? { ...c, secretId: secret } 
-                            : c
-                        ) };
-                      });
+                      // Reload account to get updated data
+                      const updatedAccount = await api.getAccount(id!);
+                      setAccount(updatedAccount);
                       alert('Secret ID updated successfully!');
                       setEditingCredential(null);
                     } catch (err) {

@@ -205,7 +205,9 @@ export default function DatabaseDetailPage() {
                   onClick={async () => {
                     try {
                       await api.updateDatabase(id!, { secretId: secret._id });
-                      setDb(prev => prev ? { ...prev, secretId: secret } : null);
+                      // Reload database to get updated data
+                      const updatedDb = await api.getDatabase(id!);
+                      setDb(updatedDb);
                       alert('Secret ID updated successfully!');
                       setShowSecretModal(false);
                     } catch (err) {
