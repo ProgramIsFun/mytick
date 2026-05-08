@@ -101,7 +101,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const database = await Database.findOne({
       _id: req.params.id,
       userId: req.userId,
-    }).populate('accountId', 'name provider');
+    }).populate('accountId', 'name provider').populate('secretId');
     
     if (!database) return res.status(404).json({ error: 'Not found' });
     res.json(database);
@@ -287,6 +287,8 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     for (const key of allowed) {
       if (req.body[key] !== undefined) (database as any)[key] = req.body[key];
     }
+    
+    console.log('Updating database:', database._id, 'secretId:', database.secretId);
     
     await database.save();
     res.json(database);
