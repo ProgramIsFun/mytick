@@ -3,6 +3,8 @@ import Secret from '../models/Secret';
 import Database from '../models/Database';
 import Account from '../models/Account';
 import { auth, AuthRequest } from '../middleware/auth';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { applyUpdates } from '../utils/routeHelpers';
 
 const router = Router();
 
@@ -23,23 +25,17 @@ router.use(auth);
  *     responses:
  *       200: { description: List of secrets }
  */
-router.get('/', async (req: AuthRequest, res: Response) => {
-  try {
-    const { search, provider, type, tag } = req.query;
-    const filter: any = { userId: req.userId };
-    
-    if (search) filter.name = { $regex: search, $options: 'i' };
-    if (provider) filter.provider = provider;
-    if (type) filter.type = type;
-    if (tag) filter.tags = tag;
-    
-    const secrets = await Secret.find(filter).sort({ createdAt: -1 });
-    
-    res.json(secrets);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { search, provider, type, tag } = req.query;
+  const filter: any = { userId: req.userId };
+  
+  if (search) filter.name = { $regex: search, $options: 'i' };
+  if (provider) filter.provider = provider;
+  if (type) filter.type = type;
+  if (tag) filter.tags = tag;
+  
+  res.json(await Secret.find(filter).sort({ createdAt: -1 }));
+}));
 
 /**
  * @swagger
@@ -54,19 +50,15 @@ router.get('/', async (req: AuthRequest, res: Response) => {
  *       200: { description: Secret details }
  *       404: { description: Not found }
  */
-router.get('/:id', async (req: AuthRequest, res: Response) => {
-  try {
-    const secret = await Secret.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-    
-    if (!secret) return res.status(404).json({ error: 'Not found' });
-    res.json(secret);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const secret = await Secret.findOne({
+    _id: req.params.id,
+    userId: req.userId,
+  });
+  
+  if (!secret) return res.status(404).json({ error: 'Not found' });
+  res.json(secret);
+}));
 
 /**
  * @swagger
@@ -94,30 +86,24 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  *       201: { description: Secret created }
  *       400: { description: Validation error }
  */
-router.post('/', async (req: AuthRequest, res: Response) => {
-  try {
-    const { name, description, provider, providerSecretId, type, tags, expiresAt } = req.body;
-    
-    if (!name || !provider || !providerSecretId || !type) {
-      return res.status(400).json({ error: 'name, provider, providerSecretId, and type are required' });
-    }
-    
-    const secret = await Secret.create({
-      userId: req.userId,
-      name,
-      description: description || '',
-      provider,
-      providerSecretId,
-      type,
-      tags: tags || [],
-      expiresAt: expiresAt || null,
-    });
-    
-    res.status(201).json(secret);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { name, description, provider, providerSecretId, type, tags, expiresAt } = req.body;
+  
+  if (!name || !provider || !providerSecretId || !type) {
+    return res.status(400).json({ error: 'name, provider, providerSecretId, and type are required' });
   }
-});
+  
+  res.status(201).json(await Secret.create({
+    userId: req.userId,
+    name,
+    description: description || '',
+    provider,
+    providerSecretId,
+    type,
+    tags: tags || [],
+    expiresAt: expiresAt || null,
+  }));
+}));
 
 /**
  * @swagger
@@ -132,26 +118,18 @@ router.post('/', async (req: AuthRequest, res: Response) => {
  *       200: { description: Secret updated }
  *       404: { description: Not found }
  */
-router.patch('/:id', async (req: AuthRequest, res: Response) => {
-  try {
-    const secret = await Secret.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-    
-    if (!secret) return res.status(404).json({ error: 'Not found' });
-    
-    const allowed = ['name', 'description', 'provider', 'providerSecretId', 'type', 'tags', 'expiresAt', 'lastRotatedAt'];
-    for (const key of allowed) {
-      if (req.body[key] !== undefined) (secret as any)[key] = req.body[key];
-    }
-    
-    await secret.save();
-    res.json(secret);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const secret = await Secret.findOne({
+    _id: req.params.id,
+    userId: req.userId,
+  });
+  
+  if (!secret) return res.status(404).json({ error: 'Not found' });
+  
+  applyUpdates(secret, req.body, ['name', 'description', 'provider', 'providerSecretId', 'type', 'tags', 'expiresAt', 'lastRotatedAt']);
+  await secret.save();
+  res.json(secret);
+}));
 
 /**
  * @swagger
@@ -167,34 +145,29 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
  *       404: { description: Not found }
  *       400: { description: Secret is in use }
  */
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  try {
-    const secret = await Secret.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-    
-    if (!secret) return res.status(404).json({ error: 'Not found' });
-    
-    // Check if secret is referenced by any Database or Account
-    const [dbUsage, accountUsage] = await Promise.all([
-      Database.findOne({ secretId: req.params.id, userId: req.userId }).select('_id name'),
-      Account.findOne({ 'credentials.secretId': req.params.id, userId: req.userId }).select('_id name'),
-    ]);
+router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const secret = await Secret.findOne({
+    _id: req.params.id,
+    userId: req.userId,
+  });
+  
+  if (!secret) return res.status(404).json({ error: 'Not found' });
+  
+  const [dbUsage, accountUsage] = await Promise.all([
+    Database.findOne({ secretId: req.params.id, userId: req.userId }).select('_id name'),
+    Account.findOne({ 'credentials.secretId': req.params.id, userId: req.userId }).select('_id name'),
+  ]);
 
-    if (dbUsage || accountUsage) {
-      const usedBy = [];
-      if (dbUsage) usedBy.push({ collection: 'databases', itemId: dbUsage._id, itemName: dbUsage.name });
-      if (accountUsage) usedBy.push({ collection: 'accounts', itemId: accountUsage._id, itemName: accountUsage.name });
-      return res.status(400).json({ error: 'Secret is in use', usedBy });
-    }
-    
-    await secret.deleteOne();
-    res.json({ message: 'Deleted' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+  if (dbUsage || accountUsage) {
+    const usedBy = [];
+    if (dbUsage) usedBy.push({ collection: 'databases', itemId: dbUsage._id, itemName: dbUsage.name });
+    if (accountUsage) usedBy.push({ collection: 'accounts', itemId: accountUsage._id, itemName: accountUsage.name });
+    return res.status(400).json({ error: 'Secret is in use', usedBy });
   }
-});
+  
+  await secret.deleteOne();
+  res.json({ message: 'Deleted' });
+}));
 
 /**
  * @swagger
@@ -208,19 +181,15 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
  *     responses:
  *       200: { description: Timestamp updated }
  */
-router.post('/:id/touch', async (req: AuthRequest, res: Response) => {
-  try {
-    const secret = await Secret.findOneAndUpdate(
-      { _id: req.params.id, userId: req.userId },
-      { lastAccessedAt: new Date() },
-      { new: true }
-    );
-    
-    if (!secret) return res.status(404).json({ error: 'Not found' });
-    res.json(secret);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+router.post('/:id/touch', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const secret = await Secret.findOneAndUpdate(
+    { _id: req.params.id, userId: req.userId },
+    { lastAccessedAt: new Date() },
+    { new: true }
+  );
+  
+  if (!secret) return res.status(404).json({ error: 'Not found' });
+  res.json(secret);
+}));
 
 export default router;
