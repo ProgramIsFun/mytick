@@ -28,8 +28,6 @@ services:
       - NODE_ENV=test
     env_file:
       - ./backend/.env
-    entrypoint: ["npm", "test"]
-    profiles: ["test"]
 
   frontend:
     build:
