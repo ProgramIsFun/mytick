@@ -3,7 +3,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
 import app from '../src/app';
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryServer | null = null;
 
 export async function setupTestDB() {
   mongo = await MongoMemoryServer.create();
@@ -14,14 +14,16 @@ export async function setupTestDB() {
 
 export async function teardownTestDB() {
   await mongoose.disconnect();
-  await mongo.stop();
+  if (mongo) {
+    await mongo.stop();
+  }
 }
 
 export async function createTestUser(email = 'test@test.com', username = 'testuser') {
   const res = await request(app).post('/api/auth/register').send({
     email, password: 'password123', name: 'Test User', username,
   });
-  return { token: res.body.token, user: res.body.user, userId: res.body.user._id };
+  return { token: res.body.token, user: res.body.user, userId: res.body.user.id };
 }
 
 export { app };

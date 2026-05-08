@@ -1,3 +1,4 @@
+import { describe, it } from '@jest/globals';
 import { hasCycleInGraph } from '../../src/utils/cycle';
 
 describe('hasCycleInGraph', () => {

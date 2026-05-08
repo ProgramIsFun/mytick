@@ -1,3 +1,4 @@
+import { describe, it, expect } from '@jest/globals';
 import { NotificationQueue, NotificationJob } from '../../src/queues/NotificationQueue';
 import { scheduleDeadlineAlerts } from '../../src/queues/scheduleAlerts';
 
