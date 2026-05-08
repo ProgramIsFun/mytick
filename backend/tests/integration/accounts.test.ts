@@ -18,12 +18,12 @@ describe('account CRUD', () => {
 
   it('should create an account', async () => {
     const res = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Firebase Main', provider: 'firebase', credentials: [{ vaultId: 'vault-123', key: 'API_KEY' }] });
+      .send({ name: 'Firebase Main', provider: 'firebase', credentials: [{ secretId: '507f1f77bcf86cd799439011', key: 'API_KEY' }] });
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('Firebase Main');
     expect(res.body.provider).toBe('firebase');
     expect(res.body.credentials).toHaveLength(1);
-    expect(res.body.credentials[0].vaultId).toBe('vault-123');
+    expect(res.body.credentials[0].secretId).toBe('507f1f77bcf86cd799439011');
     accountId = res.body._id;
   });
 
@@ -47,10 +47,10 @@ describe('account CRUD', () => {
 
   it('should update account', async () => {
     const res = await request(app).patch(`/api/accounts/${accountId}`).set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Firebase Renamed', credentials: [{ vaultId: 'vault-789', key: 'NEW_KEY' }] });
+      .send({ name: 'Firebase Renamed', credentials: [{ secretId: '507f1f77bcf86cd799439022', key: 'NEW_KEY' }] });
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Firebase Renamed');
-    expect(res.body.credentials[0].vaultId).toBe('vault-789');
+    expect(res.body.credentials[0].secretId).toBe('507f1f77bcf86cd799439022');
   });
 
   it('should delete account', async () => {

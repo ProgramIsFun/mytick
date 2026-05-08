@@ -10,7 +10,7 @@ let userId: string;
 beforeAll(async () => {
   await setupTestDB();
   ({ token, userId } = await createTestUser());
-}, 30000);
+}, 120000);
 
 afterAll(async () => {
   await teardownTestDB();
