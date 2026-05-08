@@ -44,7 +44,36 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  *     tags: [Databases]
  *     security: [{ bearerAuth: [] }]
  *     responses:
- *       200: { description: List of databases with backup enabled }
+ *       200:
+ *         description: List of databases with backup enabled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id: { type: string }
+ *                   name: { type: string }
+ *                   type: { type: string, enum: [mongodb, postgres, mysql, redis, sqlite, other] }
+ *                   secret:
+ *                     type: object
+ *                     properties:
+ *                       provider: { type: string }
+ *                       providerSecretId: { type: string }
+ *                   retentionDays: { type: number }
+ *                   frequency: { type: string }
+ *                   lastBackupAt: { type: string, nullable: true }
+ *             example:
+ *               - id: "661d7c8a1f2b3c4d5e6f7g8h"
+ *                 name: "mytick-prod"
+ *                 type: "mongodb"
+ *                 secret:
+ *                   provider: "bitwarden_sm"
+ *                   providerSecretId: "5dc0cbf5-7c7f-480d-9733-b444007eaa0e"
+ *                 retentionDays: 30
+ *                 frequency: "daily"
+ *                 lastBackupAt: "2026-05-07T02:50:19.422Z"
  */
 router.get('/backupable', asyncHandler(async (req: AuthRequest, res: Response) => {
   const databases = await Database.find({
@@ -196,7 +225,7 @@ router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: 
  *             properties:
  *               name: { type: string }
  *               type: { type: string, enum: [mongodb, postgres, mysql, redis, sqlite, other] }
- *               secretRefs: { type: array, items: { type: object, properties: { provider: { type: string }, itemId: { type: string }, field: { type: string } } } }
+ *               secretId: { type: string, description: "Secret ObjectId (reference to Secret collection)" }
  *               host: { type: string }
  *               port: { type: number }
  *               database: { type: string }

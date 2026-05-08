@@ -156,7 +156,7 @@ async function backupProject(project) {
       // Backup based on database type
       switch (db.type) {
         case 'mongodb':
-          backupResult = await backupMongoDB(db.name, connectionString, project.name);
+          backupResult = await backupMongoDB(db.name, connectionString, project.name, db.id);
           break;
         default:
           console.warn(`Unsupported database type: ${db.type}`);

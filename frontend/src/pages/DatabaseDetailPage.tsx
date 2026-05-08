@@ -5,6 +5,12 @@ import Spinner from '../components/Spinner';
 
 interface Account { _id: string; name: string; provider: string; }
 interface Secret { _id: string; name: string; provider: string; }
+interface BackupRecord {
+  _id: string; status: 'success' | 'failed' | 'partial';
+  startedAt: string; completedAt: string; durationMs: number;
+  sizeBytes: number; s3Path: string; s3Bucket: string;
+  errorMessage?: string; triggeredBy: 'scheduled' | 'manual';
+}
 interface Database {
   _id: string; name: string; type: string; host: string; port: number | null;
   database: string; secretId?: Secret | string | null; backupEnabled: boolean;
@@ -29,6 +35,8 @@ export default function DatabaseDetailPage() {
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSecretModal, setShowSecretModal] = useState(false);
+  const [backups, setBackups] = useState<BackupRecord[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -38,6 +46,13 @@ export default function DatabaseDetailPage() {
           setSecrets(secrets);
           setLoading(false);
         });
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      setBackupsLoading(true);
+      api.getBackupHistory(id).then(setBackups).finally(() => setBackupsLoading(false));
     }
   }, [id]);
 
@@ -182,6 +197,69 @@ export default function DatabaseDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Backup History */}
+      <div className="bg-surface rounded-lg border border-border p-6 mt-6">
+        <h2 className="text-lg font-bold text-text-primary mb-4">Backup History</h2>
+        {backupsLoading ? (
+          <div className="text-sm text-text-muted py-8 text-center">Loading...</div>
+        ) : backups.length === 0 ? (
+          <div className="text-sm text-text-muted py-8 text-center">No backups yet</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-text-muted border-b border-border">
+                  <th className="pb-2 pr-4">Status</th>
+                  <th className="pb-2 pr-4">Completed</th>
+                  <th className="pb-2 pr-4">Duration</th>
+                  <th className="pb-2 pr-4">Size</th>
+                  <th className="pb-2 pr-4">Trigger</th>
+                  <th className="pb-2 pr-4">Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {backups.map(b => (
+                  <tr key={b._id} className="border-b border-border/50 hover:bg-surface-hover/50">
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                        b.status === 'success' ? 'bg-success/20 text-success' :
+                        b.status === 'failed' ? 'bg-error/20 text-error' :
+                        'bg-warning/20 text-warning'
+                      }`}>
+                        {b.status}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4 text-text-primary whitespace-nowrap">
+                      {new Date(b.completedAt).toLocaleString()}
+                    </td>
+                    <td className="py-2 pr-4 text-text-primary whitespace-nowrap">
+                      {b.durationMs > 60000
+                        ? `${(b.durationMs / 60000).toFixed(1)}m`
+                        : `${(b.durationMs / 1000).toFixed(0)}s`}
+                    </td>
+                    <td className="py-2 pr-4 text-text-primary whitespace-nowrap">
+                      {b.sizeBytes > 1073741824
+                        ? `${(b.sizeBytes / 1073741824).toFixed(2)} GB`
+                        : b.sizeBytes > 1048576
+                        ? `${(b.sizeBytes / 1048576).toFixed(1)} MB`
+                        : b.sizeBytes > 1024
+                        ? `${(b.sizeBytes / 1024).toFixed(0)} KB`
+                        : `${b.sizeBytes} B`}
+                    </td>
+                    <td className="py-2 pr-4 text-text-primary">
+                      <span className="text-xs">{b.triggeredBy}</span>
+                    </td>
+                    <td className="py-2 pr-4 text-error max-w-xs truncate">
+                      {b.errorMessage || ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Modal for updating secret reference */}

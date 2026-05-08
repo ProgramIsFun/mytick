@@ -143,6 +143,8 @@ export const api = {
     request(`/databases/${id}`, { method: 'DELETE' }),
   markBackupSuccess: (id: string) =>
     request(`/databases/${id}/backup-success`, { method: 'POST' }),
+  getBackupHistory: (id: string, limit = 50) =>
+    request(`/databases/${id}/backup-history?limit=${limit}`),
 
   // Secrets
   getSecrets: () => request('/secrets'),

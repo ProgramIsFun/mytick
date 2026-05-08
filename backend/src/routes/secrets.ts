@@ -77,7 +77,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *             properties:
  *               name: { type: string }
  *               description: { type: string }
- *               provider: { type: string, enum: [bitwarden, aws_secrets, 1password, vault, lastpass, custom] }
+ *               provider: { type: string, enum: [bitwarden, bitwarden_sm, aws_secrets, 1password, vault, lastpass, custom] }
  *               providerSecretId: { type: string }
  *               type: { type: string, enum: [connection_string, password, api_key, token, certificate, ssh_key, other] }
  *               tags: { type: array, items: { type: string } }
