@@ -49,4 +49,9 @@ app.get('/api/health', async (_req, res) => {
   res.status(dbOk ? 200 : 503).json({ status: dbOk ? 'ok' : 'unhealthy', db: dbOk });
 });
 
+// Global error handler
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  res.status(err.status || 500).json({ error: err.message || 'Server error' });
+});
+
 export default app;
