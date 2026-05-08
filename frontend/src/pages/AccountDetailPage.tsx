@@ -27,11 +27,17 @@ export default function AccountDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [account, setAccount] = useState<Account | null>(null);
+  const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingCredential, setEditingCredential] = useState<{ key: string; secretId?: Secret | string | null } | null>(null);
 
   useEffect(() => {
     if (id) {
-      api.getAccount(id).then(setAccount).finally(() => setLoading(false));
+      Promise.all([
+        api.getAccount(id).then(setAccount),
+        api.getSecrets()
+      ]).then(([_, secrets]) => setSecrets(secrets));
+      setLoading(false);
     }
   }, [id]);
 
@@ -100,12 +106,28 @@ export default function AccountDetailPage() {
                 <div key={idx} className="text-sm bg-surface-secondary p-3 rounded border border-border">
                   <div className="text-xs text-text-muted mb-1">Key: {cred.key}</div>
                   {cred.secretId && typeof cred.secretId === 'object' ? (
-                    <div className="text-xs text-text-muted">
-                      Secret: {cred.secretId.name} ({cred.secretId.provider})
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-text-muted">
+                        Secret: {cred.secretId.name} ({cred.secretId.provider})
+                      </div>
+                      <button
+                        onClick={() => setEditingCredential({ ...cred, secretId: cred.secretId })}
+                        className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
+                      >
+                        ✏️ Update
+                      </button>
                     </div>
                   ) : (
-                    <div className="text-xs text-warning">
-                      ⚠️ Secret reference missing - update in <a href="/secrets" className="text-accent hover:underline">Secrets page</a>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-warning">
+                        ⚠️ Secret reference missing
+                      </div>
+                      <button
+                        onClick={() => setEditingCredential({ ...cred, secretId: null })}
+                        className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
+                      >
+                        ✏️ Select Secret
+                      </button>
                     </div>
                   )}
                 </div>
@@ -133,6 +155,67 @@ export default function AccountDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal for updating secret reference */}
+      {editingCredential && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-surface rounded-lg border border-border p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-text-primary mb-4">Update Secret for {editingCredential.key}</h2>
+            <p className="text-sm text-text-muted mb-4">Select an existing secret or create a new one.</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
+              <button
+                onClick={async () => {
+                  const res = await api.getSecrets();
+                  if (res.length > 0) {
+                    setAccount(prev => {
+                      if (!prev) return null;
+                      const newCreds = prev.credentials.map(c => 
+                        c.key === editingCredential.key 
+                          ? { ...c, secretId: res[0] } 
+                          : c
+                      );
+                      return { ...prev, credentials: newCreds };
+                    });
+                    setEditingCredential(null);
+                  }
+                }}
+                className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm"
+              >
+                + Create New Secret
+              </button>
+              {secrets.map(secret => (
+                <button
+                  key={secret._id}
+                  onClick={async () => {
+                    setAccount(prev => {
+                      if (!prev) return null;
+                      const newCreds = prev.credentials.map(c => 
+                        c.key === editingCredential.key 
+                          ? { ...c, secretId: secret } 
+                          : c
+                      );
+                      return { ...prev, credentials: newCreds };
+                    });
+                    setEditingCredential(null);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
+                >
+                  <span>{secret.name}</span>
+                  <span className="text-xs text-text-muted">({secret.provider})</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setEditingCredential(null)}
+                className="px-4 py-2 rounded border border-border hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

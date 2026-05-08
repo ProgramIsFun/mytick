@@ -144,6 +144,16 @@ export const api = {
   markBackupSuccess: (id: string) =>
     request(`/databases/${id}/backup-success`, { method: 'POST' }),
 
+  // Secrets
+  getSecrets: () => request('/secrets'),
+  getSecret: (id: string) => request(`/secrets/${id}`),
+  createSecret: (data: Record<string, unknown>) =>
+    request('/secrets', { method: 'POST', body: JSON.stringify(data) }),
+  updateSecret: (id: string, data: Record<string, unknown>) =>
+    request(`/secrets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteSecret: (id: string) =>
+    request(`/secrets/${id}`, { method: 'DELETE' }),
+
   // Context
   getContextEntries: () => request('/context'),
   getContext: (key: string) => request(`/context/${key}`),

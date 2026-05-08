@@ -26,11 +26,17 @@ export default function DatabaseDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [db, setDb] = useState<Database | null>(null);
+  const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSecretModal, setShowSecretModal] = useState(false);
 
   useEffect(() => {
     if (id) {
-      api.getDatabase(id).then(setDb).finally(() => setLoading(false));
+      Promise.all([
+        api.getDatabase(id).then(setDb),
+        api.getSecrets()
+      ]).then(([_, secrets]) => setSecrets(secrets));
+      setLoading(false);
     }
   }, [id]);
 
@@ -90,24 +96,48 @@ export default function DatabaseDetailPage() {
         {db.secretId && typeof db.secretId === 'object' ? (
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
-            <button
-              onClick={() => navigate(`/secrets/${db.secretId._id}`)}
-              className="text-sm text-accent hover:underline"
-            >
-              {db.secretId.name} ({db.secretId.provider})
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/secrets/${db.secretId._id}`)}
+                className="text-sm text-accent hover:underline"
+              >
+                {db.secretId.name} ({db.secretId.provider})
+              </button>
+              <button
+                onClick={() => setShowSecretModal(true)}
+                className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
+              >
+                ✏️ Update
+              </button>
+            </div>
           </div>
         ) : db.secretId ? (
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
-            <div className="text-xs text-warning">
-              ⚠️ Secret reference missing - update in <a href="/secrets" className="text-accent hover:underline">Secrets page</a>
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-warning">
+                ⚠️ Secret reference missing
+              </div>
+              <button
+                onClick={() => setShowSecretModal(true)}
+                className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
+              >
+                ✏️ Select Secret
+              </button>
             </div>
           </div>
         ) : (
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
-            <div className="text-xs text-text-muted">No secret configured</div>
+            <div className="flex items-center gap-2">
+              <div className="text-xs text-text-muted">No secret configured</div>
+              <button
+                onClick={() => setShowSecretModal(true)}
+                className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
+              >
+                ✏️ Select Secret
+              </button>
+            </div>
           </div>
         )}
 
@@ -152,6 +182,49 @@ export default function DatabaseDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Modal for updating secret reference */}
+      {showSecretModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-surface rounded-lg border border-border p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-text-primary mb-4">Update Secret</h2>
+            <p className="text-sm text-text-muted mb-4">Select an existing secret or create a new one.</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
+              <button
+                onClick={() => {
+                  setShowSecretModal(false);
+                  navigate('/secrets/new');
+                }}
+                className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm"
+              >
+                + Create New Secret
+              </button>
+              {secrets.map(secret => (
+                <button
+                  key={secret._id}
+                  onClick={async () => {
+                    await api.updateDatabase(id!, { secretId: secret._id });
+                    setDb(prev => prev ? { ...prev, secretId: secret } : null);
+                    setShowSecretModal(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
+                >
+                  <span>{secret.name}</span>
+                  <span className="text-xs text-text-muted">({secret.provider})</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowSecretModal(false)}
+                className="px-4 py-2 rounded border border-border hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
