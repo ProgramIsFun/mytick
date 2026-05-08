@@ -171,8 +171,8 @@ export default function AccountsPage() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      const secretId = typeof c.secretId === 'object' ? c.secretId._id : c.secretId;
-                                      navigate(`/secrets/${secretId}`);
+                                      const secretId = typeof c.secretId === 'object' ? c.secretId?._id : c.secretId;
+                                      if (secretId) navigate(`/secrets/${secretId}`);
                                     }}
                                     className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
                                     title="View secret"

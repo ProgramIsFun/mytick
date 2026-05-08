@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
 interface UsedBy {
@@ -50,12 +49,19 @@ export default function SecretsPage() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    provider: Secret['provider'];
+    providerSecretId: string;
+    type: Secret['type'];
+    tags: string[];
+  }>({
     name: '',
     description: '',
-    provider: 'bitwarden' as const,
+    provider: 'bitwarden',
     providerSecretId: '',
-    type: 'api_key' as const,
+    type: 'api_key',
     tags: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');

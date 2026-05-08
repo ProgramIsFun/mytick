@@ -240,8 +240,8 @@ export default function DatabasesPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const secretId = typeof db.secretId === 'object' ? db.secretId._id : db.secretId;
-                              navigate(`/secrets/${secretId}`);
+                              const secretId = typeof db.secretId === 'object' ? db.secretId?._id : db.secretId;
+                              if (secretId) navigate(`/secrets/${secretId}`);
                             }}
                             className="text-xs px-3 py-2 rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
                           >
