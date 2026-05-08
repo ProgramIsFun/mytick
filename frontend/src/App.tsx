@@ -8,8 +8,11 @@ import SharedTaskPage from './pages/SharedTaskPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import AccountsPage from './pages/AccountsPage';
+import AccountDetailPage from './pages/AccountDetailPage';
 import DomainsPage from './pages/DomainsPage';
+import DomainDetailPage from './pages/DomainDetailPage';
 import DatabasesPage from './pages/DatabasesPage';
+import DatabaseDetailPage from './pages/DatabaseDetailPage';
 import SecretsPage from './pages/SecretsPage';
 import ProfilePage from './pages/ProfilePage';
 import ContextPage from './pages/ContextPage';
@@ -41,8 +44,11 @@ export default function App() {
             <Route path="/tasks/:id" element={<PrivateRoute><TaskDetailPage /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
             <Route path="/accounts" element={<PrivateRoute><AccountsPage /></PrivateRoute>} />
+            <Route path="/accounts/:id" element={<PrivateRoute><AccountDetailPage /></PrivateRoute>} />
             <Route path="/domains" element={<PrivateRoute><DomainsPage /></PrivateRoute>} />
+            <Route path="/domains/:id" element={<PrivateRoute><DomainDetailPage /></PrivateRoute>} />
             <Route path="/databases" element={<PrivateRoute><DatabasesPage /></PrivateRoute>} />
+            <Route path="/databases/:id" element={<PrivateRoute><DatabaseDetailPage /></PrivateRoute>} />
             <Route path="/secrets" element={<PrivateRoute><SecretsPage /></PrivateRoute>} />
             <Route path="/secrets/:id" element={<PrivateRoute><SecretsPage /></PrivateRoute>} />
             <Route path="/context" element={<PrivateRoute><ContextPage /></PrivateRoute>} />

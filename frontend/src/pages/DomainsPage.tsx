@@ -144,7 +144,7 @@ export default function DomainsPage() {
                       <div>
                         <span className="text-text-muted">Registrar:</span> 
                         <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${(d.registrarAccountId as Account)._id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.registrarAccountId as Account)._id}`); }}
                           className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
                         >
                           {(d.registrarAccountId as Account).name} →
@@ -155,7 +155,7 @@ export default function DomainsPage() {
                       <div>
                         <span className="text-text-muted">DNS:</span> 
                         <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${(d.dnsAccountId as Account)._id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.dnsAccountId as Account)._id}`); }}
                           className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
                         >
                           {(d.dnsAccountId as Account).name} →

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
@@ -27,8 +27,6 @@ const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-su
 
 export default function AccountsPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const highlightId = searchParams.get('highlight');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -39,15 +37,6 @@ export default function AccountsPage() {
   const load = () => { setLoading(true); api.getAccounts(search || undefined).then(setAccounts).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
-  
-  useEffect(() => {
-    if (highlightId && accounts.length > 0) {
-      setExpanded(highlightId);
-      setTimeout(() => {
-        document.getElementById(`account-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-    }
-  }, [highlightId, accounts]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,8 +105,7 @@ export default function AccountsPage() {
             return (
               <div 
                 key={a._id} 
-                id={`account-${a._id}`}
-                className={`border rounded-lg bg-surface overflow-hidden ${highlightId === a._id ? 'border-accent ring-2 ring-accent/20' : 'border-border'}`}
+                className="border rounded-lg bg-surface overflow-hidden"
               >
                 <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover" onClick={() => setExpanded(isExpanded ? null : a._id)}>
                   <span className="text-xl">{prov.emoji}</span>
@@ -147,7 +135,7 @@ export default function AccountsPage() {
                       <div>
                         <span className="text-text-muted">Parent Account:</span>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${a.parentAccountId}`); window.location.reload(); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${a.parentAccountId}`); }}
                           className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
                         >
                           View Parent ↑
@@ -215,7 +203,7 @@ export default function AccountsPage() {
                           {accounts.filter(sub => sub.parentAccountId === a._id).map(sub => (
                             <button
                               key={sub._id}
-                              onClick={(e) => { e.stopPropagation(); navigate(`/accounts?highlight=${sub._id}`); window.location.reload(); }}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${sub._id}`); }}
                               className="text-xs px-2 py-1 rounded bg-surface border border-border hover:bg-surface-hover flex items-center gap-1"
                             >
                               {PROVIDERS[sub.provider]?.emoji || '⚙️'} {sub.name}

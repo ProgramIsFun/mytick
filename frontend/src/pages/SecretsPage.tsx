@@ -266,7 +266,7 @@ export default function SecretsPage() {
                     {usage.collection}
                   </span>
                   <button
-                    onClick={() => navigate(`/${usage.collection}?highlight=${usage.itemId}`)}
+                    onClick={() => navigate(`/${usage.collection}/${usage.itemId}`)}
                     className="text-accent hover:underline"
                   >
                     {usage.itemName} →
