@@ -106,8 +106,21 @@ async function migrateVaultToSecrets() {
       name = `${item.usedBy[0].itemName} Password`;
     }
 
+    // Get userId from the account/database document
+    const collection = item.usedBy[0].collection;
+    const itemId = item.usedBy[0].itemId;
+    const doc = collection === 'databases' 
+      ? databases.find(d => d._id.toString() === itemId.toString())
+      : accounts.find(a => a._id.toString() === itemId.toString());
+    const userId = doc?.userId;
+
+    if (!userId) {
+      console.log(`  ⚠️  Skipping ${vaultId}: could not find userId`);
+      continue;
+    }
+
     const secret = await secretCollection.insertOne({
-      userId: item.usedBy[0].itemId instanceof mongoose.Types.ObjectId ? item.usedBy[0].itemId : new mongoose.Types.ObjectId(item.usedBy[0].itemId),
+      userId,
       name,
       description: `PHASE 1: Using vault item ${vaultId}. Later migrate to Secrets Manager.`,
       provider: 'bitwarden',
