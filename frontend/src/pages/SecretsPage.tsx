@@ -69,9 +69,10 @@ export default function SecretsPage() {
 
   const load = () => {
     setLoading(true);
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
     if (id) {
       // Load single secret
-      fetch(`/api/secrets/${id}`, {
+      fetch(`${API}/secrets/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       })
         .then(res => res.json())
@@ -79,7 +80,7 @@ export default function SecretsPage() {
         .finally(() => setLoading(false));
     } else {
       // Load all secrets
-      fetch(`/api/secrets${search ? `?search=${search}` : ''}`, {
+      fetch(`${API}/secrets${search ? `?search=${search}` : ''}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       })
         .then(res => res.json())
@@ -100,7 +101,8 @@ export default function SecretsPage() {
       const method = isEditing ? 'PATCH' : 'POST';
       const url = isEditing ? `/api/secrets/${secret?._id}` : '/api/secrets';
       
-      const res = await fetch(url, {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+      const res = await fetch(`${API}${url}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +135,8 @@ export default function SecretsPage() {
     if (!secret || !window.confirm('Delete this secret? This action cannot be undone.')) return;
 
     try {
-      const res = await fetch(`/api/secrets/${secret._id}`, {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+      const res = await fetch(`${API}/secrets/${secret._id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
