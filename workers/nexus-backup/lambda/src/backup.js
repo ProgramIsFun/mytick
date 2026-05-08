@@ -153,7 +153,7 @@ async function backupProject(project) {
         const bitwardenRef = db.secretRefs.find(ref => ref.provider === 'bitwarden');
         if (bitwardenRef) {
           console.log(`Using legacy secretRefs: ${bitwardenRef.itemId}`);
-          connectionString = await getBitwardenSecret(bitwardenRef.itemId, bitwardenRef.field);
+          connectionString = await getBitwardenSecret(bitwardenRef.itemId);
         }
       }
       

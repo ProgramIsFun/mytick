@@ -33,6 +33,11 @@ export default function AccountsPage() {
   const [form, setForm] = useState({ name: '', provider: 'custom', parentAccountId: '', url: '', username: '', notes: '' });
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [secrets, setSecrets] = useState<Secret[]>([]);
+  const [editCred, setEditCred] = useState<{ accountId: string; key: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  useEffect(() => { api.getSecrets().then(setSecrets); }, []);
 
   const load = () => { setLoading(true); api.getAccounts(search || undefined).then(setAccounts).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
@@ -149,24 +154,82 @@ export default function AccountsPage() {
                       <div>
                         <span className="text-text-muted">Credentials:</span>
                         <div className="flex flex-wrap gap-2 mt-1">
-                          {a.credentials.map((c, i) => (
-                            <div key={i} className="flex items-center gap-1">
-                              <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">
-                                {c.key}
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const secretId = typeof c.secretId === 'object' ? c.secretId?._id : c.secretId;
-                                  if (secretId) navigate(`/secrets/${secretId}`);
-                                }}
-                                className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
-                                title="View secret"
-                              >
-                                🔐 Secret →
-                              </button>
-                            </div>
-                          ))}
+                          {a.credentials.map((c) => {
+                            const isEditing = editCred?.accountId === a._id && editCred?.key === c.key;
+                            const secretId = typeof c.secretId === 'object' ? c.secretId?._id : c.secretId;
+                            const secret = secrets.find(s => s._id === secretId);
+
+                            return (
+                              <div key={c.key} className="flex items-center gap-1">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                    <input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={e => setEditValue(e.target.value)}
+                                      placeholder="Secret ID..."
+                                      className="w-40 text-[11px] px-1.5 py-0.5 rounded border border-border bg-surface text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+                                    />
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await api.updateAccount(a._id, {
+                                            credentials: a.credentials.map(cred =>
+                                              cred.key === c.key ? { ...cred, secretId: editValue || null } : cred
+                                            ),
+                                          });
+                                          load();
+                                          setEditCred(null);
+                                        } catch { alert('Failed'); }
+                                      }}
+                                      className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-white hover:opacity-90"
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      onClick={() => setEditCred(null)}
+                                      className="text-[11px] px-1.5 py-0.5 rounded border border-border hover:bg-surface-hover"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">
+                                      {c.key}
+                                    </span>
+                                    {secret ? (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); navigate(`/secrets/${secret._id}`); }}
+                                        className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
+                                      >
+                                        {secret.name}
+                                      </button>
+                                    ) : secretId ? (
+                                      <span className="text-[11px] px-1.5 py-0.5 rounded text-warning font-mono">
+                                        missing
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] px-1.5 py-0.5 rounded text-text-muted">
+                                        none
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditCred({ accountId: a._id, key: c.key });
+                                        setEditValue(secretId || '');
+                                      }}
+                                      className="text-[11px] px-1 py-0.5 rounded border border-border hover:bg-surface-hover text-text-muted hover:text-text-primary"
+                                      title="Edit"
+                                    >
+                                      ✏️
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

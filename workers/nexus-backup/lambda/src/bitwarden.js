@@ -34,21 +34,20 @@ async function initBitwardenClient() {
 }
 
 /**
- * Get secret from Bitwarden Secrets Manager
+ * Get secret value from Bitwarden Secrets Manager
  * @param {string} secretId - Secret UUID (not vault item ID)
  */
 async function getBitwardenSecret(secretId) {
   const bw = await initBitwardenClient();
   
   try {
-    const response = await bw.secrets().get(secretId);
+    const secret = await bw.secrets().get(secretId);
     
-    if (!response || !response.data) {
+    if (!secret || !secret.id) {
       throw new Error(`Secret ${secretId} not found`);
     }
 
-    // Return the secret value
-    return response.data.value;
+    return secret.value;
     
   } catch (error) {
     console.error(`Error fetching secret ${secretId}:`, error.message);

@@ -29,7 +29,10 @@ export default function AccountDetailPage() {
   const [account, setAccount] = useState<Account | null>(null);
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingCredential, setEditingCredential] = useState<{ key: string; secretId?: Secret | string | null } | null>(null);
+  const [secretIdInputs, setSecretIdInputs] = useState<Record<string, string>>({});
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [browseKey, setBrowseKey] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -37,10 +40,40 @@ export default function AccountDetailPage() {
         .then(([account, secrets]) => {
           setAccount(account);
           setSecrets(secrets);
+          const inputs: Record<string, string> = {};
+          for (const cred of account.credentials) {
+            inputs[cred.key] = cred.secretId
+              ? (typeof cred.secretId === 'object' ? cred.secretId._id : cred.secretId)
+              : '';
+          }
+          setSecretIdInputs(inputs);
           setLoading(false);
         });
     }
   }, [id]);
+
+  const resolveName = (secretId: string) => {
+    const s = secrets.find(s => s._id === secretId);
+    return s ? `${s.name} (${s.provider})` : null;
+  };
+
+  const handleSave = async (key: string) => {
+    if (!id || !account) return;
+    setSaving(key);
+    try {
+      await api.updateAccount(id, {
+        credentials: account.credentials.map(c =>
+          c.key === key ? { ...c, secretId: secretIdInputs[key] || null } : c
+        ),
+      });
+      const updated = await api.getAccount(id);
+      setAccount(updated);
+    } catch {
+      alert('Failed to update credential');
+    } finally {
+      setSaving(null);
+    }
+  };
 
   if (loading) return <Spinner />;
   if (!account) return <div>Account not found</div>;
@@ -99,43 +132,82 @@ export default function AccountDetailPage() {
           </div>
         )}
 
-        {account.credentials.length > 0 && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Credentials ({account.credentials.length})</label>
-            <div className="space-y-2">
-              {account.credentials.map((cred, idx) => (
-                <div key={idx} className="text-sm bg-surface-secondary p-3 rounded border border-border">
-                  <div className="text-xs text-text-muted mb-1">Key: {cred.key}</div>
-                  {cred.secretId && typeof cred.secretId === 'object' ? (
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs text-text-muted">
-                        Secret: {cred.secretId.name} ({cred.secretId.provider})
+        <div>
+          <label className="text-xs font-medium text-text-muted block mb-1">Credentials ({account.credentials.length})</label>
+          <div className="space-y-3">
+            {account.credentials.length === 0 && (
+              <div className="text-sm text-text-muted">No credentials configured.</div>
+            )}
+            {account.credentials.map((cred) => {
+              const isEditing = editingKey === cred.key;
+              const currentId = secretIdInputs[cred.key] ?? '';
+              const resolved = resolveName(currentId);
+
+              return (
+                <div key={cred.key} className="bg-surface-secondary p-3 rounded border border-border">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-text-muted">{cred.key}</span>
+                  </div>
+
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={currentId}
+                          onChange={e => setSecretIdInputs(prev => ({ ...prev, [cred.key]: e.target.value }))}
+                          placeholder="Paste Secret ID..."
+                          className="flex-1 text-sm px-2 py-1.5 rounded border border-border bg-surface text-text-primary font-mono placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+                        />
+                        <button
+                          onClick={() => setBrowseKey(cred.key)}
+                          className="text-xs px-2 py-1.5 rounded border border-border hover:bg-surface-hover text-text-primary"
+                        >
+                          Browse
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setEditingCredential({ ...cred, secretId: cred.secretId })}
-                        className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
-                      >
-                        ✏️ Update
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleSave(cred.key)}
+                          disabled={saving === cred.key}
+                          className="text-xs px-3 py-1.5 rounded bg-accent text-white hover:opacity-90 disabled:opacity-50"
+                        >
+                          {saving === cred.key ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => setEditingKey(null)}
+                          className="text-xs px-3 py-1.5 rounded border border-border hover:bg-surface-hover text-text-primary"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs text-warning">
-                        ⚠️ Secret reference missing
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          {resolved ? (
+                            <div className="text-xs text-text-muted">→ {resolved}</div>
+                          ) : currentId ? (
+                            <div className="text-xs text-text-muted font-mono truncate">→ {currentId}</div>
+                          ) : (
+                            <div className="text-xs text-warning">No secret assigned</div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setEditingKey(cred.key)}
+                          className="ml-3 text-xs px-3 py-1 rounded bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 font-medium shrink-0"
+                        >
+                          Edit
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setEditingCredential({ ...cred, secretId: null })}
-                        className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
-                      >
-                        ✏️ Select Secret
-                      </button>
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {account.parentAccountId && (
           <div>
@@ -157,51 +229,18 @@ export default function AccountDetailPage() {
         </div>
       </div>
 
-      {/* Modal for updating secret reference */}
-      {editingCredential && (
+      {browseKey && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-surface rounded-lg border border-border p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold text-text-primary mb-4">Update Secret for {editingCredential.key}</h2>
-            <p className="text-sm text-text-muted mb-4">Select an existing secret or create a new one.</p>
+            <h2 className="text-lg font-bold text-text-primary mb-2">Select Secret for {browseKey}</h2>
+            <p className="text-sm text-text-muted mb-4">Pick a secret to link this credential to.</p>
             <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-              <button
-                onClick={async () => {
-                  const res = await api.getSecrets();
-                  if (res.length > 0) {
-                    setAccount(prev => {
-                      if (!prev) return null;
-                      const newCreds = prev.credentials.map(c => 
-                        c.key === editingCredential.key 
-                          ? { ...c, secretId: res[0] } 
-                          : c
-                      );
-                      return { ...prev, credentials: newCreds };
-                    });
-                    setEditingCredential(null);
-                  }
-                }}
-                className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm"
-              >
-                + Create New Secret
-              </button>
               {secrets.map(secret => (
                 <button
                   key={secret._id}
-                  onClick={async () => {
-                    try {
-                      await api.updateAccount(id!, { credentials: account!.credentials.map(c => 
-                        c.key === editingCredential.key 
-                          ? { ...c, secretId: secret } 
-                          : c
-                      )});
-                      // Reload account to get updated data
-                      const updatedAccount = await api.getAccount(id!);
-                      setAccount(updatedAccount);
-                      alert('Secret ID updated successfully!');
-                      setEditingCredential(null);
-                    } catch (err) {
-                      alert('Failed to update secret ID');
-                    }
+                  onClick={() => {
+                    setSecretIdInputs(prev => ({ ...prev, [browseKey]: secret._id }));
+                    setBrowseKey(null);
                   }}
                   className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
                 >
@@ -209,15 +248,16 @@ export default function AccountDetailPage() {
                   <span className="text-xs text-text-muted">({secret.provider})</span>
                 </button>
               ))}
+              {secrets.length === 0 && (
+                <div className="text-sm text-text-muted">No secrets found. Create one first.</div>
+              )}
             </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setEditingCredential(null)}
-                className="px-4 py-2 rounded border border-border hover:bg-surface-hover"
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={() => setBrowseKey(null)}
+              className="px-4 py-2 rounded border border-border hover:bg-surface-hover text-sm"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
