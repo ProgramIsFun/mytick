@@ -56,7 +56,7 @@ router.get('/backupable', async (req: AuthRequest, res: Response) => {
       userId: req.userId,
       backupEnabled: true,
     })
-    .select('name type secretRefs secretId backupRetentionDays backupFrequency lastBackupAt')
+    .select('name type secretId backupRetentionDays backupFrequency lastBackupAt')
     .populate('secretId'); // Populate Secret reference
     
     res.json(databases.map(db => {
@@ -67,14 +67,11 @@ router.get('/backupable', async (req: AuthRequest, res: Response) => {
         name: db.name,
         type: db.type,
         
-        // New: Secret abstraction (if secretId exists)
+        // Secret abstraction
         secret: secret ? {
           provider: secret.provider,
           providerSecretId: secret.providerSecretId,
         } : null,
-        
-        // Legacy: For backward compatibility
-        secretRefs: db.secretRefs,
         
         retentionDays: db.backupRetentionDays,
         frequency: db.backupFrequency,
@@ -236,7 +233,7 @@ router.post('/:id/backup-completed', async (req: AuthRequest, res: Response) => 
  */
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, type, secretRefs, secretId, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
+    const { name, type, secretId, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
     
     if (!name || !type) {
       return res.status(400).json({ error: 'name and type are required' });
@@ -246,7 +243,6 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       userId: req.userId,
       name,
       type,
-      secretRefs: secretRefs || [],
       secretId: secretId || null,
       host: host || '',
       port: port || null,
@@ -287,7 +283,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     
     if (!database) return res.status(404).json({ error: 'Not found' });
     
-    const allowed = ['name', 'type', 'secretRefs', 'host', 'port', 'database', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'accountId', 'tags', 'notes'];
+    const allowed = ['name', 'type', 'secretId', 'host', 'port', 'database', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'accountId', 'tags', 'notes'];
     for (const key of allowed) {
       if (req.body[key] !== undefined) (database as any)[key] = req.body[key];
     }

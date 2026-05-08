@@ -3,9 +3,8 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export type ServiceProvider = 'mongodb_atlas' | 'firebase' | 'render' | 'aws' | 'stripe' | 'github' | 'banking' | 'email' | 'custom';
 
 export interface ICredential {
-  vaultId: string;   // Bitwarden item UUID (one key-value pair) - Legacy
   key: string;       // human label, e.g. "MONGODB_URI", "API_KEY"
-  secretId?: Types.ObjectId; // New - reference to Secret collection (Phase 1)
+  secretId: Types.ObjectId; // Reference to Secret collection
 }
 
 export interface IAccount extends Document {
@@ -23,9 +22,8 @@ export interface IAccount extends Document {
 }
 
 const credentialSchema = new Schema<ICredential>({
-  vaultId: { type: String, required: true },
   key: { type: String, required: true },
-  secretId: { type: Schema.Types.ObjectId, ref: 'Secret', default: null }, // Phase 1
+  secretId: { type: Schema.Types.ObjectId, ref: 'Secret', required: true },
 }, { _id: false });
 
 const accountSchema = new Schema<IAccount>({

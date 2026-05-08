@@ -3,17 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
-interface SecretRef {
-  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
-  itemId: string;
-  field?: string;
-}
-
 interface Account { _id: string; name: string; provider: string; }
 interface Secret { _id: string; name: string; provider: string; }
 interface Database {
   _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; secretRefs: SecretRef[]; secretId?: Secret | string | null; backupEnabled: boolean;
+  database: string; secretId?: Secret | string | null; backupEnabled: boolean;
   backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
   accountId: Account | null; tags: string[]; notes: string;
   createdAt: string;
@@ -105,21 +99,7 @@ export default function DatabaseDetailPage() {
           </div>
         )}
 
-        {db.secretRefs.length > 0 && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Secret References ({db.secretRefs.length})</label>
-            <div className="space-y-2">
-              {db.secretRefs.map((ref, idx) => (
-                <div key={idx} className="text-sm bg-surface-secondary p-3 rounded border border-border">
-                  <div className="text-xs text-text-muted mb-1">
-                    {ref.provider} - {ref.itemId}
-                    {ref.field && <span className="ml-2">field: {ref.field}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {db.notes && (
           <div>

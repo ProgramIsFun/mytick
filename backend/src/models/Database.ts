@@ -1,17 +1,10 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export interface ISecretRef {
-  provider: 'bitwarden' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
-  itemId: string;
-  field?: string;
-}
-
 export interface IDatabase extends Document {
   userId: Types.ObjectId;
   name: string;
   type: 'mongodb' | 'postgres' | 'mysql' | 'redis' | 'sqlite' | 'other';
-  secretRefs: ISecretRef[]; // Legacy - kept for backward compatibility
-  secretId: Types.ObjectId | null; // New - reference to Secret collection
+  secretId: Types.ObjectId | null; // Reference to Secret collection
   host: string;
   port: number | null;
   database: string;
@@ -26,18 +19,11 @@ export interface IDatabase extends Document {
   updatedAt: Date;
 }
 
-const secretRefSchema = new Schema<ISecretRef>({
-  provider: { type: String, enum: ['bitwarden', '1password', 'lastpass', 'vault', 'aws_secrets', 'custom'], required: true },
-  itemId: { type: String, required: true },
-  field: { type: String, default: '' },
-}, { _id: false });
-
 const databaseSchema = new Schema<IDatabase>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
   type: { type: String, enum: ['mongodb', 'postgres', 'mysql', 'redis', 'sqlite', 'other'], required: true },
-  secretRefs: { type: [secretRefSchema], default: [] }, // Legacy
-  secretId: { type: Schema.Types.ObjectId, ref: 'Secret', default: null }, // New
+  secretId: { type: Schema.Types.ObjectId, ref: 'Secret', default: null },
   host: { type: String, default: '' },
   port: { type: Number, default: null },
   database: { type: String, default: '' },

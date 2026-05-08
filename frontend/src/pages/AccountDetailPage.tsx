@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 
 interface Secret { _id: string; name: string; provider: string; }
-interface Credential { vaultId: string; key: string; secretId?: Secret | string | null; }
+interface Credential { key: string; secretId: Secret | string; }
 interface Account {
   _id: string; name: string; provider: string; url: string;
   username: string; notes: string; tags: string[]; credentials: Credential[];
@@ -98,7 +98,6 @@ export default function AccountDetailPage() {
             <div className="space-y-2">
               {account.credentials.map((cred, idx) => (
                 <div key={idx} className="text-sm bg-surface-secondary p-3 rounded border border-border">
-                  <div className="text-xs text-text-muted mb-1">Vault ID: {cred.vaultId}</div>
                   <div className="text-xs text-text-muted mb-1">Key: {cred.key}</div>
                   {cred.secretId && typeof cred.secretId === 'object' && (
                     <div className="text-xs text-text-muted">
