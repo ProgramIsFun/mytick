@@ -258,8 +258,22 @@ export default function SecretsPage() {
                   </button>
                 </div>
               ) : (
-                <div>
+                <div className="space-y-2">
                   <Button onClick={openReveal}>🔓 Reveal Value</Button>
+                  <div>
+                    <label className="text-xs font-medium text-text-muted block mb-1">Encrypted (Stored)</label>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono bg-surface-secondary px-2 py-1 rounded border border-border flex-1 break-all">
+                        {secret.providerSecretId}
+                      </code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(secret.providerSecretId)}
+                        className="text-xs px-2 py-1 rounded border border-border hover:bg-surface-hover shrink-0"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
