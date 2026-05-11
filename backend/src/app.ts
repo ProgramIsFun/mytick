@@ -10,6 +10,7 @@ import domainRoutes from './routes/domains';
 import contextRoutes from './routes/context';
 import databaseRoutes from './routes/databases';
 import secretRoutes from './routes/secrets';
+import subscriptionRoutes from './routes/subscriptions';
 
 const app = express();
 app.use(cors());
@@ -43,6 +44,7 @@ app.use('/api/domains', domainRoutes);
 app.use('/api/context', contextRoutes);
 app.use('/api/databases', databaseRoutes);
 app.use('/api/secrets', secretRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 app.get('/api/health', async (_req, res) => {
   const dbOk = mongoose.connection.readyState === 1;

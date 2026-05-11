@@ -1,19 +1,35 @@
 import User from '../models/User';
 import Task from '../models/Task';
+import Subscription from '../models/Subscription';
 import ScheduledNotification from '../models/ScheduledNotification';
 import { NotificationQueue } from '../queues/NotificationQueue';
 import { NotificationJob } from '../queues/NotificationQueue';
 import { scheduleDeadlineAlerts } from '../queues/scheduleAlerts';
-import { DEADLINE_ALERTS } from '../config/alerts';
+import { DEADLINE_ALERTS, SUBSCRIPTION_ALERTS } from '../config/alerts';
 import { sendPush } from './fcm';
 import { logger } from '../utils/logger';
 
 export async function processNotificationJob(job: NotificationJob, queue: NotificationQueue) {
-  const [user, task] = await Promise.all([
-    User.findById(job.userId),
-    Task.findById(job.taskId),
-  ]);
-  if (!user || !task || task.status === 'done') return;
+  const user = await User.findById(job.userId);
+  if (!user) return;
+
+  const isSubscription = job.jobId.startsWith('sub-');
+
+  if (isSubscription) {
+    const sub = await Subscription.findById(job.taskId);
+    if (!sub || sub.status !== 'active') return;
+
+    const label = SUBSCRIPTION_ALERTS.find(a => a.type === job.alertType)?.label || job.alertType;
+    const title = 'Subscription renewal approaching';
+    const body = `"${sub.name}" (${sub.provider}) renews ${label} — $${sub.amount}`;
+
+    await sendPush(user.fcmTokens || [], title, body, { subscriptionId: job.taskId });
+    logger.info({ userId: job.userId, subName: sub.name, alertType: job.alertType }, 'subscription alert sent');
+    return;
+  }
+
+  const task = await Task.findById(job.taskId);
+  if (!task || task.status === 'done') return;
 
   const label = DEADLINE_ALERTS.find(a => a.type === job.alertType)?.label || job.alertType;
   const title = 'Deadline approaching';
