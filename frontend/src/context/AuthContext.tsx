@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { api } from '../api/client';
+import { STORAGE_TOKEN_KEY, STORAGE_USER_KEY } from '../constants/storage';
 
 interface User {
   id: string;
@@ -24,15 +25,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const t = localStorage.getItem('token');
+    const t = localStorage.getItem(STORAGE_TOKEN_KEY);
     if (t) {
       setToken(t);
       api.getMe().then((u: User) => {
         setUser(u);
-        localStorage.setItem('user', JSON.stringify(u));
+        localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(u));
       }).catch(() => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem(STORAGE_TOKEN_KEY);
+        localStorage.removeItem(STORAGE_USER_KEY);
       }).finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -40,15 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (token: string, user: User) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem(STORAGE_TOKEN_KEY, token);
+    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
     setToken(token);
     setUser(user);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    localStorage.removeItem(STORAGE_USER_KEY);
     setToken(null);
     setUser(null);
   };

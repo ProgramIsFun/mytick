@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { PageSpinner } from '../components/Spinner';
+import EmptyState from '../components/EmptyState';
 
 interface Project {
   _id: string; title: string; description: string; status: string;
@@ -71,7 +72,7 @@ export default function ProfilePage() {
               )}
             </div>
           ))}
-          {profile.projects.length === 0 && <div className="text-center py-12 text-text-muted text-sm">No public projects yet</div>}
+          {profile.projects.length === 0 && <EmptyState message="No public projects yet" />}
         </div>
       </main>
     </div>

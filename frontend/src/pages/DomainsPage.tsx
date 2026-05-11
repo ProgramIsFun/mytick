@@ -2,17 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-
-interface Account { _id: string; name: string; provider: string; }
-interface Project { _id: string; title: string; }
-interface Domain {
-  _id: string; name: string; expiryDate: string | null; autoRenew: boolean;
-  nameservers: string[]; sslProvider: string; notes: string; tags: string[];
-  registrarAccountId: Account | null; dnsAccountId: Account | null;
-  projectId: Project | null;
-}
-
-const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40";
+import type { Domain, AccountRef as Account, ProjectRef as Project } from '../types/domain';
+import { inputCls } from '../constants/styles';
+import { expiryBadge } from '../utils/domain';
+import PageHeader from '../components/PageHeader';
+import ExpandableItem from '../components/ExpandableItem';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 
 export default function DomainsPage() {
   const navigate = useNavigate();
@@ -31,19 +27,6 @@ export default function DomainsPage() {
   };
   useEffect(() => { load(); }, []);
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
-
-  const daysUntilExpiry = (date: string) => {
-    const days = Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
-    return days;
-  };
-
-  const expiryBadge = (date: string | null) => {
-    if (!date) return null;
-    const days = daysUntilExpiry(date);
-    if (days < 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-danger/15 text-danger font-medium">Expired</span>;
-    if (days < 30) return <span className="text-xs px-2 py-0.5 rounded-full bg-warning/15 text-warning font-medium">{days}d left</span>;
-    return <span className="text-xs text-text-muted">{new Date(date).toLocaleDateString()}</span>;
-  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,15 +48,13 @@ export default function DomainsPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <header className="border-b border-border bg-surface-secondary">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="text-sm text-text-muted hover:text-text-primary">← Back</button>
-          <h1 className="text-lg font-semibold text-text-primary">Domains</h1>
-          <span className="text-xs text-text-muted">{domains.length} domains</span>
-          <div className="flex-1" />
-          <button onClick={() => setCreating(!creating)} className="text-sm px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover">+ New</button>
-        </div>
-      </header>
+      <PageHeader
+        title="Domains"
+        backTo="/"
+        count={domains.length}
+        countLabel="domains"
+        actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>}
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {creating && (
@@ -102,8 +83,8 @@ export default function DomainsPage() {
             </div>
             <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
             <div className="flex gap-2">
-              <button type="submit" className="px-3 py-1.5 text-sm rounded-md bg-accent text-white hover:bg-accent-hover">Create</button>
-              <button type="button" onClick={() => setCreating(false)} className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-surface-hover">Cancel</button>
+              <Button type="submit">Create</Button>
+              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
             </div>
           </form>
         )}
@@ -114,21 +95,25 @@ export default function DomainsPage() {
           {domains.map(d => {
             const isExpanded = expanded === d._id;
             return (
-              <div key={d._id} className="border border-border rounded-lg bg-surface overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover" onClick={() => setExpanded(isExpanded ? null : d._id)}>
-                  <span className="text-xl">🌐</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-text-primary">{d.name}</div>
-                    <div className="text-xs text-text-muted">
-                      {d.registrarAccountId && <span>via {(d.registrarAccountId as Account).name}</span>}
-                      {d.autoRenew && <span className="ml-2">· 🔄 auto-renew</span>}
+              <ExpandableItem
+                key={d._id}
+                expanded={isExpanded}
+                onToggle={() => setExpanded(isExpanded ? null : d._id)}
+                header={
+                  <>
+                    <span className="text-xl">🌐</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-text-primary">{d.name}</div>
+                      <div className="text-xs text-text-muted">
+                        {d.registrarAccountId && <span>via {(d.registrarAccountId as Account).name}</span>}
+                        {d.autoRenew && <span className="ml-2">· 🔄 auto-renew</span>}
+                      </div>
                     </div>
-                  </div>
-                  {expiryBadge(d.expiryDate)}
-                  <span className="text-xs text-text-muted">{isExpanded ? '▲' : '▼'}</span>
-                </div>
-                {isExpanded && (
-                  <div className="border-t border-border-light px-4 py-3 bg-surface-secondary space-y-2 text-sm">
+                    {expiryBadge(d.expiryDate)}
+                  </>
+                }
+              >
+                <div className="space-y-2 text-sm">
                     {d.projectId && (
                       <div>
                         <span className="text-text-muted">Project:</span> 
@@ -170,11 +155,10 @@ export default function DomainsPage() {
                       <button onClick={() => { api.deleteDomain(d._id).then(load); }} className="text-xs text-danger hover:underline">Delete domain</button>
                     </div>
                   </div>
-                )}
-              </div>
+              </ExpandableItem>
             );
           })}
-          {loading ? <Spinner text="Loading domains..." /> : domains.length === 0 ? <div className="text-center py-12 text-text-muted text-sm">No domains yet</div> : null}
+          {loading ? <Spinner text="Loading domains..." /> : domains.length === 0 ? <EmptyState message="No domains yet" /> : null}
         </div>
       </main>
     </div>

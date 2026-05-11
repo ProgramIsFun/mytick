@@ -2,46 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-
-interface Account { _id: string; name: string; provider: string; }
-interface Secret { _id: string; name: string; provider: string; }
-interface Database {
-  _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; secretId?: Secret | string | null; backupEnabled: boolean;
-  backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
-  accountId: Account | null; tags: string[]; notes: string;
-  createdAt: string;
-}
-interface BackupRecord {
-  _id: string; status: 'success' | 'failed' | 'partial';
-  startedAt: string; completedAt: string; durationMs: number;
-  sizeBytes: number; s3Path: string; s3Bucket: string;
-  errorMessage?: string; triggeredBy: 'scheduled' | 'manual';
-  databaseId: { _id: string; name: string; type: string } | string;
-}
-
-const DB_TYPES: Record<string, { emoji: string; label: string }> = {
-  mongodb: { emoji: '🍃', label: 'MongoDB' },
-  postgres: { emoji: '🐘', label: 'PostgreSQL' },
-  mysql: { emoji: '🐬', label: 'MySQL' },
-  redis: { emoji: '🔴', label: 'Redis' },
-  sqlite: { emoji: '💾', label: 'SQLite' },
-  other: { emoji: '🗄️', label: 'Other' },
-};
-
-const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40";
-
-function formatSize(bytes: number) {
-  if (bytes > 1073741824) return `${(bytes / 1073741824).toFixed(2)} GB`;
-  if (bytes > 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
-  if (bytes > 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${bytes} B`;
-}
-
-function formatDuration(ms: number) {
-  if (ms > 60000) return `${(ms / 60000).toFixed(1)}m`;
-  return `${(ms / 1000).toFixed(0)}s`;
-}
+import type { Database, BackupRecord, AccountRef as Account, SecretRef as Secret } from '../types/database';
+import { DB_TYPES } from '../constants/databases';
+import { inputCls } from '../constants/styles';
+import { formatSize } from '../utils/format';
+import PageHeader from '../components/PageHeader';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 
 export default function DatabasesPage() {
   const navigate = useNavigate();
@@ -102,17 +69,6 @@ export default function DatabasesPage() {
     load();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this database entry?')) return;
-    await api.deleteDatabase(id);
-    load();
-  };
-
-  const toggleBackup = async (id: string, enabled: boolean) => {
-    await api.updateDatabase(id, { backupEnabled: !enabled });
-    load();
-  };
-
   const timeSince = (date: string | null) => {
     if (!date) return 'Never';
     const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
@@ -128,17 +84,13 @@ export default function DatabasesPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <header className="border-b border-border bg-surface-secondary">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="text-sm text-text-muted hover:text-text-primary">← Back</button>
-          <h1 className="text-lg font-semibold text-text-primary">Databases</h1>
-          <span className="text-xs text-text-muted">{databases.length} databases</span>
-          <div className="flex-1" />
-          <button onClick={() => setCreating(!creating)} className="text-sm px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover">
-            + New
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="Databases"
+        backTo="/"
+        count={databases.length}
+        countLabel="databases"
+        actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>}
+      />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {creating && (
@@ -190,8 +142,8 @@ export default function DatabasesPage() {
             </div>
             <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
             <div className="flex gap-2">
-              <button type="submit" className="text-sm px-4 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover">Create</button>
-              <button type="button" onClick={() => setCreating(false)} className="text-sm px-4 py-1.5 rounded-md border border-border text-text-secondary hover:bg-surface-hover">Cancel</button>
+              <Button type="submit">Create</Button>
+              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
             </div>
           </form>
         )}
@@ -211,7 +163,7 @@ export default function DatabasesPage() {
             {loading ? (
               <div className="flex justify-center py-12"><Spinner /></div>
             ) : databases.length === 0 ? (
-              <div className="text-center py-12 text-text-muted text-sm">No databases found. Create one to get started.</div>
+              <EmptyState message="No databases found. Create one to get started." />
             ) : (
               <div className="space-y-2">
                 {databases.map(db => {

@@ -2,26 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-
-interface Secret { _id: string; name: string; provider: string; }
-interface Credential { key: string; secretId: Secret | string; }
-interface Account {
-  _id: string; name: string; provider: string; url: string;
-  username: string; notes: string; tags: string[]; credentials: Credential[];
-  parentAccountId: string | null;
-}
-
-const PROVIDERS: Record<string, { emoji: string; label: string }> = {
-  mongodb_atlas: { emoji: '🍃', label: 'MongoDB Atlas' },
-  firebase: { emoji: '🔥', label: 'Firebase' },
-  render: { emoji: '🚀', label: 'Render' },
-  aws: { emoji: '☁️', label: 'AWS' },
-  stripe: { emoji: '💳', label: 'Stripe' },
-  github: { emoji: '🐙', label: 'GitHub' },
-  banking: { emoji: '🏦', label: 'Banking' },
-  email: { emoji: '📧', label: 'Email' },
-  custom: { emoji: '⚙️', label: 'Custom' },
-};
+import type { Account, SecretRef as Secret } from '../types/account';
+import { PROVIDERS } from '../constants/accounts';
+import SecretPicker from '../components/SecretPicker';
 
 export default function AccountDetailPage() {
   const navigate = useNavigate();
@@ -230,36 +213,15 @@ export default function AccountDetailPage() {
       </div>
 
       {browseKey && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface rounded-lg border border-border p-6 max-w-md w-full">
-            <h2 className="text-lg font-bold text-text-primary mb-2">Select Secret for {browseKey}</h2>
-            <p className="text-sm text-text-muted mb-4">Pick a secret to link this credential to.</p>
-            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-              {secrets.map(secret => (
-                <button
-                  key={secret._id}
-                  onClick={() => {
-                    setSecretIdInputs(prev => ({ ...prev, [browseKey]: secret._id }));
-                    setBrowseKey(null);
-                  }}
-                  className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
-                >
-                  <span>{secret.name}</span>
-                  <span className="text-xs text-text-muted">({secret.provider})</span>
-                </button>
-              ))}
-              {secrets.length === 0 && (
-                <div className="text-sm text-text-muted">No secrets found. Create one first.</div>
-              )}
-            </div>
-            <button
-              onClick={() => setBrowseKey(null)}
-              className="px-4 py-2 rounded border border-border hover:bg-surface-hover text-sm"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <SecretPicker
+          secrets={secrets}
+          title={`Select Secret for ${browseKey}`}
+          onSelect={(secretId) => {
+            setSecretIdInputs(prev => ({ ...prev, [browseKey]: secretId }));
+            setBrowseKey(null);
+          }}
+          onClose={() => setBrowseKey(null)}
+        />
       )}
     </div>
   );

@@ -1,11 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-
-interface Member { userId: string; username?: string; name?: string; role: string; }
-interface Group { _id: string; name: string; ownerId: string; members: Member[]; }
-
-const inputCls = "px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
+import type { Group } from '../types/group';
+import { inputClsFull as inputCls } from '../constants/styles';
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);

@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { requestNotificationPermission, onForegroundMessage } from '../firebase';
 import { api } from '../api/client';
+import { STORAGE_TOKEN_KEY } from '../constants/storage';
 
 export function usePushNotifications() {
   const tokenRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem(STORAGE_TOKEN_KEY);
     if (!token) return;
 
     requestNotificationPermission().then(async (fcmToken) => {

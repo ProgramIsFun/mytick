@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
+import { inputClsFull as inputCls } from '../constants/styles';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -26,8 +27,6 @@ export default function LoginPage() {
       setError(err.message);
     }
   };
-
-  const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center">

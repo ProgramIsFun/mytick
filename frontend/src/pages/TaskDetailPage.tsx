@@ -3,20 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { PageSpinner } from '../components/Spinner';
+import { STATUS_BADGE } from '../constants/task';
+import { inputClsFull as inputCls } from '../constants/styles';
 
 interface DescriptionVersion { description: string; savedAt: string; }
 interface Task { _id: string; title: string; description: string; status: string; visibility: string; groupIds: string[]; shareToken: string; userId: string; descriptionHistory: DescriptionVersion[]; blockedBy: string[]; createdAt: string; type?: string; tags?: string[]; metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: { accountId: string; role: string; env?: string; mappings?: { target: string; envVar: string; vaultId: string }[] }[]; members?: { userId: string; role: string }[] } | null; }
 interface BlockerTask { _id: string; title: string; status: string; }
-
-const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
-
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  pending: { label: 'Pending', cls: 'bg-warning/15 text-warning' },
-  in_progress: { label: 'In Progress', cls: 'bg-accent/15 text-accent' },
-  on_hold: { label: 'On Hold', cls: 'bg-purple/15 text-purple' },
-  done: { label: 'Done', cls: 'bg-success/15 text-success' },
-  abandoned: { label: 'Abandoned', cls: 'bg-gray/15 text-gray' },
-};
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();

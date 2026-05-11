@@ -1,8 +1,10 @@
-const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+import { STORAGE_TOKEN_KEY } from '../constants/storage';
+
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 async function request(path: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
-  const res = await fetch(`${API}${path}`, {
+  const token = localStorage.getItem(STORAGE_TOKEN_KEY);
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -15,6 +17,14 @@ async function request(path: string, options: RequestInit = {}) {
     throw new Error(err.error || 'Request failed');
   }
   return res.json();
+}
+
+function buildQuery(base: string, params: Record<string, string | undefined>) {
+  const parts: string[] = [];
+  for (const [key, val] of Object.entries(params)) {
+    if (val !== undefined) parts.push(`${key}=${encodeURIComponent(val)}`);
+  }
+  return parts.length ? `${base}?${parts.join('&')}` : base;
 }
 
 export const api = {
@@ -30,25 +40,20 @@ export const api = {
     request('/auth/service-token', { method: 'POST', body: JSON.stringify({ service, expiresIn }) }),
 
   // Tasks
-  getTasks: (page = 1, limit = 20, type?: string, tag?: string, q?: string) => {
-    let url = `/tasks?page=${page}&limit=${limit}`;
-    if (type) url += `&type=${type}`;
-    if (tag) url += `&tag=${encodeURIComponent(tag)}`;
-    if (q) url += `&q=${encodeURIComponent(q)}`;
-    return request(url);
-  },
+  getTasks: (page = 1, limit = 20, type?: string, tag?: string, q?: string) =>
+    request(buildQuery(`/tasks`, { page: String(page), limit: String(limit), type, tag, q })),
   getTask: (id: string) => request(`/tasks/${id}`),
   getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   getSubtasks: (id: string) => request(`/tasks/${id}/subtasks`),
   getProfile: (username: string) => request(`/tasks/u/${username}/profile`),
   getCalendar: (from: string, to: string) => request(`/tasks/calendar?from=${from}&to=${to}`),
-  createTask: (data: { title: string; description?: string; visibility?: string; groupIds?: string[]; blockedBy?: string[]; parentId?: string; deadline?: string; recurrence?: { freq: string; interval: number } | null; type?: string; tags?: string[]; metadata?: Record<string, unknown> | null }) =>
+  createTask: (data: Record<string, unknown>) =>
     request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, data: Record<string, unknown>) =>
     request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   markOccurrence: (id: string, date: string, status: 'done' | 'skipped') =>
     request(`/tasks/${id}/occurrences`, { method: 'POST', body: JSON.stringify({ date, status }) }),
-  editOccurrence: (id: string, date: string, overrides: { newDate?: string; title?: string; description?: string }) =>
+  editOccurrence: (id: string, date: string, overrides: Record<string, unknown>) =>
     request(`/tasks/${id}/occurrences`, { method: 'POST', body: JSON.stringify({ date, status: 'pending', ...overrides }) }),
   revertOccurrence: (id: string, date: string) =>
     request(`/tasks/${id}/occurrences`, { method: 'DELETE', body: JSON.stringify({ date }) }),
@@ -56,14 +61,10 @@ export const api = {
     request(`/tasks/${id}/end-series`, { method: 'POST', body: JSON.stringify({ date }) }),
   rollbackDescription: (id: string, index: number) =>
     request(`/tasks/${id}/rollback/${index}`, { method: 'POST' }),
-  deleteTask: (id: string) =>
-    request(`/tasks/${id}`, { method: 'DELETE' }),
-  getSharedTask: (token: string) =>
-    request(`/tasks/share/${token}`),
-  getPublicTasks: (userId: string) =>
-    request(`/tasks/user/${userId}`),
-  getPublicTasksByUsername: (username: string) =>
-    request(`/tasks/u/${username}`),
+  deleteTask: (id: string) => request(`/tasks/${id}`, { method: 'DELETE' }),
+  getSharedTask: (token: string) => request(`/tasks/share/${token}`),
+  getPublicTasks: (userId: string) => request(`/tasks/user/${userId}`),
+  getPublicTasksByUsername: (username: string) => request(`/tasks/u/${username}`),
 
   // Groups
   getGroups: () => request('/groups'),
@@ -75,8 +76,7 @@ export const api = {
   },
   removeMember: (groupId: string, userId: string) =>
     request(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' }),
-  deleteGroup: (groupId: string) =>
-    request(`/groups/${groupId}`, { method: 'DELETE' }),
+  deleteGroup: (groupId: string) => request(`/groups/${groupId}`, { method: 'DELETE' }),
 
   // FCM
   registerFcmToken: (fcmToken: string) =>
@@ -85,62 +85,42 @@ export const api = {
     request('/auth/fcm-token', { method: 'DELETE', body: JSON.stringify({ fcmToken }) }),
   testPush: (tokenIndex?: number) =>
     request('/auth/test-push', { method: 'POST', body: JSON.stringify(tokenIndex !== undefined ? { tokenIndex } : {}) }),
-  getFcmTokens: () =>
-    request('/auth/fcm-tokens'),
+  getFcmTokens: () => request('/auth/fcm-tokens'),
 
   // Accounts
-  getAccounts: (q?: string, tag?: string) => {
-    let url = '/accounts';
-    const params = [];
-    if (q) params.push(`q=${encodeURIComponent(q)}`);
-    if (tag) params.push(`tag=${encodeURIComponent(tag)}`);
-    if (params.length) url += '?' + params.join('&');
-    return request(url);
-  },
+  getAccounts: (q?: string, tag?: string) =>
+    request(buildQuery('/accounts', { q, tag })),
   getAccount: (id: string) => request(`/accounts/${id}`),
   createAccount: (data: Record<string, unknown>) =>
     request('/accounts', { method: 'POST', body: JSON.stringify(data) }),
   updateAccount: (id: string, data: Record<string, unknown>) =>
     request(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteAccount: (id: string) =>
-    request(`/accounts/${id}`, { method: 'DELETE' }),
+  deleteAccount: (id: string) => request(`/accounts/${id}`, { method: 'DELETE' }),
 
   // Domains
-  getDomains: (q?: string, tag?: string, projectId?: string) => {
-    let url = '/domains';
-    const params = [];
-    if (q) params.push(`q=${encodeURIComponent(q)}`);
-    if (tag) params.push(`tag=${encodeURIComponent(tag)}`);
-    if (projectId) params.push(`projectId=${projectId}`);
-    if (params.length) url += '?' + params.join('&');
-    return request(url);
-  },
+  getDomains: (q?: string, tag?: string, projectId?: string) =>
+    request(buildQuery('/domains', { q, tag, projectId })),
   getDomain: (id: string) => request(`/domains/${id}`),
   createDomain: (data: Record<string, unknown>) =>
     request('/domains', { method: 'POST', body: JSON.stringify(data) }),
   updateDomain: (id: string, data: Record<string, unknown>) =>
     request(`/domains/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteDomain: (id: string) =>
-    request(`/domains/${id}`, { method: 'DELETE' }),
+  deleteDomain: (id: string) => request(`/domains/${id}`, { method: 'DELETE' }),
 
   // Databases
-  getDatabases: (q?: string, type?: string, backupEnabled?: boolean) => {
-    let url = '/databases';
-    const params = [];
-    if (q) params.push(`search=${encodeURIComponent(q)}`);
-    if (type) params.push(`type=${type}`);
-    if (backupEnabled !== undefined) params.push(`backupEnabled=${backupEnabled}`);
-    if (params.length) url += '?' + params.join('&');
-    return request(url);
-  },
+  getDatabases: (q?: string, type?: string, backupEnabled?: boolean) =>
+    request(buildQuery('/databases', {
+      ...(q ? { search: q } : {}),
+      ...(type ? { type } : {}),
+      ...(backupEnabled !== undefined ? { backupEnabled: String(backupEnabled) } : {}),
+    })),
   getDatabase: (id: string) => request(`/databases/${id}`),
   getBackupableDatabases: () => request('/databases/backupable'),
   createDatabase: (data: Record<string, unknown>) =>
     request('/databases', { method: 'POST', body: JSON.stringify(data) }),
   updateDatabase: (id: string, data: Record<string, unknown>) =>
     request(`/databases/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteDatabase: (id: string) =>
-    request(`/databases/${id}`, { method: 'DELETE' }),
+  deleteDatabase: (id: string) => request(`/databases/${id}`, { method: 'DELETE' }),
   markBackupSuccess: (id: string) =>
     request(`/databases/${id}/backup-success`, { method: 'POST' }),
   getBackupHistory: (id: string, limit = 50) =>
@@ -155,14 +135,12 @@ export const api = {
     request('/secrets', { method: 'POST', body: JSON.stringify(data) }),
   updateSecret: (id: string, data: Record<string, unknown>) =>
     request(`/secrets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteSecret: (id: string) =>
-    request(`/secrets/${id}`, { method: 'DELETE' }),
+  deleteSecret: (id: string) => request(`/secrets/${id}`, { method: 'DELETE' }),
 
   // Context
   getContextEntries: () => request('/context'),
   getContext: (key: string) => request(`/context/${key}`),
   setContext: (key: string, value: string) =>
     request(`/context/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
-  deleteContext: (key: string) =>
-    request(`/context/${key}`, { method: 'DELETE' }),
+  deleteContext: (key: string) => request(`/context/${key}`, { method: 'DELETE' }),
 };

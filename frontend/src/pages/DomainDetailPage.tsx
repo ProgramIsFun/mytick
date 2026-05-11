@@ -2,15 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-
-interface Account { _id: string; name: string; provider: string; }
-interface Project { _id: string; title: string; }
-interface Domain {
-  _id: string; name: string; expiryDate: string | null; autoRenew: boolean;
-  nameservers: string[]; sslProvider: string; notes: string; tags: string[];
-  registrarAccountId: Account | null; dnsAccountId: Account | null;
-  projectId: Project | null;
-}
+import type { Domain } from '../types/domain';
+import { expiryBadge } from '../utils/domain';
 
 export default function DomainDetailPage() {
   const navigate = useNavigate();
@@ -26,19 +19,6 @@ export default function DomainDetailPage() {
 
   if (loading) return <Spinner />;
   if (!domain) return <div>Domain not found</div>;
-
-  const daysUntilExpiry = (date: string) => {
-    const days = Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
-    return days;
-  };
-
-  const expiryBadge = (date: string | null) => {
-    if (!date) return null;
-    const days = daysUntilExpiry(date);
-    if (days < 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-danger/15 text-danger font-medium">Expired</span>;
-    if (days < 30) return <span className="text-xs px-2 py-0.5 rounded-full bg-warning/15 text-warning font-medium">{days}d left</span>;
-    return <span className="text-xs text-text-muted">{new Date(date).toLocaleDateString()}</span>;
-  };
 
   return (
     <div className="max-w-4xl mx-auto p-6">

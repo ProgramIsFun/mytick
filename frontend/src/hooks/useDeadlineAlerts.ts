@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { api } from '../api/client';
+import { STORAGE_TOKEN_KEY } from '../constants/storage';
 
 const ALERTS = [
   { label: '1 day', ms: 24 * 60 * 60 * 1000 },
@@ -11,6 +12,7 @@ export function useDeadlineAlerts() {
 
   useEffect(() => {
     if (!('Notification' in window)) return;
+    if (!localStorage.getItem(STORAGE_TOKEN_KEY)) return;
     if (Notification.permission === 'default') Notification.requestPermission();
 
     const check = async () => {

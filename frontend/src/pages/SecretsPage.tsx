@@ -1,38 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-
-interface Secret {
-  _id: string;
-  name: string;
-  description: string;
-  provider: 'bitwarden' | 'bitwarden_sm' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom';
-  providerSecretId: string;
-  type: 'api_key' | 'password' | 'connection_string' | 'certificate' | 'token' | 'other';
-  tags: string[];
-  lastAccessedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const PROVIDERS: Record<string, { emoji: string; label: string }> = {
-  bitwarden: { emoji: '🔐', label: 'Bitwarden' },
-  bitwarden_sm: { emoji: '🔐', label: 'Bitwarden SM' },
-  '1password': { emoji: '🔑', label: '1Password' },
-  lastpass: { emoji: '🔒', label: 'LastPass' },
-  vault: { emoji: '🏦', label: 'Vault' },
-  aws_secrets: { emoji: '☁️', label: 'AWS Secrets' },
-  custom: { emoji: '⚙️', label: 'Custom' },
-};
-
-const TYPES: Record<string, { emoji: string; label: string }> = {
-  api_key: { emoji: '🔑', label: 'API Key' },
-  password: { emoji: '🔒', label: 'Password' },
-  connection_string: { emoji: '🔗', label: 'Connection String' },
-  certificate: { emoji: '📜', label: 'Certificate' },
-  token: { emoji: '🎫', label: 'Token' },
-  other: { emoji: '📦', label: 'Other' },
-};
+import type { Secret } from '../types/secret';
+import { PROVIDERS, TYPES } from '../constants/secrets';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 
 export default function SecretsPage() {
   const navigate = useNavigate();
@@ -43,19 +16,12 @@ export default function SecretsPage() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<{
-    name: string;
-    description: string;
-    provider: Secret['provider'];
-    providerSecretId: string;
-    type: Secret['type'];
-    tags: string[];
-  }>({
+  const [formData, setFormData] = useState({
     name: '',
     description: '',
-    provider: 'bitwarden',
+    provider: 'bitwarden' as Secret['provider'],
     providerSecretId: '',
-    type: 'api_key',
+    type: 'api_key' as Secret['type'],
     tags: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');
@@ -63,23 +29,10 @@ export default function SecretsPage() {
 
   const load = () => {
     setLoading(true);
-    const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
     if (id) {
-      // Load single secret
-      fetch(`${API}/secrets/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      })
-        .then(res => res.json())
-        .then(setSecret)
-        .finally(() => setLoading(false));
+      api.getSecret(id).then(setSecret).finally(() => setLoading(false));
     } else {
-      // Load all secrets
-      fetch(`${API}/secrets${search ? `?search=${search}` : ''}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      })
-        .then(res => res.json())
-        .then(setSecrets)
-        .finally(() => setLoading(false));
+      api.getSecrets().then(setSecrets).finally(() => setLoading(false));
     }
   };
 
@@ -92,35 +45,24 @@ export default function SecretsPage() {
 
     setSubmitting(true);
     try {
-      const method = isEditing ? 'PATCH' : 'POST';
-      const path = isEditing ? `/secrets/${secret?._id}` : '/secrets';
-      
-      const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-      const res = await fetch(`${API}${path}`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        setShowForm(false);
-        setFormData({
-          name: '',
-          description: '',
-          provider: 'bitwarden',
-          providerSecretId: '',
-          type: 'api_key',
-          tags: [],
-        });
-        setTagInput('');
-        load();
+      if (isEditing && secret) {
+        await api.updateSecret(secret._id, formData);
       } else {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        alert(err.error || 'Error saving secret');
+        await api.createSecret(formData);
       }
+      setShowForm(false);
+      setFormData({
+        name: '',
+        description: '',
+        provider: 'bitwarden',
+        providerSecretId: '',
+        type: 'api_key',
+        tags: [],
+      });
+      setTagInput('');
+      load();
+    } catch (err: any) {
+      alert(err.message || 'Error saving secret');
     } finally {
       setSubmitting(false);
     }
@@ -128,39 +70,23 @@ export default function SecretsPage() {
 
   const handleDelete = async () => {
     if (!secret || !window.confirm('Delete this secret? This action cannot be undone.')) return;
-
     try {
-      const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-      const res = await fetch(`${API}/secrets/${secret._id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-
-      if (res.ok) {
-        navigate('/secrets');
-      } else {
-        alert('Error deleting secret');
-      }
-    } catch (err) {
+      await api.deleteSecret(secret._id);
+      navigate('/secrets');
+    } catch {
       alert('Error deleting secret');
     }
   };
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()],
-      }));
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
       setTagInput('');
     }
   };
 
   const removeTag = (tag: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(t => t !== tag),
-    }));
+    setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
   useEffect(() => { load(); }, [id]);
@@ -183,12 +109,7 @@ export default function SecretsPage() {
           <p className="text-sm text-text-primary">
             If this secret was linked from another page, you may need to update the secret reference.
           </p>
-          <button
-            onClick={() => navigate('/secrets')}
-            className="px-4 py-2 rounded bg-accent text-white hover:bg-opacity-90"
-          >
-            Go to Secrets List
-          </button>
+          <Button onClick={() => navigate('/secrets')}>Go to Secrets List</Button>
         </div>
       </div>
     );
@@ -208,7 +129,7 @@ export default function SecretsPage() {
               <p className="text-sm text-text-muted mt-1">{secret.description}</p>
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() => {
                   setIsEditing(true);
                   setFormData({
@@ -221,16 +142,10 @@ export default function SecretsPage() {
                   });
                   setShowForm(true);
                 }}
-                className="px-4 py-2 rounded bg-accent text-white text-sm hover:bg-opacity-90"
               >
                 ✏️ Edit
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 rounded bg-red-600 text-white text-sm hover:bg-red-700"
-              >
-                🗑️ Delete
-              </button>
+              </Button>
+              <Button variant="danger" onClick={handleDelete}>🗑️ Delete</Button>
             </div>
           </div>
         </div>
@@ -295,7 +210,7 @@ export default function SecretsPage() {
     );
   }
 
-  // List view
+  // Form view (create/edit)
   if (showForm) {
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -348,13 +263,9 @@ export default function SecretsPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value as any }))}
                 className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
               >
-                <option value="bitwarden">🔐 Bitwarden</option>
-                <option value="bitwarden_sm">🔐 Bitwarden SM</option>
-                <option value="1password">🔑 1Password</option>
-                <option value="lastpass">🔒 LastPass</option>
-                <option value="vault">🏦 Vault</option>
-                <option value="aws_secrets">☁️ AWS Secrets</option>
-                <option value="custom">⚙️ Custom</option>
+                {Object.entries(PROVIDERS).map(([k, v]) => (
+                  <option key={k} value={k}>{v.emoji} {v.label}</option>
+                ))}
               </select>
             </div>
 
@@ -365,12 +276,9 @@ export default function SecretsPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
                 className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
               >
-                <option value="api_key">🔑 API Key</option>
-                <option value="password">🔒 Password</option>
-                <option value="connection_string">🔗 Connection String</option>
-                <option value="certificate">📜 Certificate</option>
-                <option value="token">🎫 Token</option>
-                <option value="other">📦 Other</option>
+                {Object.entries(TYPES).map(([k, v]) => (
+                  <option key={k} value={k}>{v.emoji} {v.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -382,7 +290,7 @@ export default function SecretsPage() {
               value={formData.providerSecretId}
               onChange={(e) => setFormData(prev => ({ ...prev, providerSecretId: e.target.value }))}
               className="w-full px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary"
-               placeholder="e.g., Bitwarden SM secret ID"
+              placeholder="e.g., Bitwarden SM secret ID"
             />
           </div>
 
@@ -393,7 +301,7 @@ export default function SecretsPage() {
                 type="text"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     addTag();
@@ -402,13 +310,7 @@ export default function SecretsPage() {
                 className="flex-1 px-3 py-2 rounded border border-border bg-surface-secondary text-text-primary text-sm"
                 placeholder="Add a tag and press Enter"
               />
-              <button
-                type="button"
-                onClick={addTag}
-                className="px-3 py-2 rounded border border-border text-sm hover:bg-surface-hover"
-              >
-                Add
-              </button>
+              <Button type="button" variant="secondary" onClick={addTag}>Add</Button>
             </div>
             {formData.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -432,23 +334,12 @@ export default function SecretsPage() {
           </div>
 
           <div className="flex gap-2 pt-4 border-t border-border">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded bg-accent text-white hover:bg-opacity-90 disabled:opacity-50"
-            >
+            <Button type="submit" disabled={submitting}>
               {submitting ? 'Saving...' : isEditing ? 'Update Secret' : 'Create Secret'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(false);
-                setIsEditing(false);
-              }}
-              className="px-4 py-2 rounded border border-border hover:bg-surface-hover"
-            >
+            </Button>
+            <Button variant="secondary" type="button" onClick={() => { setShowForm(false); setIsEditing(false); }}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -460,23 +351,20 @@ export default function SecretsPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-text-primary">🔐 Secrets</h1>
-        <button
-          onClick={() => {
-            setIsEditing(false);
-            setFormData({
-              name: '',
-              description: '',
-              provider: 'bitwarden',
-              providerSecretId: '',
-              type: 'api_key',
-              tags: [],
-            });
-            setShowForm(true);
-          }}
-          className="px-4 py-2 rounded bg-accent text-white hover:bg-opacity-90"
-        >
+        <Button onClick={() => {
+          setIsEditing(false);
+          setFormData({
+            name: '',
+            description: '',
+            provider: 'bitwarden',
+            providerSecretId: '',
+            type: 'api_key',
+            tags: [],
+          });
+          setShowForm(true);
+        }}>
           + Create Secret
-        </button>
+        </Button>
       </div>
 
       <input
@@ -510,9 +398,7 @@ export default function SecretsPage() {
             </div>
           </div>
         ))}
-        {secrets.length === 0 && (
-          <p className="text-center text-text-muted py-12">No secrets found</p>
-        )}
+        {secrets.length === 0 && <EmptyState message="No secrets found" />}
       </div>
     </div>
   );

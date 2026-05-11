@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { inputClsFull as inputCls } from '../constants/styles';
 
 interface CalendarItem { _id?: string; taskId: string; title: string; status: string; date: string; recurring: boolean; }
 interface EditState { taskId: string; originalDate: string; newDate: string; title: string; }
-
-const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
 
 export default function CalendarView() {
   const navigate = useNavigate();

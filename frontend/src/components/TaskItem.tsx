@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { STATUS_BADGE } from '../constants/task';
 
 interface Task {
   _id: string;
@@ -24,14 +25,6 @@ interface Props {
   onUpdate: (id: string, data: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
 }
-
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  pending: { label: 'Pending', cls: 'bg-warning/15 text-warning' },
-  in_progress: { label: 'In Progress', cls: 'bg-accent/15 text-accent' },
-  on_hold: { label: 'On Hold', cls: 'bg-purple/15 text-purple' },
-  done: { label: 'Done', cls: 'bg-success/15 text-success' },
-  abandoned: { label: 'Abandoned', cls: 'bg-gray/15 text-gray' },
-};
 
 export default function TaskItem({ task, groups: _groups, isOwner, onUpdate, onDelete }: Props) {
   const [copied, setCopied] = useState(false);

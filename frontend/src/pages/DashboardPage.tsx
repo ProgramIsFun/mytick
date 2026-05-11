@@ -8,6 +8,9 @@ import TaskForm from '../components/TaskForm';
 import CalendarView from '../components/CalendarView';
 import Spinner from '../components/Spinner';
 import GroupsPage from './GroupsPage';
+import EmptyState from '../components/EmptyState';
+import Pagination from '../components/Pagination';
+import Alert from '../components/Alert';
 
 interface Task {
   _id: string; title: string; description: string; status: string;
@@ -212,15 +215,13 @@ export default function DashboardPage() {
               className="w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 mb-3"
             />
 
-            {error && <div className="text-sm text-danger bg-danger/10 px-3 py-2 rounded-md mb-3">{error}</div>}
+            {error && <Alert message={error} />}
 
             <div className="border border-border rounded-lg overflow-hidden bg-surface">
               {loadingTasks ? (
                 <Spinner text="Loading tasks..." />
               ) : tasks.length === 0 ? (
-                <div className="text-center py-12 text-text-muted text-sm">
-                  No tasks yet. Create one above!
-                </div>
+                <EmptyState message="No tasks yet. Create one above!" />
               ) : (
                 tasks.filter(t => (showGroupTasks || t.userId === user?.id) && (showDone || (t.status !== 'done' && t.status !== 'abandoned'))).map(task => (
                   <TaskItem
@@ -235,25 +236,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-3 mt-4">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => loadTasks(page - 1)}
-                  className="text-sm px-3 py-1.5 rounded-md border border-border hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  ← Prev
-                </button>
-                <span className="text-sm text-text-muted">{page} / {totalPages}</span>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => loadTasks(page + 1)}
-                  className="text-sm px-3 py-1.5 rounded-md border border-border hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  Next →
-                </button>
-              </div>
-            )}
+            <Pagination page={page} totalPages={totalPages} onPage={loadTasks} />
           </>
         )}
 

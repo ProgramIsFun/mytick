@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { inputClsFull as inputCls, btnPrimary, btnSecondary } from '../constants/styles';
 
 interface Group { _id: string; name: string; }
 
@@ -6,10 +7,6 @@ interface Props {
   groups: Group[];
   onCreate: (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number; until?: string; count?: number } | null) => void;
 }
-
-const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
-const btnSecondary = "px-4 py-2 text-sm rounded-md border border-border text-text-secondary hover:bg-surface-hover transition-colors";
-const btnPrimary = "px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors";
 
 export default function TaskForm({ groups, onCreate }: Props) {
   const [open, setOpen] = useState(false);

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { requestNotificationPermission } from '../firebase';
-
-const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors";
+import { inputClsFull as inputCls } from '../constants/styles';
+import { STORAGE_TOKEN_KEY } from '../constants/storage';
 
 function DebugPushSection() {
   const [pushStatus, setPushStatus] = useState('');
@@ -191,7 +191,7 @@ export default function SettingsPage() {
       const data: any = { username, name };
       if (newPassword) data.newPassword = newPassword;
       const updated = await api.updateMe(data);
-      const token = localStorage.getItem('token')!;
+      const token = localStorage.getItem(STORAGE_TOKEN_KEY)!;
       setUser(token, updated);
       setNewPassword('');
       setSuccess('Profile updated');

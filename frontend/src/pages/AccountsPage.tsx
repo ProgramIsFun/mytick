@@ -2,28 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-
-interface Secret { _id: string; name: string; provider: string; }
-interface Credential { key: string; secretId: Secret | string; }
-interface Account {
-  _id: string; name: string; provider: string; url: string;
-  username: string; notes: string; tags: string[]; credentials: Credential[];
-  parentAccountId: string | null;
-}
-
-const PROVIDERS: Record<string, { emoji: string; label: string }> = {
-  mongodb_atlas: { emoji: '🍃', label: 'MongoDB Atlas' },
-  firebase: { emoji: '🔥', label: 'Firebase' },
-  render: { emoji: '🚀', label: 'Render' },
-  aws: { emoji: '☁️', label: 'AWS' },
-  stripe: { emoji: '💳', label: 'Stripe' },
-  github: { emoji: '🐙', label: 'GitHub' },
-  banking: { emoji: '🏦', label: 'Banking' },
-  email: { emoji: '📧', label: 'Email' },
-  custom: { emoji: '⚙️', label: 'Custom' },
-};
-
-const inputCls = "w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40";
+import type { Account, SecretRef as Secret } from '../types/account';
+import { PROVIDERS } from '../constants/accounts';
+import { inputCls } from '../constants/styles';
+import PageHeader from '../components/PageHeader';
+import ExpandableItem from '../components/ExpandableItem';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 
 export default function AccountsPage() {
   const navigate = useNavigate();
@@ -59,17 +44,15 @@ export default function AccountsPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <header className="border-b border-border bg-surface-secondary">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="text-sm text-text-muted hover:text-text-primary">← Back</button>
-          <h1 className="text-lg font-semibold text-text-primary">Accounts</h1>
-          <span className="text-xs text-text-muted">{accounts.length} accounts</span>
-          <div className="flex-1" />
-          <button onClick={() => setCreating(!creating)} className="text-sm px-3 py-1.5 rounded-md bg-accent text-white hover:bg-accent-hover">
-            + New
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="Accounts"
+        backTo="/"
+        count={accounts.length}
+        countLabel="accounts"
+        actions={
+          <Button onClick={() => setCreating(!creating)}>+ New</Button>
+        }
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {creating && (
@@ -90,8 +73,8 @@ export default function AccountsPage() {
             </div>
             <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
             <div className="flex gap-2">
-              <button type="submit" className="px-3 py-1.5 text-sm rounded-md bg-accent text-white hover:bg-accent-hover">Create</button>
-              <button type="button" onClick={() => setCreating(false)} className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-surface-hover">Cancel</button>
+              <Button type="submit">Create</Button>
+              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
             </div>
           </form>
         )}
@@ -104,38 +87,39 @@ export default function AccountsPage() {
         />
 
         <div className="space-y-2">
-          {loading ? <Spinner text="Loading accounts..." /> : accounts.length === 0 ? <div className="text-center py-12 text-text-muted text-sm">No accounts yet</div> : accounts.map(a => {
+          {loading ? <Spinner text="Loading accounts..." /> : accounts.length === 0 ? <EmptyState message="No accounts yet" /> : accounts.map(a => {
             const prov = PROVIDERS[a.provider] || PROVIDERS.custom;
             const isExpanded = expanded === a._id;
             return (
-              <div 
-                key={a._id} 
-                className="border rounded-lg bg-surface overflow-hidden"
+              <ExpandableItem
+                key={a._id}
+                expanded={isExpanded}
+                onToggle={() => setExpanded(isExpanded ? null : a._id)}
+                header={
+                  <>
+                    <span className="text-xl">{prov.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-text-primary">{a.name}</div>
+                      <div className="text-xs text-text-muted">
+                        {prov.label}
+                        {a.username && <span className="ml-2">· {a.username}</span>}
+                        {a.credentials.length > 0 && <span className="ml-2">· 🔐 {a.credentials.length} key{a.credentials.length !== 1 ? 's' : ''}</span>}
+                      </div>
+                    </div>
+                    {a.tags?.length > 0 && (
+                      <div className="flex gap-1">
+                        {a.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>)}
+                      </div>
+                    )}
+                    {a.url && (
+                      <a href={a.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-xs px-2 py-1 rounded-md border border-border hover:bg-surface-hover">
+                        Open ↗
+                      </a>
+                    )}
+                  </>
+                }
               >
-                <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover" onClick={() => setExpanded(isExpanded ? null : a._id)}>
-                  <span className="text-xl">{prov.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-text-primary">{a.name}</div>
-                    <div className="text-xs text-text-muted">
-                      {prov.label}
-                      {a.username && <span className="ml-2">· {a.username}</span>}
-                      {a.credentials.length > 0 && <span className="ml-2">· 🔐 {a.credentials.length} key{a.credentials.length !== 1 ? 's' : ''}</span>}
-                    </div>
-                  </div>
-                  {a.tags?.length > 0 && (
-                    <div className="flex gap-1">
-                      {a.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>)}
-                    </div>
-                  )}
-                  {a.url && (
-                    <a href={a.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-xs px-2 py-1 rounded-md border border-border hover:bg-surface-hover">
-                      Open ↗
-                    </a>
-                  )}
-                  <span className="text-xs text-text-muted">{isExpanded ? '▲' : '▼'}</span>
-                </div>
-                {isExpanded && (
-                  <div className="border-t border-border-light px-4 py-3 bg-surface-secondary space-y-2 text-sm">
+                <div className="space-y-2 text-sm">
                     {a.parentAccountId && (
                       <div>
                         <span className="text-text-muted">Parent Account:</span>
@@ -254,8 +238,7 @@ export default function AccountsPage() {
                       <button onClick={() => handleDelete(a._id)} className="text-xs text-danger hover:underline">Delete account</button>
                     </div>
                   </div>
-                )}
-              </div>
+              </ExpandableItem>
             );
           })}
         </div>

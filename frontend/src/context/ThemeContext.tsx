@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { STORAGE_THEME_KEY } from '../constants/storage';
 
 type Theme = 'light' | 'dark';
 
@@ -11,11 +12,11 @@ const ThemeContext = createContext<ThemeContextType>(null!);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() =>
-    (localStorage.getItem('theme') as Theme) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    (localStorage.getItem(STORAGE_THEME_KEY) as Theme) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   );
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
+    localStorage.setItem(STORAGE_THEME_KEY, theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 

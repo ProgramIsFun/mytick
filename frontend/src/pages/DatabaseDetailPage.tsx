@@ -2,43 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-
-interface Account { _id: string; name: string; provider: string; }
-interface Secret { _id: string; name: string; provider: string; }
-interface BackupRecord {
-  _id: string; status: 'success' | 'failed' | 'partial';
-  startedAt: string; completedAt: string; durationMs: number;
-  sizeBytes: number; s3Path: string; s3Bucket: string;
-  errorMessage?: string; triggeredBy: 'scheduled' | 'manual';
-}
-interface Database {
-  _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; secretId?: Secret | string | null; backupEnabled: boolean;
-  backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
-  accountId: Account | null; tags: string[]; notes: string;
-  createdAt: string;
-}
-
-const DB_TYPES: Record<string, { emoji: string; label: string }> = {
-  mongodb: { emoji: '🍃', label: 'MongoDB' },
-  postgres: { emoji: '🐘', label: 'PostgreSQL' },
-  mysql: { emoji: '🐬', label: 'MySQL' },
-  redis: { emoji: '🔴', label: 'Redis' },
-  sqlite: { emoji: '💾', label: 'SQLite' },
-  other: { emoji: '🗄️', label: 'Other' },
-};
-
-function formatSize(bytes: number) {
-  if (bytes > 1073741824) return `${(bytes / 1073741824).toFixed(2)} GB`;
-  if (bytes > 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
-  if (bytes > 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${bytes} B`;
-}
-
-function formatDuration(ms: number) {
-  if (ms > 60000) return `${(ms / 60000).toFixed(1)}m`;
-  return `${(ms / 1000).toFixed(0)}s`;
-}
+import type { Database, BackupRecord, SecretRef as Secret } from '../types/database';
+import { DB_TYPES } from '../constants/databases';
+import { formatSize, formatDuration } from '../utils/format';
+import SecretPicker from '../components/SecretPicker';
 
 export default function DatabaseDetailPage() {
   const navigate = useNavigate();
@@ -280,51 +247,36 @@ export default function DatabaseDetailPage() {
       )}
 
       {showSecretModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface rounded-lg border border-border p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold text-text-primary mb-4">Update Secret</h2>
-            <p className="text-sm text-text-muted mb-4">Select an existing secret or create a new one.</p>
-            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-              <button
-                onClick={() => {
-                  setShowSecretModal(false);
-                  navigate('/secrets/new');
-                }}
-                className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm"
-              >
-                + Create New Secret
-              </button>
-              {secrets.map(secret => (
-                <button
-                  key={secret._id}
-                  onClick={async () => {
-                    try {
-                      await api.updateDatabase(id!, { secretId: secret._id });
-                      const updatedDb = await api.getDatabase(id!);
-                      setDb(updatedDb);
-                      alert('Secret ID updated successfully!');
-                      setShowSecretModal(false);
-                    } catch (err) {
-                      alert('Failed to update secret ID');
-                    }
-                  }}
-                  className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
-                >
-                  <span>{secret.name}</span>
-                  <span className="text-xs text-text-muted">({secret.provider})</span>
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowSecretModal(false)}
-                className="px-4 py-2 rounded border border-border hover:bg-surface-hover"
-              >
-                Cancel
-              </button>
-            </div>
+        <>
+          <SecretPicker
+            secrets={secrets}
+            title="Update Secret"
+            description="Select an existing secret or create a new one."
+            onSelect={async (secretId) => {
+              try {
+                await api.updateDatabase(id!, { secretId });
+                const updatedDb = await api.getDatabase(id!);
+                setDb(updatedDb);
+                alert('Secret ID updated successfully!');
+                setShowSecretModal(false);
+              } catch {
+                alert('Failed to update secret ID');
+              }
+            }}
+            onClose={() => setShowSecretModal(false)}
+          />
+          <div className="text-center mt-2">
+            <button
+              onClick={() => {
+                setShowSecretModal(false);
+                navigate('/secrets/new');
+              }}
+              className="text-sm text-accent hover:underline"
+            >
+              + Create New Secret
+            </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
