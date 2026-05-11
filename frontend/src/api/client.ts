@@ -137,6 +137,17 @@ export const api = {
     request(`/secrets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteSecret: (id: string) => request(`/secrets/${id}`, { method: 'DELETE' }),
 
+  // Subscriptions
+  getSubscriptions: (params?: { status?: string; category?: string; tag?: string; q?: string }) =>
+    request(buildQuery('/subscriptions', params || {})),
+  getSubscription: (id: string) => request(`/subscriptions/${id}`),
+  getSubscriptionStats: () => request('/subscriptions/stats'),
+  createSubscription: (data: Record<string, unknown>) =>
+    request('/subscriptions', { method: 'POST', body: JSON.stringify(data) }),
+  updateSubscription: (id: string, data: Record<string, unknown>) =>
+    request(`/subscriptions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteSubscription: (id: string) => request(`/subscriptions/${id}`, { method: 'DELETE' }),
+
   // Context
   getContextEntries: () => request('/context'),
   getContext: (key: string) => request(`/context/${key}`),

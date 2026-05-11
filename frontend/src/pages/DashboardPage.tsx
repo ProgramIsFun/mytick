@@ -109,6 +109,12 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => navigate('/subscriptions')}
+              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+            >
+              💳 Subs
+            </button>
+            <button
               onClick={() => navigate('/accounts')}
               className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
             >
