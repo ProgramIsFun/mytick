@@ -6,6 +6,7 @@ export const PROVIDERS: Record<string, { emoji: string; label: string }> = {
   vault: { emoji: '🏦', label: 'Vault' },
   aws_secrets: { emoji: '☁️', label: 'AWS Secrets' },
   custom: { emoji: '⚙️', label: 'Custom' },
+  client_encrypted: { emoji: '🔏', label: 'Client Encrypted' },
 };
 
 export const TYPES: Record<string, { emoji: string; label: string }> = {
