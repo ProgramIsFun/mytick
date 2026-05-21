@@ -157,8 +157,8 @@ export default function DashboardPage() {
           <>
             <TaskForm groups={groups.filter(g => g.members.some(m => m.userId === user?.id && m.role === 'editor'))} onCreate={handleCreate} />
 
-            <div className="flex items-center justify-between mt-6 mb-3">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center justify-between mt-6 mb-3 gap-2">
+              <div className="flex items-center gap-1 flex-wrap">
                 {([['All', undefined], ['Tasks', 'task'], ['Projects', 'project']] as [string, string | undefined][]).map(([label, value]) => (
                   <button
                     key={label}
