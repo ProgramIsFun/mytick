@@ -1,22 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_BADGE } from '../constants/task';
-
-interface Task {
-  _id: string;
-  title: string;
-  status: string;
-  type?: string;
-  visibility: string;
-  groupIds: string[];
-  shareToken: string;
-  deadline: string | null;
-  tags?: string[];
-  pinned?: boolean;
-  metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: unknown[]; members?: unknown[] } | null;
-}
-
-interface Group { _id: string; name: string; }
+import type { TaskItemData as Task } from '../types/task';
+import type { Group } from '../types/group';
+import TagPills from './TagPills';
 
 interface Props {
   task: Task;
@@ -58,13 +45,7 @@ export default function TaskItem({ task, groups: _groups, isOwner, onUpdate, onD
         {task.metadata?.repoUrl && (
           <div className="text-xs text-text-muted mt-0.5 truncate">🔗 {task.metadata.repoUrl}</div>
         )}
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex gap-1 mt-0.5 flex-wrap">
-            {task.tags.map(t => (
-              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>
-            ))}
-          </div>
-        )}
+        {task.tags && task.tags.length > 0 && <TagPills tags={task.tags} />}
         {task.deadline && (
           <div className="text-xs text-text-muted mt-0.5">
             📅 {new Date(task.deadline).toLocaleDateString()}

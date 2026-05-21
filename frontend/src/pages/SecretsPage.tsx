@@ -8,6 +8,7 @@ import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import { encrypt, decrypt } from '../utils/crypto';
+import TagsField from '../components/TagsField';
 
 export default function SecretsPage() {
   const navigate = useNavigate();
@@ -294,18 +295,7 @@ export default function SecretsPage() {
             </div>
           )}
 
-          {secret.tags.length > 0 && (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Tags</label>
-              <div className="flex flex-wrap gap-2">
-                {secret.tags.map(tag => (
-                  <span key={tag} className="text-xs px-2 py-1 rounded bg-surface-secondary border border-border text-text-primary">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          <TagsField tags={secret.tags} />
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
             <div>

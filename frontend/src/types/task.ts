@@ -12,6 +12,7 @@ export interface TaskItemData {
   visibility: string;
   groupIds: string[];
   shareToken: string;
+  userId: string;
   deadline: string | null;
   tags?: string[];
   pinned?: boolean;

@@ -5,7 +5,7 @@ import Spinner from '../components/Spinner';
 import type { Database, BackupRecord, AccountRef as Account, SecretRef as Secret } from '../types/database';
 import { DB_TYPES } from '../constants/databases';
 import { inputCls } from '../constants/styles';
-import { formatSize } from '../utils/format';
+import { formatSize, timeSince } from '../utils/format';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
@@ -67,14 +67,6 @@ export default function DatabasesPage() {
     });
     setCreating(false);
     load();
-  };
-
-  const timeSince = (date: string | null) => {
-    if (!date) return 'Never';
-    const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    return `${days} days ago`;
   };
 
   const getDbName = (dbId: BackupRecord['databaseId']) => {
@@ -161,7 +153,7 @@ export default function DatabasesPage() {
             </div>
 
             {loading ? (
-              <div className="flex justify-center py-12"><Spinner /></div>
+              <Spinner text="Loading databases..." />
             ) : databases.length === 0 ? (
               <EmptyState message="No databases found. Create one to get started." />
             ) : (

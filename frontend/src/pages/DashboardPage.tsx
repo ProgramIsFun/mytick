@@ -11,17 +11,8 @@ import GroupsPage from './GroupsPage';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import Alert from '../components/Alert';
-
-interface Task {
-  _id: string; title: string; description: string; status: string;
-  visibility: string; groupIds: string[]; shareToken: string; userId: string;
-  deadline: string | null;
-}
-
-interface Group {
-  _id: string; name: string; ownerId: string;
-  members: { userId: string; role: string }[];
-}
+import type { Group } from '../types/group';
+import type { TaskItemData as Task } from '../types/task';
 
 type Tab = 'tasks' | 'calendar' | 'groups';
 

@@ -1,12 +1,12 @@
-export interface AccountRef { _id: string; name: string; provider: string; }
+import type { AccountRef as CommonAccountRef, SecretRef as CommonSecretRef } from './common';
 
-export interface SecretRef { _id: string; name: string; provider: string; }
+export type { CommonAccountRef as AccountRef, CommonSecretRef as SecretRef };
 
 export interface Database {
   _id: string; name: string; type: string; host: string; port: number | null;
-  database: string; secretId?: SecretRef | string | null; backupEnabled: boolean;
+  database: string; secretId?: CommonSecretRef | string | null; backupEnabled: boolean;
   backupRetentionDays: number; backupFrequency: string; lastBackupAt: string | null;
-  accountId: AccountRef | null; tags: string[]; notes: string;
+  accountId: CommonAccountRef | null; tags: string[]; notes: string;
   createdAt: string;
 }
 

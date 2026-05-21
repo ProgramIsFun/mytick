@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { STATUS_BADGE } from '../constants/task';
+import EmptyState from '../components/EmptyState';
 
 interface Task { _id: string; title: string; description: string; status: string; createdAt: string; }
 
@@ -23,7 +24,7 @@ export default function PublicTasksPage() {
       </header>
       <main className="max-w-3xl mx-auto px-4 py-6">
         {tasks.length === 0 ? (
-          <div className="text-center py-12 text-text-muted text-sm">No public tasks found.</div>
+          <EmptyState message="No public tasks found." />
         ) : (
           <div className="border border-border rounded-lg overflow-hidden bg-surface">
             {tasks.map(t => {

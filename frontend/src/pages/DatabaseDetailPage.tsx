@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Spinner from '../components/Spinner';
-import type { Database, BackupRecord, SecretRef as Secret } from '../types/database';
+import type { Database, BackupRecord } from '../types/database';
+import type { Secret } from '../types/secret';
 import { DB_TYPES } from '../constants/databases';
 import { formatSize, formatDuration } from '../utils/format';
 import SecretPicker from '../components/SecretPicker';
+import TagsField from '../components/TagsField';
 
 export default function DatabaseDetailPage() {
   const navigate = useNavigate();
@@ -159,18 +161,7 @@ export default function DatabaseDetailPage() {
             </div>
           )}
 
-          {db.tags.length > 0 && (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Tags</label>
-              <div className="flex flex-wrap gap-2">
-                {db.tags.map(tag => (
-                  <span key={tag} className="text-xs px-2 py-1 rounded bg-surface-secondary border border-border text-text-primary">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          <TagsField tags={db.tags} />
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
             <div>

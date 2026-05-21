@@ -4,6 +4,8 @@ import { api } from '../api/client';
 import Spinner from '../components/Spinner';
 import type { Domain } from '../types/domain';
 import { expiryBadge } from '../utils/domain';
+import TagsField from '../components/TagsField';
+import { formatObjectIdDate } from '../utils/format';
 
 export default function DomainDetailPage() {
   const navigate = useNavigate();
@@ -94,23 +96,12 @@ export default function DomainDetailPage() {
           </div>
         )}
 
-        {domain.tags.length > 0 && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Tags</label>
-            <div className="flex flex-wrap gap-2">
-              {domain.tags.map(tag => (
-                <span key={tag} className="text-xs px-2 py-1 rounded bg-surface-secondary border border-border text-text-primary">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        <TagsField tags={domain.tags} />
 
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Created</label>
-            <p className="text-sm text-text-primary">{new Date(parseInt(domain._id.slice(0, 8), 16) * 1000).toLocaleString()}</p>
+            <p className="text-sm text-text-primary">{formatObjectIdDate(domain._id)}</p>
           </div>
         </div>
       </div>

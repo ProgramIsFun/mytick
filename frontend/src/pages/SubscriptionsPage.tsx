@@ -8,10 +8,8 @@ import PageHeader from '../components/PageHeader';
 import ExpandableItem from '../components/ExpandableItem';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
-
-function formatAmount(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
-}
+import TagPills from '../components/TagPills';
+import { formatAmount } from '../utils/format';
 
 function nextDateBadge(date: string | null, label: string) {
   if (!date) return null;
@@ -186,7 +184,7 @@ export default function SubscriptionsPage() {
                   {s.tags.length > 0 && (
                     <div className="flex gap-1">
                       <span className="text-text-muted">Tags:</span>
-                      {s.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>)}
+                      <TagPills tags={s.tags} />
                     </div>
                   )}
                   <div className="pt-2">

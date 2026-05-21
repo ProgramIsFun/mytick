@@ -9,6 +9,7 @@ import PageHeader from '../components/PageHeader';
 import ExpandableItem from '../components/ExpandableItem';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
+import TagPills from '../components/TagPills';
 
 export default function AccountsPage() {
   const navigate = useNavigate();
@@ -106,11 +107,7 @@ export default function AccountsPage() {
                         {a.credentials.length > 0 && <span className="ml-2">· 🔐 {a.credentials.length} key{a.credentials.length !== 1 ? 's' : ''}</span>}
                       </div>
                     </div>
-                    {a.tags?.length > 0 && (
-                      <div className="flex gap-1">
-                        {a.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>)}
-                      </div>
-                    )}
+                    {a.tags?.length > 0 && <TagPills tags={a.tags} />}
                     {a.url && (
                       <a href={a.url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-xs px-2 py-1 rounded-md border border-border hover:bg-surface-hover">
                         Open ↗

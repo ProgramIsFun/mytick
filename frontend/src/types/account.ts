@@ -1,6 +1,8 @@
-export interface SecretRef { _id: string; name: string; provider: string; }
+import type { SecretRef as CommonSecretRef } from './common';
 
-export interface Credential { key: string; secretId: SecretRef | string; }
+export type { CommonSecretRef as SecretRef };
+
+export interface Credential { key: string; secretId: CommonSecretRef | string; }
 
 export interface Account {
   _id: string; name: string; provider: string; url: string;

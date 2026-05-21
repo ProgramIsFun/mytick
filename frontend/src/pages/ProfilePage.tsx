@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { PageSpinner } from '../components/Spinner';
 import EmptyState from '../components/EmptyState';
+import TagPills from '../components/TagPills';
 
 interface Project {
   _id: string; title: string; description: string; status: string;
@@ -65,11 +66,7 @@ export default function ProfilePage() {
               {p.metadata?.repoUrl && (
                 <a href={p.metadata.repoUrl} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline mt-2 inline-block">🔗 {p.metadata.repoUrl}</a>
               )}
-              {p.tags && p.tags.length > 0 && (
-                <div className="flex gap-1 mt-2">
-                  {p.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">{t}</span>)}
-                </div>
-              )}
+              {p.tags && p.tags.length > 0 && <TagPills tags={p.tags} />}
             </div>
           ))}
           {profile.projects.length === 0 && <EmptyState message="No public projects yet" />}
