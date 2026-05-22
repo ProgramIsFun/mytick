@@ -70,7 +70,7 @@ function Footer() {
   const { theme, toggle } = useTheme();
   return (
     <div className="mt-10 pt-4 border-t border-border-light text-center text-xs text-text-muted">
-      <button onClick={toggle} className="text-xs px-2 py-1 mr-2 rounded hover:bg-surface-hover border border-border">{theme === 'light' ? '🌙' : '☀️'}</button>
+      <button onClick={toggle} className="text-xs px-2 py-1 mr-2 rounded hover:bg-surface-hover border border-border">{theme === 'light' ? '🌙' : theme === 'dark' ? '☀️' : '💻'}</button>
       v1.3.0{import.meta.env.DEV && ` · API: ${API_BASE}`}
     </div>
   );

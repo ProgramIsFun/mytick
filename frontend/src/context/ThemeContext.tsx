@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { STORAGE_THEME_KEY } from '../constants/storage';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'hacker';
 
 interface ThemeContextType {
   theme: Theme;
@@ -20,7 +20,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  const toggle = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+  const toggle = () => setTheme(t => t === 'light' ? 'dark' : t === 'dark' ? 'hacker' : 'light');
 
   return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>;
 }
