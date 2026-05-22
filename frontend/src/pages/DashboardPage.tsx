@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [tab, setTab] = useState<Tab>('tasks');
+  const [showMenu, setShowMenu] = useState(false);
   const [showGroupTasks, setShowGroupTasks] = useState(false);
   const [showDone, setShowDone] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
@@ -99,54 +100,30 @@ export default function DashboardPage() {
             </nav>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/subscriptions')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              💳 Subs
-            </button>
-            <button
-              onClick={() => navigate('/accounts')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              🔑 Accounts
-            </button>
-            <button
-              onClick={() => navigate('/domains')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              🌐 Domains
-            </button>
-            <button
-              onClick={() => navigate('/databases')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              🗄️ Databases
-            </button>
-            <button
-              onClick={() => navigate('/secrets')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              🔐 Secrets
-            </button>
-            <button
-              onClick={() => navigate('/context')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              📋 Context
-            </button>
-            <button
-              onClick={() => navigate('/settings')}
-              className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              ⚙️ {user?.name}
-            </button>
-            <button
-              onClick={logout}
-              className="text-sm px-3 py-1.5 rounded-md border border-border text-text-secondary hover:text-danger hover:border-danger/30 transition-colors"
-            >
-              Logout
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+              >
+                ⚙️ {user?.name} ▾
+              </button>
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-20 w-44 bg-surface border border-border rounded-md shadow-lg py-1">
+                    <button onClick={() => { navigate('/subscriptions'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">💳 Subscriptions</button>
+                    <button onClick={() => { navigate('/accounts'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🔑 Accounts</button>
+                    <button onClick={() => { navigate('/domains'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🌐 Domains</button>
+                    <button onClick={() => { navigate('/databases'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🗄️ Databases</button>
+                    <button onClick={() => { navigate('/secrets'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🔐 Secrets</button>
+                    <button onClick={() => { navigate('/context'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">📋 Context</button>
+                    <button onClick={() => { navigate('/settings'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">⚙️ Settings</button>
+                    <hr className="my-1 border-border-light" />
+                    <button onClick={logout} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-danger">🚪 Logout</button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
