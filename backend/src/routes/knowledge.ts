@@ -11,12 +11,11 @@ router.use(auth);
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { page, limit, skip } = parsePagination(req.query);
   const filter: any = { userId: req.userId };
-  const tag = req.query.tag as string;
   const q = req.query.q as string;
 
-  if (tag) filter.tags = tag;
   if (q) {
-    filter.$text = { $search: q };
+    const words = q.split(/\s+/).filter(Boolean);
+    filter.content = { $regex: words.join('.*'), $options: 'i' };
   }
 
   const [items, total] = await Promise.all([
@@ -41,7 +40,7 @@ router.post('/', validate(createKnowledgeSchema), asyncHandler(async (req: AuthR
 router.patch('/:id', validate(updateKnowledgeSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const entry = await findOwned(Knowledge, req);
   if (!entry) return notFound(res);
-  applyUpdates(entry, req.body, ['title', 'content', 'tags', 'source', 'metadata']);
+  applyUpdates(entry, req.body, ['content']);
   await entry.save();
   res.json(entry);
 }));

@@ -117,6 +117,7 @@ export default function DashboardPage() {
                     <button onClick={() => { navigate('/databases'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🗄️ Databases</button>
                     <button onClick={() => { navigate('/secrets'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🔐 Secrets</button>
                     <button onClick={() => { navigate('/context'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">📋 Context</button>
+                    <button onClick={() => { navigate('/knowledge'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🧠 Knowledge</button>
                     <button onClick={() => { navigate('/settings'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">⚙️ Settings</button>
                     <hr className="my-1 border-border-light" />
                     <button onClick={logout} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-danger">🚪 Logout</button>

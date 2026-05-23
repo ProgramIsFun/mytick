@@ -154,4 +154,18 @@ export const api = {
   setContext: (key: string, value: string) =>
     request(`/context/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
   deleteContext: (key: string) => request(`/context/${key}`, { method: 'DELETE' }),
+
+  // Knowledge
+  getKnowledge: (params?: { q?: string; page?: number; limit?: number }) =>
+    request(buildQuery('/knowledge', {
+      ...(params?.q ? { q: params.q } : {}),
+      ...(params?.page ? { page: String(params.page) } : {}),
+      ...(params?.limit ? { limit: String(params.limit) } : {}),
+    })),
+  getKnowledgeEntry: (id: string) => request(`/knowledge/${id}`),
+  createKnowledge: (data: { content: string }) =>
+    request('/knowledge', { method: 'POST', body: JSON.stringify(data) }),
+  updateKnowledge: (id: string, data: { content?: string }) =>
+    request(`/knowledge/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteKnowledge: (id: string) => request(`/knowledge/${id}`, { method: 'DELETE' }),
 };

@@ -16,6 +16,7 @@ import DatabaseDetailPage from './pages/DatabaseDetailPage';
 import SecretsPage from './pages/SecretsPage';
 import ProfilePage from './pages/ProfilePage';
 import ContextPage from './pages/ContextPage';
+import KnowledgePage from './pages/KnowledgePage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
 import LandingPage from './pages/LandingPage';
 import { usePushNotifications } from './hooks/usePushNotifications';
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/secrets/:id" element={<PrivateRoute><SecretsPage /></PrivateRoute>} />
             <Route path="/subscriptions" element={<PrivateRoute><SubscriptionsPage /></PrivateRoute>} />
             <Route path="/context" element={<PrivateRoute><ContextPage /></PrivateRoute>} />
+            <Route path="/knowledge" element={<PrivateRoute><KnowledgePage /></PrivateRoute>} />
             <Route path="/share/:token" element={<SharedTaskPage />} />
             <Route path="/u/:username" element={<ProfilePage />} />
             <Route path="/u/:username/tasks" element={<PublicTasksPage />} />
