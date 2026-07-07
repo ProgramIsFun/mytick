@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
 import { logger } from './utils/logger';
 import authRoutes from './routes/auth';
 import taskRoutes from './routes/tasks';
@@ -17,7 +16,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Swagger docs — dev only
 if (process.env.NODE_ENV !== 'production') {
   import('./swagger').then(({ default: spec }) => {
     import('swagger-ui-express').then(swaggerUi => {
@@ -27,7 +25,6 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Request logging
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -49,11 +46,22 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 app.get('/api/health', async (_req, res) => {
-  const dbOk = mongoose.connection.readyState === 1;
-  res.status(dbOk ? 200 : 503).json({ status: dbOk ? 'ok' : 'unhealthy', db: dbOk });
+  const engine = process.env.DB_ENGINE || 'mongodb';
+  if (engine === 'neo4j') {
+    try {
+      const { getDriver } = await import('./neo4j');
+      await getDriver().verifyConnectivity();
+      res.json({ status: 'ok', engine: 'neo4j', db: true });
+    } catch {
+      res.status(503).json({ status: 'unhealthy', engine: 'neo4j', db: false });
+    }
+  } else {
+    const mongoose = await import('mongoose');
+    const dbOk = mongoose.default.connection.readyState === 1;
+    res.status(dbOk ? 200 : 503).json({ status: dbOk ? 'ok' : 'unhealthy', engine: 'mongodb', db: dbOk });
+  }
 });
 
-// Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   res.status(err.status || 500).json({ error: err.message || 'Server error' });
 });

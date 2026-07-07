@@ -1,41 +1,38 @@
 import { Router, Response } from 'express';
-import Group from '../models/Group';
+import { groupRepo, userRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { validate, createGroupSchema, addMemberSchema } from '../utils/validation';
-import { notFound, getUserModel } from '../utils/routeHelpers';
+import { notFound } from '../utils/routeHelpers';
 
 const router = Router();
 router.use(auth);
 
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const User = await getUserModel();
-  const groups = await Group.find({
-    $or: [{ ownerId: req.userId }, { 'members.userId': req.userId }],
-  }).lean();
-
-  const userIds = [...new Set(groups.flatMap(g => g.members.map(m => m.userId.toString())))];
-  const users = await User.find({ _id: { $in: userIds } }).select('_id username name').lean();
-  const userMap = Object.fromEntries(users.map((u: any) => [u._id.toString(), { username: u.username, name: u.name }]));
-
+  const groups = await groupRepo.findByUser(req.userId!);
+  const userIds = [...new Set(groups.flatMap(g => g.members.map(m => m.userId)))];
+  const userMap: Record<string, { username: string; name: string }> = {};
+  for (const uid of userIds) {
+    const u = await userRepo.findById(uid);
+    if (u) userMap[uid] = { username: u.username, name: u.name };
+  }
   const enriched = groups.map(g => ({
     ...g,
     members: g.members.map(m => ({
       ...m,
-      username: userMap[m.userId.toString()]?.username,
-      name: userMap[m.userId.toString()]?.name,
+      username: userMap[m.userId]?.username,
+      name: userMap[m.userId]?.name,
     })),
   }));
-
   res.json(enriched);
 }));
 
 router.post('/', validate(createGroupSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name } = req.body;
-  const group = await Group.create({
+  const group = await groupRepo.create({
     name,
     ownerId: req.userId,
-    members: [{ userId: req.userId, role: 'editor' }],
+    members: [{ userId: req.userId!, role: 'editor' }],
   });
   res.status(201).json(group);
 }));
@@ -45,34 +42,34 @@ router.post('/:id/members', validate(addMemberSchema), asyncHandler(async (req: 
 
   let targetId = userId;
   if (!targetId) {
-    const User = await getUserModel();
-    const user = await User.findOne({ email });
+    const user = await userRepo.findByEmail(email);
     if (!user) return notFound(res, 'User not found');
-    targetId = user._id.toString();
+    targetId = user.id;
   }
 
-  const group = await Group.findOne({ _id: req.params.id, ownerId: req.userId });
-  if (!group) return notFound(res);
+  const group = await groupRepo.findById(req.params.id as string);
+  if (!group || group.ownerId !== req.userId) return notFound(res);
 
-  const already = group.members.some(m => m.userId.toString() === targetId);
+  const already = group.members.some(m => m.userId === targetId);
   if (already) return res.status(409).json({ error: 'Already a member' });
 
-  group.members.push({ userId: targetId, role: role || 'viewer' });
-  await group.save();
-  res.json(group);
+  await groupRepo.addMember(req.params.id as string, targetId, role || 'viewer');
+  const updated = await groupRepo.findById(req.params.id as string);
+  res.json(updated);
 }));
 
 router.delete('/:id/members/:userId', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const group = await Group.findOne({ _id: req.params.id, ownerId: req.userId });
-  if (!group) return notFound(res);
-  group.members = group.members.filter(m => m.userId.toString() !== req.params.userId) as any;
-  await group.save();
-  res.json(group);
+  const group = await groupRepo.findById(req.params.id as string);
+  if (!group || group.ownerId !== req.userId) return notFound(res);
+  await groupRepo.removeMember(req.params.id as string, req.params.userId as string);
+  const updated = await groupRepo.findById(req.params.id as string);
+  res.json(updated);
 }));
 
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const group = await Group.findOneAndDelete({ _id: req.params.id, ownerId: req.userId });
-  if (!group) return notFound(res);
+  const group = await groupRepo.findById(req.params.id as string);
+  if (!group || group.ownerId !== req.userId) return notFound(res);
+  await groupRepo.delete(req.params.id as string);
   res.json({ message: 'Deleted' });
 }));
 
