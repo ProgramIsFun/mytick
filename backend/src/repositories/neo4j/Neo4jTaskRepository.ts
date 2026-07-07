@@ -63,13 +63,14 @@ export class Neo4jTaskRepository implements ITaskRepository {
       const countResult = await session.run(countQuery, params);
       const total = countResult.records.reduce((s, r) => s + (r.get('total').toNumber() || 0), 0);
 
-      // Data query
-      const dataParts = matchClauses.map(m => `MATCH ${m} ${where} RETURN DISTINCT u.id AS userId, t`);
-      let dataQuery = dataParts.join(' UNION ALL ');
-      dataQuery = `${dataQuery} ORDER BY t.pinned DESC, t.createdAt DESC SKIP $skip LIMIT $limit`;
+      // Data query: CALL subquery with UNION ALL (direct UNION ALL ignores SKIP/LIMIT)
+      const dataParts = matchClauses.map(m => `MATCH ${m} ${where} RETURN u, t AS task`);
+      const dataQuery = matchClauses.length > 1
+        ? `CALL { ${dataParts.join(' UNION ALL ')} } RETURN u.id AS userId, task ORDER BY task.pinned DESC, task.createdAt DESC SKIP $skip LIMIT $limit`
+        : `${dataParts[0]} RETURN u.id AS userId, task ORDER BY task.pinned DESC, task.createdAt DESC SKIP $skip LIMIT $limit`;
 
       const result = await session.run(dataQuery, { ...params, skip: int(skip), limit: int(limit) });
-      return { tasks: result.records.map(r => recordToTaskSimple(r, 't', r.get('userId'))), total };
+      return { tasks: result.records.map(r => recordToTaskSimple(r, 'task', r.get('userId'))), total };
     } finally {
       await session.close();
     }
