@@ -6,6 +6,7 @@ import { ITask, ITaskRepository } from '../interfaces/ITaskRepository';
 
 function toDomain(t: MongoITask): ITask {
   return {
+    _id: t._id.toString(),
     id: t._id.toString(),
     userId: t.userId.toString(),
     title: t.title,

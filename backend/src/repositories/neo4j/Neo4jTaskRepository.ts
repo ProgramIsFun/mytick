@@ -15,15 +15,14 @@ export class Neo4jTaskRepository implements ITaskRepository {
          OPTIONAL MATCH (t)-[:PARENT_OF]->(sub:Task)
          OPTIONAL MATCH (t)-[:VISIBLE_TO]->(g:Group)
          OPTIONAL MATCH (t)-[:HAS_DESCRIPTION]->(d:TaskDescription)
-         RETURN t, collect(DISTINCT b.id) AS blockedBy,
+         RETURN u.id AS userId, t, collect(DISTINCT b.id) AS blockedBy,
                 collect(DISTINCT sub.id) AS subtasks,
                 collect(DISTINCT g.id) AS groupIds,
-                collect(DISTINCT d {.description, .savedAt}) AS descriptionHistory
-         ORDER BY d.savedAt`,
+                collect(DISTINCT d {.description, .savedAt}) AS descriptionHistory`,
         { id, userId }
       );
       if (!result.records.length) return null;
-      return recordToTask(result.records[0]);
+      return recordToTask(result.records[0], result.records[0].get('userId'));
     } finally {
       await session.close();
     }
@@ -65,12 +64,12 @@ export class Neo4jTaskRepository implements ITaskRepository {
       const total = countResult.records.reduce((s, r) => s + (r.get('total').toNumber() || 0), 0);
 
       // Data query
-      const dataParts = matchClauses.map(m => `MATCH ${m} ${where} RETURN DISTINCT t`);
+      const dataParts = matchClauses.map(m => `MATCH ${m} ${where} RETURN DISTINCT u.id AS userId, t`);
       let dataQuery = dataParts.join(' UNION ALL ');
       dataQuery = `${dataQuery} ORDER BY t.pinned DESC, t.createdAt DESC SKIP $skip LIMIT $limit`;
 
       const result = await session.run(dataQuery, { ...params, skip: int(skip), limit: int(limit) });
-      return { tasks: result.records.map(r => recordToTaskSimple(r)), total };
+      return { tasks: result.records.map(r => recordToTaskSimple(r, 't', r.get('userId'))), total };
     } finally {
       await session.close();
     }
@@ -80,16 +79,15 @@ export class Neo4jTaskRepository implements ITaskRepository {
     const session = getSession();
     try {
       const result = await session.run(
-        `MATCH (t:Task {shareToken: $shareToken})
+        `MATCH (u:User)-[:OWNS]->(t:Task {shareToken: $shareToken})
          OPTIONAL MATCH (t)-[:BLOCKED_BY]->(b:Task)
          OPTIONAL MATCH (t)-[:HAS_DESCRIPTION]->(d:TaskDescription)
-         RETURN t, collect(DISTINCT b.id) AS blockedBy,
-                collect(DISTINCT d {.description, .savedAt}) AS descriptionHistory
-         ORDER BY d.savedAt`,
+         RETURN u.id AS userId, t, collect(DISTINCT b.id) AS blockedBy,
+                collect(DISTINCT d {.description, .savedAt}) AS descriptionHistory`,
         { shareToken }
       );
       if (!result.records.length) return null;
-      return recordToTask(result.records[0]);
+      return recordToTask(result.records[0], result.records[0].get('userId'));
     } finally {
       await session.close();
     }
@@ -100,10 +98,10 @@ export class Neo4jTaskRepository implements ITaskRepository {
     try {
       const result = await session.run(
         `MATCH (t:Task {id: $taskId})<-[:BLOCKED_BY]-(blocker:Task)
-         RETURN blocker`,
+         RETURN '' AS userId, blocker`,
         { taskId }
       );
-      return result.records.map(r => recordToTaskSimple(r, 'blocker'));
+      return result.records.map(r => recordToTaskSimple(r, 'blocker', r.get('userId')));
     } finally {
       await session.close();
     }
@@ -114,10 +112,10 @@ export class Neo4jTaskRepository implements ITaskRepository {
     try {
       const result = await session.run(
         `MATCH (parent:Task {id: $parentId})-[:PARENT_OF]->(sub:Task)
-         RETURN sub ORDER BY sub.pinned DESC, sub.createdAt DESC`,
+         RETURN '' AS userId, sub ORDER BY sub.pinned DESC, sub.createdAt DESC`,
         { parentId }
       );
-      return result.records.map(r => recordToTaskSimple(r, 'sub'));
+      return result.records.map(r => recordToTaskSimple(r, 'sub', r.get('userId')));
     } finally {
       await session.close();
     }
@@ -333,12 +331,13 @@ export class Neo4jTaskRepository implements ITaskRepository {
   }
 }
 
-function recordToTaskSimple(record: any, key = 't'): ITask {
+function recordToTaskSimple(record: any, key = 't', userId = ''): ITask {
   const node = record.get(key);
   const props = node.properties || node;
   return {
+    _id: props.id,
     id: props.id,
-    userId: '',
+    userId,
     title: props.title,
     description: props.description,
     type: props.type,
@@ -354,11 +353,12 @@ function recordToTaskSimple(record: any, key = 't'): ITask {
   };
 }
 
-function recordToTask(record: any): ITask {
+function recordToTask(record: any, userId = ''): ITask {
   const t = record.get('t').properties;
   return {
+    _id: t.id,
     id: t.id,
-    userId: '',
+    userId,
     title: t.title,
     description: t.description,
     type: t.type,
