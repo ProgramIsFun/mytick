@@ -21,6 +21,7 @@ export interface IUser extends Document {
   fcmTokens: string[]; // kept for backward compat, will be migrated
   pushTokens: IPushToken[];
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const authProviderSchema = new Schema<IAuthProvider>({

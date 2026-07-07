@@ -1,33 +1,22 @@
 import { Router, Response } from 'express';
-import Domain from '../models/Domain';
+import { domainRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates, notFound, badRequest, findOwned } from '../utils/routeHelpers';
+import { notFound, badRequest } from '../utils/routeHelpers';
 
 const router = Router();
 router.use(auth);
 
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const filter: any = { userId: req.userId };
-  const tag = req.query.tag as string;
-  const q = req.query.q as string;
-  const projectId = req.query.projectId as string;
-  if (tag) filter.tags = tag;
-  if (q) filter.name = { $regex: q, $options: 'i' };
-  if (projectId) filter.projectId = projectId;
-  const domains = await Domain.find(filter)
-    .populate('registrarAccountId', 'name provider')
-    .populate('dnsAccountId', 'name provider')
-    .populate('projectId', 'title type')
-    .sort({ expiryDate: 1 });
+  const { tag, q, projectId } = req.query;
+  const domains = await domainRepo.findByUser(req.userId!, {
+    tag: tag as string, search: q as string, projectId: projectId as string,
+  });
   res.json(domains);
 }));
 
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const domain = await Domain.findOne({ _id: req.params.id, userId: req.userId })
-    .populate('registrarAccountId', 'name provider')
-    .populate('dnsAccountId', 'name provider')
-    .populate('projectId', 'title type');
+  const domain = await domainRepo.findById(req.params.id as string, req.userId);
   if (!domain) return notFound(res);
   res.json(domain);
 }));
@@ -35,32 +24,25 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
 router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, projectId, registrarAccountId, dnsAccountId, expiryDate, autoRenew, nameservers, sslProvider, notes, tags } = req.body;
   if (!name) return badRequest(res, 'name required');
-  const domain = await Domain.create({
-    userId: req.userId, name,
-    projectId: projectId || null,
-    registrarAccountId: registrarAccountId || null,
-    dnsAccountId: dnsAccountId || null,
-    expiryDate: expiryDate || null,
-    autoRenew: autoRenew || false,
-    nameservers: nameservers || [],
-    sslProvider: sslProvider || '',
-    notes: notes || '',
-    tags: tags || [],
+  const domain = await domainRepo.create({
+    userId: req.userId, name, projectId: projectId || null,
+    registrarAccountId: registrarAccountId || null, dnsAccountId: dnsAccountId || null,
+    expiryDate: expiryDate || null, autoRenew: autoRenew || false,
+    nameservers: nameservers || [], sslProvider: sslProvider || '',
+    notes: notes || '', tags: tags || [],
   });
   res.status(201).json(domain);
 }));
 
 router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const domain = await findOwned(Domain, req);
+  const domain = await domainRepo.update(req.params.id as string, req.body);
   if (!domain) return notFound(res);
-  applyUpdates(domain, req.body, ['name', 'projectId', 'registrarAccountId', 'dnsAccountId', 'expiryDate', 'autoRenew', 'nameservers', 'sslProvider', 'notes', 'tags']);
-  await domain.save();
   res.json(domain);
 }));
 
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const domain = await Domain.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!domain) return notFound(res);
+  const deleted = await domainRepo.delete(req.params.id as string, req.userId!);
+  if (!deleted) return notFound(res);
   res.json({ message: 'Deleted' });
 }));
 

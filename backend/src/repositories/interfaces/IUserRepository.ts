@@ -24,6 +24,7 @@ export interface IPushToken {
 }
 
 export interface IUserRepository {
+  findAll(): Promise<IUser[]>;
   findById(id: string): Promise<IUser | null>;
   findByEmail(email: string): Promise<IUser | null>;
   findByUsername(username: string): Promise<IUser | null>;

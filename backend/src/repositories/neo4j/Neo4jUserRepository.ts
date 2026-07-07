@@ -3,6 +3,22 @@ import { getSession } from '../../neo4j';
 import { IUser, IUserRepository, IAuthProvider, IPushToken } from '../interfaces/IUserRepository';
 
 export class Neo4jUserRepository implements IUserRepository {
+  async findAll(): Promise<IUser[]> {
+    const session = getSession();
+    try {
+      const result = await session.run(
+        `MATCH (u:User)
+         OPTIONAL MATCH (u)-[:HAS_PROVIDER]->(p:AuthProvider)
+         OPTIONAL MATCH (u)-[:HAS_TOKEN]->(t:PushToken)
+         RETURN u, collect(DISTINCT p {.type, .providerId, .passwordHash}) AS providers,
+                collect(DISTINCT t {.token, .provider, .device, .registeredAt}) AS pushTokens`
+      );
+      return result.records.map(recordToUser);
+    } finally {
+      await session.close();
+    }
+  }
+
   private async findUser(label: string, paramKey: string, paramVal: string): Promise<IUser | null> {
     const session = getSession();
     try {

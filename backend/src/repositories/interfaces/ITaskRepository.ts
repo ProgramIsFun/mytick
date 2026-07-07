@@ -31,8 +31,11 @@ export interface ITaskRepository {
   findByUser(userId: string, options?: {
     status?: string;
     type?: string;
+    tag?: string;
     parentId?: string | null;
     pinned?: boolean;
+    groupIds?: string[];
+    q?: string;
     page?: number;
     limit?: number;
     sort?: string;
@@ -40,10 +43,11 @@ export interface ITaskRepository {
   findByShareToken(shareToken: string): Promise<ITask | null>;
   findBlockedBy(taskId: string): Promise<ITask[]>;
   findSubtasks(parentId: string): Promise<ITask[]>;
-  countByStatus(userId: string): Promise<Record<string, number>>;
+  countByStatus(userId: string, groupIds?: string[]): Promise<Record<string, number>>;
   create(data: Partial<ITask>): Promise<ITask>;
   update(id: string, data: Partial<ITask>): Promise<ITask | null>;
   delete(id: string, userId: string): Promise<boolean>;
+  findAllBlockedBy(): Promise<Array<{ id: string; blockedBy: string[] }>>;
   addDescriptionVersion(id: string, description: string): Promise<void>;
   rollbackDescription(id: string, index: number): Promise<void>;
 }

@@ -3,6 +3,8 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IKnowledge extends Document {
   userId: Types.ObjectId;
   content: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const knowledgeSchema = new Schema<IKnowledge>({

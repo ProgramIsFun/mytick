@@ -8,6 +8,8 @@ export interface IRecurrenceException extends Document {
   title?: string;
   description?: string;
   newDate?: Date;                // reschedule this occurrence to a different date
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const schema = new Schema<IRecurrenceException>({

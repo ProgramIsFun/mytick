@@ -1,10 +1,8 @@
 import { Router, Response } from 'express';
-import Task from '../models/Task';
-import RecurrenceException from '../models/RecurrenceException';
-import { taskRepo, groupRepo } from '../repositories';
+import { taskRepo, groupRepo, userRepo, recurrenceExceptionRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates, notFound, badRequest, parsePagination, getUserGroupIds, extractViewerId, findOwned } from '../utils/routeHelpers';
+import { notFound, badRequest, parsePagination, extractViewerId } from '../utils/routeHelpers';
 import { validate, createTaskSchema, updateTaskSchema } from '../utils/validation';
 import { notificationQueue } from '../queues';
 import { scheduleDeadlineAlerts } from '../queues/scheduleAlerts';
@@ -29,43 +27,36 @@ router.get('/user/:userId', asyncHandler(async (req, res: Response) => {
 
   if (viewerId) {
     const groupIds = await groupRepo.getUserGroupIds(viewerId);
-    // fallback to Mongoose for complex visibility queries
-    const tasks = await Task.find({
-      userId: targetUserId,
-      $or: [
-        { visibility: 'public' },
-        { visibility: 'group', groupIds: { $in: groupIds } },
-      ],
-    }).sort({ createdAt: -1 });
-    return res.json(tasks);
+    const { tasks } = await taskRepo.findByUser(targetUserId, { groupIds, limit: 1000 });
+    const filtered = tasks.filter(t => t.visibility === 'public' || (t.visibility === 'group' && t.groupIds?.some(g => groupIds.includes(g))));
+    return res.json(filtered);
   }
 
-  const tasks = await Task.find({ userId: targetUserId, visibility: 'public' }).sort({ createdAt: -1 });
-  res.json(tasks);
+  const { tasks } = await taskRepo.findByUser(targetUserId, { limit: 1000 });
+  res.json(tasks.filter(t => t.visibility === 'public'));
 }));
 
 router.get('/u/:username/profile', asyncHandler(async (req, res: Response) => {
-  const { default: User } = await import('../models/User');
-  const user = await User.findOne({ username: req.params.username as string });
+  const user = await userRepo.findByUsername(req.params.username as string);
   if (!user) return notFound(res, 'User not found');
-  const projects = await Task.find({ userId: user._id, visibility: 'public', type: 'project' }).sort({ pinned: -1, createdAt: -1 });
+  const { tasks: projects } = await taskRepo.findByUser(user.id, { type: 'project', limit: 1000 });
+  const publicProjects = projects.filter(p => p.visibility === 'public');
   res.json({
     username: user.username,
     name: user.name,
-    projects: projects.map(p => ({
-      _id: p._id, title: p.title, description: p.description, status: p.status,
-      metadata: (p as any).metadata, tags: (p as any).tags, createdAt: p.createdAt,
+    projects: publicProjects.map(p => ({
+      _id: p.id, title: p.title, description: p.description, status: p.status,
+      metadata: p.metadata, tags: p.tags, createdAt: p.createdAt,
     })),
   });
 }));
 
 router.get('/u/:username', asyncHandler(async (req, res: Response) => {
-  const { default: User } = await import('../models/User');
-  const targetUser = await User.findOne({ username: req.params.username as string });
+  const targetUser = await userRepo.findByUsername(req.params.username as string);
   if (!targetUser) return notFound(res, 'User not found');
 
   const viewerId = extractViewerId(req as AuthRequest);
-  const targetUserId = targetUser._id.toString();
+  const targetUserId = targetUser.id;
 
   if (viewerId === targetUserId) {
     const { tasks } = await taskRepo.findByUser(targetUserId);
@@ -74,15 +65,13 @@ router.get('/u/:username', asyncHandler(async (req, res: Response) => {
 
   if (viewerId) {
     const groupIds = await groupRepo.getUserGroupIds(viewerId);
-    const tasks = await Task.find({
-      userId: targetUserId,
-      $or: [{ visibility: 'public' }, { visibility: 'group', groupIds: { $in: groupIds } }],
-    }).sort({ createdAt: -1 });
-    return res.json(tasks);
+    const { tasks } = await taskRepo.findByUser(targetUserId, { groupIds, limit: 1000 });
+    const filtered = tasks.filter(t => t.visibility === 'public' || (t.visibility === 'group' && t.groupIds?.some(g => groupIds.includes(g))));
+    return res.json(filtered);
   }
 
-  const tasks = await Task.find({ userId: targetUserId, visibility: 'public' }).sort({ createdAt: -1 });
-  res.json(tasks);
+  const { tasks } = await taskRepo.findByUser(targetUserId, { limit: 1000 });
+  res.json(tasks.filter(t => t.visibility === 'public'));
 }));
 
 router.use(auth);
@@ -94,25 +83,18 @@ router.get('/calendar', asyncHandler(async (req: AuthRequest, res: Response) => 
     return badRequest(res, 'from and to query params required (ISO dates)');
   }
 
-  const oneTimeTasks = await Task.find({
-    userId: req.userId,
-    recurrence: null,
-    deadline: { $gte: from, $lte: to },
-  });
+  const { tasks: allUserTasks } = await taskRepo.findByUser(req.userId!, { limit: 10000 });
+  const oneTimeTasks = allUserTasks.filter(t => !t.recurrence && t.deadline && t.deadline >= from && t.deadline <= to);
 
   const results: any[] = oneTimeTasks.map(t => ({
-    _id: t._id, taskId: t._id, title: t.title, status: t.status, date: t.deadline, recurring: false,
+    taskId: t.id, title: t.title, status: t.status, date: t.deadline, recurring: false,
   }));
 
-  const recurringTasks = await Task.find({
-    userId: req.userId,
-    recurrence: { $ne: null },
-    deadline: { $lte: to },
-  });
+  const recurringTasks = allUserTasks.filter(t => t.recurrence && t.deadline && t.deadline <= to);
 
-  const recurringIds = recurringTasks.map(t => t._id);
+  const recurringIds = recurringTasks.map(t => t.id);
   const exceptions = recurringIds.length
-    ? await RecurrenceException.find({ taskId: { $in: recurringIds }, date: { $gte: from, $lte: to } })
+    ? await recurrenceExceptionRepo.findByTaskAndDateRange(recurringIds, from, to)
     : [];
 
   const exMap = new Map<string, typeof exceptions[0]>();
@@ -121,13 +103,13 @@ router.get('/calendar', asyncHandler(async (req: AuthRequest, res: Response) => 
   }
 
   for (const task of recurringTasks) {
-    const occurrences = expandOccurrences(task, from, to);
+    const occurrences = expandOccurrences(task as any, from, to);
     for (const date of occurrences) {
-      const key = `${task._id}-${date.toISOString()}`;
+      const key = `${task.id}-${date.toISOString()}`;
       const ex = exMap.get(key);
       if (ex?.status === 'skipped') continue;
       results.push({
-        taskId: task._id, title: ex?.title || task.title, description: ex?.description || task.description,
+        taskId: task.id, title: ex?.title || task.title, description: ex?.description || task.description,
         status: ex?.status || 'pending', date: ex?.newDate || date, recurring: true, recurrence: task.recurrence,
       });
     }
@@ -150,17 +132,14 @@ router.post('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Respo
   if (description !== undefined) update.description = description || undefined;
   if (newDate !== undefined) update.newDate = newDate ? new Date(newDate) : undefined;
 
-  res.json(await RecurrenceException.findOneAndUpdate(
-    { taskId: req.params.id, date: new Date(date) },
-    update,
-    { upsert: true, new: true },
-  ));
+  const exception = await recurrenceExceptionRepo.upsert(req.params.id as string, new Date(date), update);
+  res.json(exception);
 }));
 
 router.delete('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { date } = req.body;
   if (!date) return badRequest(res, 'date required');
-  await RecurrenceException.deleteOne({ taskId: req.params.id, date: new Date(date) });
+  await recurrenceExceptionRepo.delete(req.params.id as string, new Date(date));
   res.json({ message: 'Exception removed' });
 }));
 
@@ -175,7 +154,7 @@ router.post('/:id/end-series', asyncHandler(async (req: AuthRequest, res: Respon
   task.recurrence!.until = new Date(endDate.getTime() - 1);
   await taskRepo.update(task.id, { recurrence: task.recurrence });
 
-  await RecurrenceException.deleteMany({ taskId: req.params.id, date: { $gte: endDate } });
+  await recurrenceExceptionRepo.deleteByTask(req.params.id as string, endDate);
   await scheduleDeadlineAlerts(notificationQueue, task.id, req.userId!, task.deadline || null, task.recurrence || null);
 
   res.json(task);
@@ -190,45 +169,17 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
 
   const groupIds = await groupRepo.getUserGroupIds(req.userId!);
 
-  const filter: any = {
-    $or: [
-      { userId: req.userId },
-      { visibility: 'group', groupIds: { $in: groupIds } },
-    ],
-  };
-  if (status) filter.status = status;
-  if (type) filter.type = type;
-  if (tag) filter.tags = tag;
-  if (q) filter.title = { $regex: q, $options: 'i' };
-
-  const [tasks, total] = await Promise.all([
-    Task.find(filter).sort({ pinned: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit),
-    Task.countDocuments(filter),
-  ]);
+  const { tasks, total } = await taskRepo.findByUser(req.userId!, {
+    status, type, tag, q, groupIds, page, limit,
+  });
 
   res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
 }));
 
 router.get('/count', asyncHandler(async (req: AuthRequest, res: Response) => {
   const groupIds = await groupRepo.getUserGroupIds(req.userId!);
-
-  const baseFilter = {
-    $or: [
-      { userId: req.userId },
-      { visibility: 'group', groupIds: { $in: groupIds } },
-    ],
-  };
-
-  const [total, pending, in_progress, on_hold, done, abandoned] = await Promise.all([
-    Task.countDocuments(baseFilter),
-    Task.countDocuments({ ...baseFilter, status: 'pending' }),
-    Task.countDocuments({ ...baseFilter, status: 'in_progress' }),
-    Task.countDocuments({ ...baseFilter, status: 'on_hold' }),
-    Task.countDocuments({ ...baseFilter, status: 'done' }),
-    Task.countDocuments({ ...baseFilter, status: 'abandoned' }),
-  ]);
-
-  res.json({ total, pending, in_progress, on_hold, done, abandoned });
+  const counts = await taskRepo.countByStatus(req.userId!, groupIds);
+  res.json(counts);
 }));
 
 router.get('/roots', asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -237,42 +188,25 @@ router.get('/roots', asyncHandler(async (req: AuthRequest, res: Response) => {
   const type = req.query.type as string;
   const tag = req.query.tag as string;
 
-  const filter: any = { userId: req.userId, parentId: null };
-  if (status) filter.status = status;
-  if (type) filter.type = type;
-  if (tag) filter.tags = tag;
-
-  const [tasks, total] = await Promise.all([
-    Task.find(filter).sort({ pinned: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit),
-    Task.countDocuments(filter),
-  ]);
+  const { tasks, total } = await taskRepo.findByUser(req.userId!, {
+    status, type, tag, parentId: null, page, limit,
+  });
 
   res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
 }));
 
 router.get('/:id/blocking', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const tasks = await Task.find({ blockedBy: req.params.id as any, userId: req.userId })
-    .select('_id title status')
-    .sort({ createdAt: -1 });
+  const tasks = await taskRepo.findBlockedBy(req.params.id as string);
   res.json(tasks);
 }));
 
 router.get('/:id/subtasks', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const tasks = await Task.find({ parentId: req.params.id, userId: req.userId })
-    .sort({ pinned: -1, createdAt: -1 });
+  const tasks = await taskRepo.findSubtasks(req.params.id as string);
   res.json(tasks);
 }));
 
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const groupIds = await groupRepo.getUserGroupIds(req.userId!);
-
-  const task = await Task.findOne({
-    _id: req.params.id,
-    $or: [
-      { userId: req.userId },
-      { visibility: 'group', groupIds: { $in: groupIds } },
-    ],
-  });
+  const task = await taskRepo.findById(req.params.id as string, req.userId);
   if (!task) return notFound(res);
   res.json(task);
 }));
@@ -315,10 +249,10 @@ router.post('/', validate(createTaskSchema), asyncHandler(async (req: AuthReques
 }));
 
 async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
-  const allTasks = await Task.find({ blockedBy: { $exists: true, $ne: [] } }).select('_id blockedBy').lean();
+  const allTasks = await taskRepo.findAllBlockedBy();
   const graph = new Map<string, string[]>();
   for (const t of allTasks) {
-    graph.set(t._id.toString(), t.blockedBy.map(b => b.toString()));
+    graph.set(t.id, t.blockedBy);
   }
   const { hasCycleInGraph } = await import('../utils/cycle');
   return hasCycleInGraph(taskId, blockedBy, graph);
@@ -329,21 +263,21 @@ router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRe
   if (!task) return notFound(res);
 
   if (req.body.status === 'done') {
-    const subtasks = await Task.find({ parentId: req.params.id, userId: req.userId, status: { $ne: 'done' } })
-      .select('_id title status');
-    if (subtasks.length > 0) {
+    const subtasks = await taskRepo.findSubtasks(req.params.id as string);
+    const incomplete = subtasks.filter(s => s.status !== 'done');
+    if (incomplete.length > 0) {
       return res.status(400).json({
         error: 'Cannot mark as done. This task has incomplete subtasks.',
-        incompleteSubtasks: subtasks.map(t => ({ id: t._id, title: t.title, status: t.status })),
+        incompleteSubtasks: incomplete.map(t => ({ id: t.id, title: t.title, status: t.status })),
       });
     }
     if (task.blockedBy?.length) {
-      const incomplete = await Task.find({ _id: { $in: task.blockedBy }, status: { $ne: 'done' } })
-        .select('_id title status');
-      if (incomplete.length > 0) {
+      const blocking = await taskRepo.findBlockedBy(req.params.id as string);
+      const incompleteBlocking = blocking.filter(b => b.status !== 'done');
+      if (incompleteBlocking.length > 0) {
         return res.status(400).json({
           error: 'Cannot mark as done. This task is blocked by incomplete tasks.',
-          blockingTasks: incomplete.map(t => ({ id: t._id, title: t.title, status: t.status })),
+          blockingTasks: incompleteBlocking.map(t => ({ id: t.id, title: t.title, status: t.status })),
         });
       }
     }
@@ -391,7 +325,7 @@ router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await taskRepo.delete(req.params.id as string, req.userId!);
   if (!deleted) return notFound(res);
   await notificationQueue.cancelByTask(req.params.id as string);
-  await RecurrenceException.deleteMany({ taskId: req.params.id });
+  await recurrenceExceptionRepo.deleteByTask(req.params.id as string);
   res.json({ message: 'Deleted' });
 }));
 

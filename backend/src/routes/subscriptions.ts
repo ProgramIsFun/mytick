@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
-import Subscription from '../models/Subscription';
+import { subscriptionRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates, notFound, badRequest, findOwned } from '../utils/routeHelpers';
+import { notFound, badRequest } from '../utils/routeHelpers';
 import { notificationQueue } from '../queues';
 import { scheduleSubscriptionAlerts } from '../queues/scheduleSubscriptionAlerts';
 
@@ -10,20 +10,16 @@ const router = Router();
 router.use(auth);
 
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const filter: any = { userId: req.userId };
-  const status = req.query.status as string;
-  const category = req.query.category as string;
-  const tag = req.query.tag as string;
-  const q = req.query.q as string;
-  if (status) filter.status = status;
-  if (category) filter.category = category;
-  if (tag) filter.tags = tag;
-  if (q) filter.name = { $regex: q, $options: 'i' };
-  res.json(await Subscription.find(filter).sort({ nextBillingDate: 1 }));
+  const { status, category, tag, q } = req.query;
+  const subs = await subscriptionRepo.findByUser(req.userId!, {
+    status: status as string, category: category as string,
+    tag: tag as string, search: q as string,
+  });
+  res.json(subs);
 }));
 
 router.get('/stats', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const subs = await Subscription.find({ userId: req.userId, status: 'active' });
+  const subs = await subscriptionRepo.findActiveByUser(req.userId!);
   const totalMonthly = subs.reduce((sum, s) => {
     switch (s.billingCycle) {
       case 'monthly': return sum + s.amount;
@@ -37,7 +33,7 @@ router.get('/stats', asyncHandler(async (req: AuthRequest, res: Response) => {
 }));
 
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const sub = await findOwned(Subscription, req);
+  const sub = await subscriptionRepo.findById(req.params.id as string, req.userId);
   if (!sub) return notFound(res);
   res.json(sub);
 }));
@@ -47,47 +43,39 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!name || !provider || amount === undefined || !billingCycle) {
     return badRequest(res, 'name, provider, amount, and billingCycle required');
   }
-  const sub = await Subscription.create({
+  const sub = await subscriptionRepo.create({
     userId: req.userId, name, provider, amount,
-    currency: currency || 'USD',
-    billingCycle,
-    nextBillingDate: nextBillingDate || null,
-    expiryDate: expiryDate || null,
-    autoRenew: autoRenew ?? false,
-    status: status || 'active',
-    category: category || '',
-    paymentMethod: paymentMethod || '',
-    url: url || '',
-    notes: notes || '',
-    tags: tags || [],
+    currency: currency || 'USD', billingCycle,
+    nextBillingDate: nextBillingDate || null, expiryDate: expiryDate || null,
+    autoRenew: autoRenew ?? false, status: status || 'active',
+    category: category || '', paymentMethod: paymentMethod || '',
+    url: url || '', notes: notes || '', tags: tags || [],
   });
 
   const alertDate = sub.nextBillingDate || sub.expiryDate;
   if (alertDate) {
-    await scheduleSubscriptionAlerts(notificationQueue, sub._id.toString(), req.userId!, alertDate);
+    await scheduleSubscriptionAlerts(notificationQueue, sub.id, req.userId!, alertDate ?? null);
   }
 
   res.status(201).json(sub);
 }));
 
 router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const sub = await findOwned(Subscription, req);
+  const sub = await subscriptionRepo.update(req.params.id as string, req.body);
   if (!sub) return notFound(res);
-  applyUpdates(sub, req.body, ['name', 'provider', 'amount', 'currency', 'billingCycle', 'nextBillingDate', 'expiryDate', 'autoRenew', 'status', 'category', 'paymentMethod', 'url', 'notes', 'tags']);
-  await sub.save();
 
   if (req.body.nextBillingDate !== undefined || req.body.expiryDate !== undefined || req.body.status !== undefined) {
     const alertDate = sub.status === 'active' ? (sub.nextBillingDate || sub.expiryDate) : null;
-    await scheduleSubscriptionAlerts(notificationQueue, sub._id.toString(), req.userId!, alertDate);
+    await scheduleSubscriptionAlerts(notificationQueue, sub.id, req.userId!, alertDate ?? null);
   }
 
   res.json(sub);
 }));
 
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const sub = await Subscription.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!sub) return notFound(res);
-  await notificationQueue.cancelByTask(sub._id.toString());
+  const deleted = await subscriptionRepo.delete(req.params.id as string, req.userId!);
+  if (!deleted) return notFound(res);
+  await notificationQueue.cancelByTask(req.params.id as string);
   res.json({ message: 'Deleted' });
 }));
 

@@ -168,9 +168,8 @@ router.post('/test-push', auth, asyncHandler(async (req: AuthRequest, res: Respo
 
 router.get('/users', asyncHandler(async (req, res: Response) => {
   if (!requireAdminKey(req, res)) return;
-  const { default: User } = await import('../models/User');
-  const users = await User.find().select('_id email username name');
-  res.json(users.map((u: any) => userResponse({ id: u._id, email: u.email, username: u.username, name: u.name })));
+  const users = await userRepo.findAll();
+  res.json(users.map(u => userResponse(u)));
 }));
 
 router.get('/lookup', asyncHandler(async (req, res: Response) => {

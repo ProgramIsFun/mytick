@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import { int } from 'neo4j-driver';
 import { getSession } from '../../neo4j';
 import { ITask, ITaskRepository } from '../interfaces/ITaskRepository';
 
@@ -29,36 +30,46 @@ export class Neo4jTaskRepository implements ITaskRepository {
   }
 
   async findByUser(userId: string, options?: {
-    status?: string; type?: string; parentId?: string | null; pinned?: boolean; page?: number; limit?: number; sort?: string;
+    status?: string; type?: string; tag?: string; parentId?: string | null; pinned?: boolean; groupIds?: string[]; q?: string; page?: number; limit?: number; sort?: string;
   }): Promise<{ tasks: ITask[]; total: number }> {
     const session = getSession();
     try {
       const page = options?.page || 1;
       const limit = options?.limit || 20;
       const skip = (page - 1) * limit;
-      let where = 'WHERE u.id = $userId';
       const params: any = { userId };
-      if (options?.status) { where += ' AND t.status = $status'; params.status = options.status; }
-      if (options?.type) { where += ' AND t.type = $type'; params.type = options.type; }
+
+      const filters: string[] = [];
+      // Owned by user OR visible to user's groups
+      const matchClauses: string[] = [`(u:User {id: $userId})-[:OWNS]->(t:Task)`];
+      if (options?.groupIds?.length) {
+        matchClauses.push(`(u:User {id: $userId})-[:MEMBER_OF]->(g:Group)<-[:VISIBLE_TO]-(t:Task)`);
+      }
+
+      if (options?.status) { filters.push('t.status = $status'); params.status = options.status; }
+      if (options?.type) { filters.push('t.type = $type'); params.type = options.type; }
+      if (options?.tag) { filters.push('$tag IN t.tags'); params.tag = options.tag; }
       if (options?.parentId !== undefined) {
-        where += options.parentId ? ' AND t.parentId = $parentId' : ' AND t.parentId IS NULL';
+        filters.push(options.parentId ? 't.parentId = $parentId' : 't.parentId IS NULL');
         if (options.parentId) params.parentId = options.parentId;
       }
-      if (options?.pinned !== undefined) { where += ' AND t.pinned = $pinned'; params.pinned = options.pinned; }
+      if (options?.pinned !== undefined) { filters.push('t.pinned = $pinned'); params.pinned = options.pinned; }
+      if (options?.q) { filters.push('toLower(t.title) CONTAINS toLower($q)'); params.q = options.q; }
 
-      const countResult = await session.run(
-        `MATCH (u:User)-[:OWNS]->(t:Task) ${where} RETURN count(t) AS total`,
-        params
-      );
-      const total = countResult.records[0]?.get('total').toNumber() || 0;
+      const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
-      const result = await session.run(
-        `MATCH (u:User)-[:OWNS]->(t:Task) ${where}
-         RETURN t
-         ORDER BY t.pinned DESC, t.createdAt DESC
-         SKIP $skip LIMIT $limit`,
-        { ...params, skip, limit: { low: limit, high: 0 } }
-      );
+      // Count query: UNION of personal + group-visible tasks
+      const countParts = matchClauses.map(m => `MATCH ${m} ${where} RETURN count(DISTINCT t) AS total`);
+      const countQuery = countParts.join(' UNION ALL ');
+      const countResult = await session.run(countQuery, params);
+      const total = countResult.records.reduce((s, r) => s + (r.get('total').toNumber() || 0), 0);
+
+      // Data query
+      const dataParts = matchClauses.map(m => `MATCH ${m} ${where} RETURN DISTINCT t`);
+      let dataQuery = dataParts.join(' UNION ALL ');
+      dataQuery = `${dataQuery} ORDER BY t.pinned DESC, t.createdAt DESC SKIP $skip LIMIT $limit`;
+
+      const result = await session.run(dataQuery, { ...params, skip: int(skip), limit: int(limit) });
       return { tasks: result.records.map(r => recordToTaskSimple(r)), total };
     } finally {
       await session.close();
@@ -112,19 +123,21 @@ export class Neo4jTaskRepository implements ITaskRepository {
     }
   }
 
-  async countByStatus(userId: string): Promise<Record<string, number>> {
+  async countByStatus(userId: string, groupIds?: string[]): Promise<Record<string, number>> {
     const session = getSession();
     try {
-      const result = await session.run(
-        `MATCH (u:User {id: $userId})-[:OWNS]->(t:Task)
-         RETURN t.status AS status, count(t) AS count`,
-        { userId }
-      );
+      const matchClauses: string[] = [`(u:User {id: $userId})-[:OWNS]->(t:Task)`];
+      if (groupIds?.length) {
+        matchClauses.push(`(u:User {id: $userId})-[:MEMBER_OF]->(:Group)<-[:VISIBLE_TO]-(t:Task)`);
+      }
+      const parts = matchClauses.map(m => `MATCH ${m} RETURN t.status AS status, count(DISTINCT t) AS count`);
+      const query = parts.join(' UNION ALL ');
+      const result = await session.run(query, { userId });
       const counts: Record<string, number> = { total: 0, pending: 0, in_progress: 0, on_hold: 0, done: 0, abandoned: 0 };
       for (const r of result.records) {
         const s = r.get('status');
         const c = r.get('count').toNumber();
-        counts[s] = c;
+        counts[s] = (counts[s] || 0) + c;
         counts.total += c;
       }
       return counts;
@@ -251,6 +264,22 @@ export class Neo4jTaskRepository implements ITaskRepository {
         { id }
       );
       return result.summary.counters.updates().nodesDeleted > 0;
+    } finally {
+      await session.close();
+    }
+  }
+
+  async findAllBlockedBy(): Promise<Array<{ id: string; blockedBy: string[] }>> {
+    const session = getSession();
+    try {
+      const result = await session.run(
+        `MATCH (t:Task)-[:BLOCKED_BY]->(b:Task)
+         RETURN t.id AS id, collect(b.id) AS blockedBy`
+      );
+      return result.records.map(r => ({
+        id: r.get('id'),
+        blockedBy: r.get('blockedBy'),
+      }));
     } finally {
       await session.close();
     }

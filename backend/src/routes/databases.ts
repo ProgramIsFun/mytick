@@ -1,186 +1,53 @@
 import { Router, Response } from 'express';
-import Database from '../models/Database';
-import BackupHistory from '../models/BackupHistory';
+import { databaseRepo, backupHistoryRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { applyUpdates, notFound, badRequest, findOwned, parseBackupHistoryLimit, forbidden } from '../utils/routeHelpers';
+import { notFound, badRequest, parseBackupHistoryLimit, forbidden } from '../utils/routeHelpers';
 
 const router = Router();
 
 router.use(auth);
 
-/**
- * @swagger
- * /databases:
- *   get:
- *     summary: List all databases
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: query, name: search, schema: { type: string } }
- *       - { in: query, name: type, schema: { type: string } }
- *       - { in: query, name: backupEnabled, schema: { type: boolean } }
- *     responses:
- *       200: { description: List of databases }
- */
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { search, type, backupEnabled } = req.query;
-  const filter: any = { userId: req.userId };
-  
-  if (search) filter.name = { $regex: search, $options: 'i' };
-  if (type) filter.type = type;
-  if (backupEnabled !== undefined) filter.backupEnabled = backupEnabled === 'true';
-  
-  res.json(await Database.find(filter)
-    .populate('accountId', 'name provider')
-    .sort({ createdAt: -1 }));
+  const dbs = await databaseRepo.findByUser(req.userId!, {
+    search: search as string,
+    type: type as string,
+    backupEnabled: backupEnabled !== undefined ? backupEnabled === 'true' : undefined,
+  });
+  res.json(dbs);
 }));
 
-/**
- * @swagger
- * /databases/backupable:
- *   get:
- *     summary: Get all databases that need backup (for backup scripts)
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200:
- *         description: List of databases with backup enabled
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id: { type: string }
- *                   name: { type: string }
- *                   type: { type: string, enum: [mongodb, postgres, mysql, redis, sqlite, other] }
- *                   secret:
- *                     type: object
- *                     properties:
- *                       provider: { type: string }
- *                       providerSecretId: { type: string }
- *                   retentionDays: { type: number }
- *                   frequency: { type: string }
- *                   lastBackupAt: { type: string, nullable: true }
- *             example:
- *               - id: "661d7c8a1f2b3c4d5e6f7g8h"
- *                 name: "mytick-prod"
- *                 type: "mongodb"
- *                 secret:
- *                   provider: "bitwarden_sm"
- *                   providerSecretId: "5dc0cbf5-7c7f-480d-9733-b444007eaa0e"
- *                 retentionDays: 30
- *                 frequency: "daily"
- *                 lastBackupAt: "2026-05-07T02:50:19.422Z"
- */
 router.get('/backupable', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const databases = await Database.find({
-    userId: req.userId,
-    backupEnabled: true,
-  })
-  .select('name type secretId backupRetentionDays backupFrequency lastBackupAt')
-  .populate('secretId');
-  
-  res.json(databases.map(db => {
-    const secret = db.secretId as any;
-    
-    return {
-      id: db._id,
-      name: db.name,
-      type: db.type,
-      
-      secret: secret ? {
-        provider: secret.provider,
-        providerSecretId: secret.providerSecretId,
-      } : null,
-      
-      retentionDays: db.backupRetentionDays,
-      frequency: db.backupFrequency,
-      lastBackupAt: db.lastBackupAt,
-    };
-  }));
+  const databases = await databaseRepo.findBackupable(req.userId!);
+  res.json(databases.map(db => ({
+    id: db.id, name: db.name, type: db.type,
+    secret: null,
+    retentionDays: db.backupRetentionDays,
+    frequency: db.backupFrequency,
+    lastBackupAt: db.lastBackupAt,
+  })));
 }));
 
-/**
- * @swagger
- * /databases/{id}:
- *   get:
- *     summary: Get a single database
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     responses:
- *       200: { description: Database details }
- *       404: { description: Not found }
- */
 router.get('/backup-history', asyncHandler(async (req: AuthRequest, res: Response) => {
   const limit = parseBackupHistoryLimit(req.query);
   const filter: any = { userId: req.userId };
   if (req.query.status) filter.status = req.query.status;
-
-  res.json(await BackupHistory.find(filter)
-    .sort({ completedAt: -1 })
-    .limit(limit)
-    .populate('databaseId', 'name type')
-    .lean());
+  const history = await backupHistoryRepo.findByUser(req.userId!, {
+    status: req.query.status as string,
+    limit,
+  });
+  res.json(history);
 }));
 
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const database = await Database.findOne({
-    _id: req.params.id,
-    userId: req.userId,
-  }).populate('accountId', 'name provider').populate('secretId');
-  
+  const database = await databaseRepo.findById(req.params.id as string, req.userId);
   if (!database) return notFound(res);
   res.json(database);
 }));
 
-/**
- * @swagger
- * /databases/{id}/backup-completed:
- *   post:
- *     summary: Record backup completion (called by Lambda after EACH database)
- *     description: |
- *       Lambda reports results immediately after each database backup completes.
- *       
- *       **Design Decision: Per-Database Reporting (not batched)**
- *       - Provides real-time progress tracking
- *       - Protects against Lambda timeout (15min limit)
- *       - Ensures partial progress saved if Lambda crashes
- *       - Better debugging with exact timestamps per database
- *       
- *       Trade-off: More API calls, but better production resilience.
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [status, startedAt, completedAt, s3Path, s3Bucket]
- *             properties:
- *               status: { type: string, enum: [success, failed, partial] }
- *               startedAt: { type: string, format: date-time }
- *               completedAt: { type: string, format: date-time }
- *               sizeBytes: { type: number }
- *               s3Path: { type: string }
- *               s3Bucket: { type: string }
- *               errorMessage: { type: string }
- *               metadata: { type: object }
- *               triggeredBy: { type: string, enum: [scheduled, manual] }
- *               lambdaRequestId: { type: string }
- *     responses:
- *       200: { description: Backup recorded }
- *       404: { description: Database not found }
- */
 router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const database = await Database.findById(req.params.id);
+  const database = await databaseRepo.findById(req.params.id as string);
   if (!database) return notFound(res, 'Database not found');
 
   const { status, startedAt, completedAt, sizeBytes, s3Path, s3Bucket, errorMessage, metadata, triggeredBy, lambdaRequestId } = req.body;
@@ -189,8 +56,8 @@ router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: 
   const end = new Date(completedAt);
   const durationMs = end.getTime() - start.getTime();
 
-  const backupHistory = await BackupHistory.create({
-    databaseId: database._id,
+  const backupHistory = await backupHistoryRepo.create({
+    databaseId: database.id,
     userId: database.userId,
     status,
     startedAt: start,
@@ -206,183 +73,58 @@ router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: 
   });
 
   if (status === 'success') {
-    await Database.findByIdAndUpdate(database._id, {
-      lastBackupAt: end,
-      $inc: { __v: 1 },
-    });
+    await databaseRepo.markBackupSuccess(database.id);
   }
 
   res.json({
     message: 'Backup recorded',
-    backupId: backupHistory._id,
-    databaseId: database._id,
+    backupId: backupHistory.id,
+    databaseId: database.id,
     status,
   });
 }));
 
-/**
- * @swagger
- * /databases:
- *   post:
- *     summary: Create a database entry
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [name, type]
- *             properties:
- *               name: { type: string }
- *               type: { type: string, enum: [mongodb, postgres, mysql, redis, sqlite, other] }
- *               secretId: { type: string, description: "Secret ObjectId (reference to Secret collection)" }
- *               host: { type: string }
- *               port: { type: number }
- *               database: { type: string }
- *               backupEnabled: { type: boolean }
- *               backupRetentionDays: { type: number }
- *               backupFrequency: { type: string, enum: [daily, weekly] }
- *               accountId: { type: string }
- *               tags: { type: array, items: { type: string } }
- *               notes: { type: string }
- *     responses:
- *       201: { description: Database created }
- *       400: { description: Validation error }
- */
 router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, type, secretId, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
-  
-  if (!name || !type) {
-    return badRequest(res, 'name and type are required');
-  }
-  
-  res.status(201).json(await Database.create({
-    userId: req.userId,
-    name,
-    type,
-    secretId: secretId || null,
-    host: host || '',
-    port: port || null,
-    database: database || '',
-    backupEnabled: backupEnabled || false,
-    backupRetentionDays: backupRetentionDays || 30,
-    backupFrequency: backupFrequency || 'daily',
-    accountId: accountId || null,
-    tags: tags || [],
-    notes: notes || '',
-  }));
+  if (!name || !type) return badRequest(res, 'name and type are required');
+  const db = await databaseRepo.create({
+    userId: req.userId, name, type, secretId: secretId || null,
+    host: host || '', port: port || null, databaseName: database || '',
+    backupEnabled: backupEnabled || false, backupRetentionDays: backupRetentionDays || 30,
+    backupFrequency: backupFrequency || 'daily', accountId: accountId || null,
+    tags: tags || [], notes: notes || '',
+  });
+  res.status(201).json(db);
 }));
 
-/**
- * @swagger
- * /databases/{id}:
- *   patch:
- *     summary: Update a database
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     responses:
- *       200: { description: Database updated }
- *       404: { description: Not found }
- */
 router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const database = await Database.findOne({
-    _id: req.params.id,
-    userId: req.userId,
-  });
-  
+  const database = await databaseRepo.update(req.params.id as string, req.body);
   if (!database) return notFound(res);
-  
-  applyUpdates(database, req.body, ['name', 'type', 'secretId', 'host', 'port', 'database', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'accountId', 'tags', 'notes']);
-  console.log('Updating database:', database._id, 'secretId:', database.secretId);
-  
-  await database.save();
   res.json(database);
 }));
 
-/**
- * @swagger
- * /databases/{id}:
- *   delete:
- *     summary: Delete a database
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     responses:
- *       200: { description: Deleted }
- *       404: { description: Not found }
- */
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const database = await Database.findOneAndDelete({
-    _id: req.params.id,
-    userId: req.userId,
-  });
-  
-  if (!database) return notFound(res);
+  const deleted = await databaseRepo.delete(req.params.id as string, req.userId!);
+  if (!deleted) return notFound(res);
   res.json({ message: 'Deleted' });
 }));
 
-/**
- * @swagger
- * /databases/{id}/backup-success:
- *   post:
- *     summary: Mark database as successfully backed up (called by backup script)
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *     responses:
- *       200: { description: Updated }
- */
 router.post('/:id/backup-success', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const database = await Database.findOneAndUpdate(
-    { _id: req.params.id, userId: req.userId },
-    { lastBackupAt: new Date() },
-    { new: true }
-  );
-  
+  const database = await databaseRepo.markBackupSuccess(req.params.id as string);
   if (!database) return notFound(res);
   res.json(database);
 }));
 
-/**
- * @swagger
- * /databases/{id}/backup-history:
- *   get:
- *     summary: Get backup history for a database
- *     tags: [Databases]
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - { in: path, name: id, required: true, schema: { type: string } }
- *       - { in: query, name: limit, schema: { type: number, default: 50 } }
- *       - { in: query, name: status, schema: { type: string, enum: [success, failed, partial] } }
- *     responses:
- *       200: { description: Backup history list }
- *       404: { description: Database not found }
- */
 router.get('/:id/backup-history', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const database = await Database.findById(req.params.id);
+  const database = await databaseRepo.findById(req.params.id as string);
   if (!database) return notFound(res, 'Database not found');
-
-  if (database.userId.toString() !== req.userId) {
-    return forbidden(res);
-  }
-
+  if (database.userId !== req.userId) return forbidden(res);
   const limit = parseBackupHistoryLimit(req.query);
-  const filter: any = { databaseId: database._id };
-  
-  if (req.query.status) {
-    filter.status = req.query.status;
-  }
-
-  res.json(await BackupHistory.find(filter)
-    .sort({ completedAt: -1 })
-    .limit(limit)
-    .lean());
+  const history = await backupHistoryRepo.findByDatabase(req.params.id as string, req.userId!, {
+    status: req.query.status as string,
+    limit,
+  });
+  res.json(history);
 }));
 
 export default router;

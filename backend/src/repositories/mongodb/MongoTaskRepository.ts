@@ -43,13 +43,23 @@ export class MongoTaskRepository implements ITaskRepository {
   }
 
   async findByUser(userId: string, options?: {
-    status?: string; type?: string; parentId?: string | null; pinned?: boolean; page?: number; limit?: number; sort?: string;
+    status?: string; type?: string; tag?: string; parentId?: string | null; pinned?: boolean; groupIds?: string[]; q?: string; page?: number; limit?: number; sort?: string;
   }): Promise<{ tasks: ITask[]; total: number }> {
-    const filter: any = { userId };
+    const filter: any = {};
+    if (options?.groupIds?.length) {
+      filter.$or = [
+        { userId },
+        { visibility: 'group', groupIds: { $in: options.groupIds } },
+      ];
+    } else {
+      filter.userId = userId;
+    }
     if (options?.status) filter.status = options.status;
     if (options?.type) filter.type = options.type;
+    if (options?.tag) filter.tags = options.tag;
     if (options?.parentId !== undefined) filter.parentId = options.parentId;
     if (options?.pinned !== undefined) filter.pinned = options.pinned;
+    if (options?.q) filter.title = { $regex: options.q, $options: 'i' };
     const page = options?.page || 1;
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
@@ -75,9 +85,15 @@ export class MongoTaskRepository implements ITaskRepository {
     return tasks.map(toDomain);
   }
 
-  async countByStatus(userId: string): Promise<Record<string, number>> {
+  async countByStatus(userId: string, groupIds?: string[]): Promise<Record<string, number>> {
+    const filter: any = groupIds?.length ? {
+      $or: [
+        { userId },
+        { visibility: 'group', groupIds: { $in: groupIds } },
+      ],
+    } : { userId };
     const statuses = ['pending', 'in_progress', 'on_hold', 'done', 'abandoned'] as const;
-    const counts = await Promise.all(statuses.map(s => TaskModel.countDocuments({ userId, status: s })));
+    const counts = await Promise.all(statuses.map(s => TaskModel.countDocuments({ ...filter, status: s })));
     const total = counts.reduce((a, b) => a + b, 0);
     return Object.fromEntries([['total', total], ...statuses.map((s, i) => [s, counts[i]])]);
   }
@@ -119,6 +135,14 @@ export class MongoTaskRepository implements ITaskRepository {
     await TaskModel.updateMany({ blockedBy: t._id }, { $pull: { blockedBy: t._id } });
     await RecurrenceExceptionModel.deleteMany({ taskId: t._id });
     return true;
+  }
+
+  async findAllBlockedBy(): Promise<Array<{ id: string; blockedBy: string[] }>> {
+    const tasks = await TaskModel.find({ blockedBy: { $exists: true, $ne: [] as any } }).select('_id blockedBy').lean();
+    return tasks.map(t => ({
+      id: t._id.toString(),
+      blockedBy: t.blockedBy.map((b: any) => b.toString()),
+    }));
   }
 
   async addDescriptionVersion(id: string, description: string): Promise<void> {

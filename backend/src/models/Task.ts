@@ -47,6 +47,7 @@ export interface ITask extends Document {
   tags: string[];
   pinned: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const taskSchema = new Schema<ITask>({

@@ -17,6 +17,11 @@ function toDomain(u: MongoIUser): IUser {
 }
 
 export class MongoUserRepository implements IUserRepository {
+  async findAll(): Promise<IUser[]> {
+    const users = await UserModel.find().select('email username name');
+    return users.map(toDomain);
+  }
+
   async findById(id: string): Promise<IUser | null> {
     const u = await UserModel.findById(id);
     return u ? toDomain(u) : null;

@@ -63,6 +63,7 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error({ err, stack: err.stack }, 'Unhandled error');
   res.status(err.status || 500).json({ error: err.message || 'Server error' });
 });
 

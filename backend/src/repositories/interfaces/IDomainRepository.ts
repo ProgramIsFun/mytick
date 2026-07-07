@@ -17,7 +17,7 @@ export interface IDomain {
 
 export interface IDomainRepository {
   findById(id: string, userId?: string): Promise<IDomain | null>;
-  findByUser(userId: string): Promise<IDomain[]>;
+  findByUser(userId: string, options?: { tag?: string; search?: string; projectId?: string }): Promise<IDomain[]>;
   create(data: Partial<IDomain>): Promise<IDomain>;
   update(id: string, data: Partial<IDomain>): Promise<IDomain | null>;
   delete(id: string, userId: string): Promise<boolean>;
