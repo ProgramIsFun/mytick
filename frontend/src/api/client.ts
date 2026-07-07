@@ -20,8 +20,8 @@ async function request(path: string, options: RequestInit = {}) {
 }
 
 // Recursively add _id alias to any object that has an id field
-function addIdAlias(data: unknown): unknown {
-  if (Array.isArray(data)) return data.map(addIdAlias);
+function addIdAlias<T>(data: T): T {
+  if (Array.isArray(data)) return data.map(addIdAlias) as T;
   if (data && typeof data === 'object') {
     const obj = data as Record<string, unknown>;
     if ('id' in obj && !('_id' in obj)) obj._id = obj.id;
