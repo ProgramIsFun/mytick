@@ -335,7 +335,6 @@ function recordToTaskSimple(record: any, key = 't', userId = ''): ITask {
   const node = record.get(key);
   const props = node.properties || node;
   return {
-    _id: props.id,
     id: props.id,
     userId,
     title: props.title,
@@ -356,7 +355,6 @@ function recordToTaskSimple(record: any, key = 't', userId = ''): ITask {
 function recordToTask(record: any, userId = ''): ITask {
   const t = record.get('t').properties;
   return {
-    _id: t.id,
     id: t.id,
     userId,
     title: t.title,

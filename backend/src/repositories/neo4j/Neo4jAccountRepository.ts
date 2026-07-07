@@ -10,9 +10,11 @@ export class Neo4jAccountRepository implements IAccountRepository {
       const result = await session.run(
         `MATCH (u:User)-[:OWNS]->(a:Account {id: $id})
          WHERE 1=1 ${where}
+         OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(a)
          OPTIONAL MATCH (a)-[:PARENT_OF]->(sub:Account)
          OPTIONAL MATCH (a)-[:HAS_CREDENTIAL]->(s:Secret)
-         RETURN a, collect(DISTINCT sub.id) AS subAccounts,
+         RETURN u.id AS userId, a, parent.id AS parentAccountId,
+                collect(DISTINCT sub.id) AS subAccounts,
                 collect(DISTINCT s {.id, .name}) AS secrets`,
         { id, userId }
       );
@@ -28,8 +30,10 @@ export class Neo4jAccountRepository implements IAccountRepository {
     try {
       const result = await session.run(
         `MATCH (u:User {id: $userId})-[:OWNS]->(a:Account)
+         OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(a)
          OPTIONAL MATCH (a)-[:HAS_CREDENTIAL]->(s:Secret)
-         RETURN a, collect(s {.id, .name}) AS secrets
+         RETURN u.id AS userId, a, parent.id AS parentAccountId,
+                collect(s {.id, .name}) AS secrets
          ORDER BY a.createdAt DESC`,
         { userId }
       );
@@ -44,7 +48,9 @@ export class Neo4jAccountRepository implements IAccountRepository {
     try {
       const result = await session.run(
         `MATCH (a:Account {id: $parentId})-[:PARENT_OF]->(sub:Account)
-         RETURN sub ORDER BY sub.createdAt DESC`,
+         OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(sub)
+         RETURN '' AS userId, sub, parent.id AS parentAccountId
+         ORDER BY sub.createdAt DESC`,
         { parentId }
       );
       return result.records.map(r => recordToAccountSimple(r, 'sub'));
@@ -142,7 +148,8 @@ function recordToAccount(record: any): IAccount {
   const a = record.get('a').properties || record.get('a');
   return {
     id: a.id,
-    userId: '',
+    userId: record.get('userId') || '',
+    parentAccountId: record.get('parentAccountId') || undefined,
     name: a.name,
     provider: a.provider,
     url: a.url || undefined,
@@ -159,7 +166,8 @@ function recordToAccountSimple(record: any, key = 'a'): IAccount {
   const props = record.get(key).properties || record.get(key);
   return {
     id: props.id,
-    userId: '',
+    userId: record.get('userId') || '',
+    parentAccountId: record.get('parentAccountId') || undefined,
     name: props.name,
     provider: props.provider,
     url: props.url || undefined,

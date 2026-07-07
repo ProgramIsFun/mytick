@@ -1,5 +1,4 @@
 export interface ITask {
-  _id?: string;
   id: string;
   userId: string;
   title: string;

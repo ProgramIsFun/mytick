@@ -1,7 +1,7 @@
 const required = ['JWT_SECRET', 'ADMIN_API_KEY'] as const;
 
 export function validateEnv() {
-  const engine = process.env.DB_ENGINE || 'mongodb';
+  const engine = process.env.DB_ENGINE || 'neo4j';
   const allRequired = [...required];
 
   if (engine === 'mongodb') {

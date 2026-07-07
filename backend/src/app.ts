@@ -46,7 +46,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 app.get('/api/health', async (_req, res) => {
-  const engine = process.env.DB_ENGINE || 'mongodb';
+  const engine = process.env.DB_ENGINE || 'neo4j';
   if (engine === 'neo4j') {
     try {
       const { getDriver } = await import('./neo4j');

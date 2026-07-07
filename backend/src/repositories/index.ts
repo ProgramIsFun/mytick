@@ -37,7 +37,7 @@ import { Neo4jContextRepository } from './neo4j/Neo4jContextRepository';
 import { Neo4jBackupHistoryRepository } from './neo4j/Neo4jBackupHistoryRepository';
 import { Neo4jRecurrenceExceptionRepository } from './neo4j/Neo4jRecurrenceExceptionRepository';
 
-const engine = process.env.DB_ENGINE || 'mongodb';
+const engine = process.env.DB_ENGINE || 'neo4j';
 const isNeo4j = engine === 'neo4j';
 
 export const userRepo: IUserRepository = isNeo4j ? new Neo4jUserRepository() : new MongoUserRepository();
