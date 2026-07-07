@@ -29,7 +29,7 @@ export class Neo4jTaskRepository implements ITaskRepository {
   }
 
   async findByUser(userId: string, options?: {
-    status?: string; type?: string; tag?: string; parentId?: string | null; pinned?: boolean; groupIds?: string[]; q?: string; page?: number; limit?: number; sort?: string;
+    status?: string; excludeStatus?: string[]; type?: string; tag?: string; parentId?: string | null; pinned?: boolean; groupIds?: string[]; q?: string; page?: number; limit?: number; sort?: string;
   }): Promise<{ tasks: ITask[]; total: number }> {
     const session = getSession();
     try {
@@ -46,6 +46,7 @@ export class Neo4jTaskRepository implements ITaskRepository {
       }
 
       if (options?.status) { filters.push('t.status = $status'); params.status = options.status; }
+      if (options?.excludeStatus?.length) { filters.push('NOT t.status IN $excludeStatus'); params.excludeStatus = options.excludeStatus; }
       if (options?.type) { filters.push('t.type = $type'); params.type = options.type; }
       if (options?.tag) { filters.push('$tag IN t.tags'); params.tag = options.tag; }
       if (options?.parentId !== undefined) {

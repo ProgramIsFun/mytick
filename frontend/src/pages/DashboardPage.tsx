@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const loadTasks = async (p = page) => {
     try {
       setLoadingTasks(true);
-      const res = await api.getTasks(p, 20, typeFilter, tagFilter, searchQuery || undefined);
+      const res = await api.getTasks(p, 20, typeFilter, tagFilter, searchQuery || undefined, showDone ? undefined : 'done,abandoned');
       setTasks(res.tasks); setTotalPages(res.totalPages); setPage(res.page);
       // Collect unique tags
       const tags = new Set<string>(allTags);
@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const loadGroups = async () => { try { setGroups(await api.getGroups()); } catch {} };
 
   useEffect(() => { loadTasks(); loadGroups(); }, []);
-  useEffect(() => { loadTasks(1); }, [typeFilter, tagFilter]);
+  useEffect(() => { loadTasks(1); }, [typeFilter, tagFilter, showDone]);
   useEffect(() => {
     const t = setTimeout(() => loadTasks(1), 300);
     return () => clearTimeout(t);
@@ -198,7 +198,7 @@ export default function DashboardPage() {
               ) : tasks.length === 0 ? (
                 <EmptyState message="No tasks yet. Create one above!" />
               ) : (
-                tasks.filter(t => (showGroupTasks || t.userId === user?.id) && (showDone || (t.status !== 'done' && t.status !== 'abandoned'))).map(task => (
+                tasks.filter(t => showGroupTasks || t.userId === user?.id).map(task => (
                   <TaskItem
                     key={task._id}
                     task={task}

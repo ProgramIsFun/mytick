@@ -51,8 +51,8 @@ export const api = {
     request('/auth/service-token', { method: 'POST', body: JSON.stringify({ service, expiresIn }) }),
 
   // Tasks
-  getTasks: (page = 1, limit = 20, type?: string, tag?: string, q?: string) =>
-    request(buildQuery(`/tasks`, { page: String(page), limit: String(limit), type, tag, q })),
+  getTasks: (page = 1, limit = 20, type?: string, tag?: string, q?: string, excludeStatus?: string) =>
+    request(buildQuery(`/tasks`, { page: String(page), limit: String(limit), type, tag, q, excludeStatus })),
   getTask: (id: string) => request(`/tasks/${id}`),
   getBlocking: (id: string) => request(`/tasks/${id}/blocking`),
   getSubtasks: (id: string) => request(`/tasks/${id}/subtasks`),

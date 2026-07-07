@@ -30,6 +30,7 @@ export interface ITaskRepository {
   findById(id: string, userId?: string): Promise<ITask | null>;
   findByUser(userId: string, options?: {
     status?: string;
+    excludeStatus?: string[];
     type?: string;
     tag?: string;
     parentId?: string | null;

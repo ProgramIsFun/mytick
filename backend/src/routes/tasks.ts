@@ -163,6 +163,9 @@ router.post('/:id/end-series', asyncHandler(async (req: AuthRequest, res: Respon
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { page, limit } = parsePagination(req.query);
   const status = req.query.status as string;
+  const excludeStatus = req.query.excludeStatus
+    ? (req.query.excludeStatus as string).split(',').map(s => s.trim())
+    : undefined;
   const type = req.query.type as string;
   const tag = req.query.tag as string;
   const q = req.query.q as string;
@@ -170,7 +173,7 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const groupIds = await groupRepo.getUserGroupIds(req.userId!);
 
   const { tasks, total } = await taskRepo.findByUser(req.userId!, {
-    status, type, tag, q, groupIds, page, limit,
+    status, excludeStatus, type, tag, q, groupIds, page, limit,
   });
 
   res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
