@@ -7,8 +7,8 @@ import { STATUS_BADGE } from '../constants/task';
 import { inputClsFull as inputCls } from '../constants/styles';
 
 interface DescriptionVersion { description: string; savedAt: string; }
-interface Task { _id: string; title: string; description: string; status: string; visibility: string; groupIds: string[]; shareToken: string; userId: string; descriptionHistory: DescriptionVersion[]; blockedBy: string[]; createdAt: string; type?: string; tags?: string[]; metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: { accountId: string; role: string; env?: string; mappings?: { target: string; envVar: string; vaultId: string }[] }[]; members?: { userId: string; role: string }[] } | null; }
-interface BlockerTask { _id: string; title: string; status: string; }
+interface Task { id: string; title: string; description: string; status: string; visibility: string; groupIds: string[]; shareToken: string; userId: string; descriptionHistory: DescriptionVersion[]; blockedBy: string[]; createdAt: string; type?: string; tags?: string[]; metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: { accountId: string; role: string; env?: string; mappings?: { target: string; envVar: string; vaultId: string }[] }[]; members?: { userId: string; role: string }[] } | null; }
+interface BlockerTask { id: string; title: string; status: string; }
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,11 +24,11 @@ export default function TaskDetailPage() {
   const [titleDraft, setTitleDraft] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [tagInput, setTagInput] = useState('');
-  const [domains, setDomains] = useState<{ _id: string; name: string; expiryDate: string | null }[]>([]);
+  const [domains, setDomains] = useState<{ id: string; name: string; expiryDate: string | null }[]>([]);
   const [subtasks, setSubtasks] = useState<BlockerTask[]>([]);
   const [showDoneSubtasks, setShowDoneSubtasks] = useState(false);
   const [subtaskLimit, setSubtaskLimit] = useState(10);
-  const [accounts, setAccounts] = useState<{ _id: string; name: string; provider: string }[]>([]);
+  const [accounts, setAccounts] = useState<{ id: string; name: string; provider: string }[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -68,34 +68,34 @@ export default function TaskDetailPage() {
 
   const saveDescription = async () => {
     if (draft === task.description) { setEditing(false); return; }
-    setTask(await api.updateTask(task._id, { description: draft })); setEditing(false);
+    setTask(await api.updateTask(task.id, { description: draft })); setEditing(false);
   };
 
   const saveTitle = async () => {
     if (!titleDraft.trim() || titleDraft === task.title) { setEditingTitle(false); return; }
-    setTask(await api.updateTask(task._id, { title: titleDraft.trim() })); setEditingTitle(false);
+    setTask(await api.updateTask(task.id, { title: titleDraft.trim() })); setEditingTitle(false);
   };
 
   const addSubtask = async () => {
     if (!subtaskTitle.trim()) return;
-    await api.createTask({ title: subtaskTitle.trim(), parentId: task._id });
-    setSubtasks(await api.getSubtasks(task._id));
+    await api.createTask({ title: subtaskTitle.trim(), parentId: task.id });
+    setSubtasks(await api.getSubtasks(task.id));
     setSubtaskTitle('');
   };
 
   const removeBlocker = async (blockerId: string) => {
-    setTask(await api.updateTask(task._id, { blockedBy: task.blockedBy.filter(i => i !== blockerId) }));
+    setTask(await api.updateTask(task.id, { blockedBy: task.blockedBy.filter(i => i !== blockerId) }));
   };
 
   const addTag = async () => {
     const t = tagInput.trim().toLowerCase();
     if (!t || task.tags?.includes(t)) { setTagInput(''); return; }
-    setTask(await api.updateTask(task._id, { tags: [...(task.tags || []), t] }));
+    setTask(await api.updateTask(task.id, { tags: [...(task.tags || []), t] }));
     setTagInput('');
   };
 
   const removeTag = async (tag: string) => {
-    setTask(await api.updateTask(task._id, { tags: (task.tags || []).filter(t => t !== tag) }));
+    setTask(await api.updateTask(task.id, { tags: (task.tags || []).filter(t => t !== tag) }));
   };
 
   const visIcon = { private: '🔒 Private', group: '👥 Group', public: '🌐 Public' }[task.visibility] || '';
@@ -105,7 +105,7 @@ export default function TaskDetailPage() {
       <header className="border-b border-border bg-surface-secondary">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-4">
           <button onClick={() => navigate('/')} className="text-sm text-text-muted hover:text-text-primary transition-colors">← Back</button>
-          <span className="text-xs text-text-muted font-mono">{task._id.slice(0, 8)}</span>
+          <span className="text-xs text-text-muted font-mono">{task.id.slice(0, 8)}</span>
         </div>
       </header>
 
@@ -199,8 +199,8 @@ export default function TaskDetailPage() {
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">🔑 Accounts</h3>
               {accounts.map(a => (
                 <button
-                  key={a._id}
-                  onClick={() => navigate(`/accounts?highlight=${a._id}`)}
+                  key={a.id}
+                  onClick={() => navigate(`/accounts?highlight=${a.id}`)}
                   className="flex items-center gap-2 py-1.5 text-sm w-full text-left hover:bg-surface-hover rounded px-2 -mx-2 transition-colors"
                 >
                   <span className="text-text-primary">{a.name}</span>
@@ -215,7 +215,7 @@ export default function TaskDetailPage() {
             <div className="border border-border rounded-lg p-4 bg-surface">
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">🌐 Domains</h3>
               {domains.map(d => (
-                <div key={d._id} className="flex items-center gap-2 py-1.5 text-sm">
+                <div key={d.id} className="flex items-center gap-2 py-1.5 text-sm">
                   <a href={`https://${d.name}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">{d.name}</a>
                   {d.expiryDate && <span className="text-xs text-text-muted">expires {new Date(d.expiryDate).toLocaleDateString()}</span>}
                 </div>
@@ -238,9 +238,9 @@ export default function TaskDetailPage() {
                 )}
               </div>
               {subtasks.filter(s => showDoneSubtasks || s.status !== 'done').slice(0, subtaskLimit).map(s => (
-                <div key={s._id} className="flex items-center gap-2 py-1.5 text-sm">
+                <div key={s.id} className="flex items-center gap-2 py-1.5 text-sm">
                   <span>{s.status === 'done' ? '✅' : '⬜'}</span>
-                  <a href={`/tasks/${s._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${s._id}`); }}
+                  <a href={`/tasks/${s.id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${s.id}`); }}
                     className={`flex-1 text-accent hover:underline ${s.status === 'done' ? 'line-through' : ''}`}>{s.title}</a>
                 </div>
               ))}
@@ -267,11 +267,11 @@ export default function TaskDetailPage() {
             <div className="border border-border rounded-lg p-4 bg-surface">
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">Blocked by</h3>
               {blockers.map(b => (
-                <div key={b._id} className="flex items-center gap-2 py-1.5 text-sm">
+                <div key={b.id} className="flex items-center gap-2 py-1.5 text-sm">
                   <span>{b.status === 'done' ? '✅' : '🔴'}</span>
-                  <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }}
+                  <a href={`/tasks/${b.id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b.id}`); }}
                     className={`flex-1 text-accent hover:underline ${b.status === 'done' ? 'line-through' : ''}`}>{b.title}</a>
-                  {isOwner && <button onClick={() => removeBlocker(b._id)} className="text-xs text-danger hover:underline">✕</button>}
+                  {isOwner && <button onClick={() => removeBlocker(b.id)} className="text-xs text-danger hover:underline">✕</button>}
                 </div>
               ))}
               {blockers.length === 0 && <p className="text-xs text-text-muted">None</p>}
@@ -283,9 +283,9 @@ export default function TaskDetailPage() {
             <div className="border border-border rounded-lg p-4 bg-surface">
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">Blocking</h3>
               {blocking.map(b => (
-                <div key={b._id} className="flex items-center gap-2 py-1.5 text-sm">
+                <div key={b.id} className="flex items-center gap-2 py-1.5 text-sm">
                   <span>{b.status === 'done' ? '✅' : '⏳'}</span>
-                  <a href={`/tasks/${b._id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b._id}`); }}
+                  <a href={`/tasks/${b.id}`} onClick={e => { e.preventDefault(); navigate(`/tasks/${b.id}`); }}
                     className={`text-accent hover:underline ${b.status === 'done' ? 'line-through' : ''}`}>{b.title}</a>
                 </div>
               ))}
@@ -320,7 +320,7 @@ export default function TaskDetailPage() {
                   <div key={i} className="p-3 bg-surface-secondary rounded-md">
                     <div className="text-xs text-text-muted mb-1">{new Date(v.savedAt).toLocaleString()}</div>
                     <div className="text-sm text-text-secondary whitespace-pre-wrap">{v.description || <em className="text-text-muted">(empty)</em>}</div>
-                    {isOwner && <button onClick={() => api.rollbackDescription(task._id, i).then(setTask)} className="text-xs text-accent hover:underline mt-1">↩ Rollback</button>}
+                    {isOwner && <button onClick={() => api.rollbackDescription(task.id, i).then(setTask)} className="text-xs text-accent hover:underline mt-1">↩ Rollback</button>}
                   </div>
                 ))}
               </div>

@@ -1,1 +1,1 @@
-export interface ContextEntry { _id: string; key: string; value: string; }
+export interface ContextEntry { id: string; key: string; value: string; }

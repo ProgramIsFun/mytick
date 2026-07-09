@@ -42,14 +42,14 @@ export default function GroupsPage() {
         {groups.map(group => {
           const isOwner = group.ownerId === user?.id;
           return (
-            <div key={group._id} className="border border-border rounded-lg p-4 bg-surface">
+            <div key={group.id} className="border border-border rounded-lg p-4 bg-surface">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-text-primary">👥 {group.name}</h3>
                 {isOwner && (
                   <div className="flex gap-2">
-                    <button onClick={() => setAddMemberGroupId(addMemberGroupId === group._id ? null : group._id)}
+                    <button onClick={() => setAddMemberGroupId(addMemberGroupId === group.id ? null : group.id)}
                       className="text-xs px-2.5 py-1 rounded-md border border-border hover:bg-surface-hover transition-colors">+ Member</button>
-                    <button onClick={() => { api.deleteGroup(group._id); load(); }}
+                    <button onClick={() => { api.deleteGroup(group.id); load(); }}
                       className="text-xs px-2.5 py-1 rounded-md text-danger hover:bg-danger/10 transition-colors">Delete</button>
                   </div>
                 )}
@@ -60,7 +60,7 @@ export default function GroupsPage() {
                   <div key={m.userId} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-surface-secondary text-sm">
                     <span className="text-text-primary">@{m.username || m.userId} <span className="text-text-muted">· {m.role}</span></span>
                     {isOwner && (
-                      <button onClick={() => { api.removeMember(group._id, m.userId); load(); }}
+                      <button onClick={() => { api.removeMember(group.id, m.userId); load(); }}
                         className="text-[11px] text-danger hover:underline">Remove</button>
                     )}
                   </div>
@@ -68,7 +68,7 @@ export default function GroupsPage() {
                 {group.members.length === 0 && <p className="text-xs text-text-muted py-1">No members yet</p>}
               </div>
 
-              {isOwner && addMemberGroupId === group._id && (
+              {isOwner && addMemberGroupId === group.id && (
                 <form onSubmit={handleAddMember} className="flex gap-2 mt-3">
                   <input placeholder="User ID or email" value={memberUserId} onChange={e => setMemberUserId(e.target.value)} className={`flex-1 ${inputCls}`} />
                   <select value={memberRole} onChange={e => setMemberRole(e.target.value)} className={inputCls}>

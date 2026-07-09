@@ -15,8 +15,8 @@ export default function SecretPicker({ secrets, onSelect, onClose, title = 'Sele
       <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
         {secrets.map(secret => (
           <button
-            key={secret._id}
-            onClick={() => onSelect(secret._id)}
+            key={secret.id}
+            onClick={() => onSelect(secret.id)}
             className="w-full text-left px-3 py-2 rounded border border-border hover:bg-surface-hover text-sm flex items-center gap-2"
           >
             <span>{secret.name}</span>

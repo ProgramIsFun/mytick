@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { inputClsFull as inputCls } from '../constants/styles';
 
-interface CalendarItem { _id?: string; taskId: string; title: string; status: string; date: string; recurring: boolean; }
+interface CalendarItem { id?: string; taskId: string; title: string; status: string; date: string; recurring: boolean; }
 interface EditState { taskId: string; originalDate: string; newDate: string; title: string; }
 
 export default function CalendarView() {

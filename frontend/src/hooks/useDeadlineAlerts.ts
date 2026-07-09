@@ -28,7 +28,7 @@ export function useDeadlineAlerts() {
           const remaining = deadline - now;
 
           for (const alert of ALERTS) {
-            const key = `${task._id}-${alert.label}`;
+            const key = `${task.id}-${alert.label}`;
             if (notified.current.has(key)) continue;
             if (remaining > 0 && remaining <= alert.ms) {
               new Notification(`⏰ ${task.title}`, {

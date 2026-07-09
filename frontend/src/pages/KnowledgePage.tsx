@@ -86,13 +86,13 @@ export default function KnowledgePage() {
         {loading ? <Spinner text="Loading knowledge..." /> : (
           <div className="space-y-2">
             {entries.map(e => {
-              const isExpanded = expanded === e._id;
-              const isEditing = editingId === e._id;
+              const isExpanded = expanded === e.id;
+              const isEditing = editingId === e.id;
               return (
                 <ExpandableItem
-                  key={e._id}
+                  key={e.id}
                   expanded={isExpanded}
-                  onToggle={() => setExpanded(isExpanded ? null : e._id)}
+                  onToggle={() => setExpanded(isExpanded ? null : e.id)}
                   header={
                     <span className="text-sm text-text-secondary truncate">
                       {e.content.slice(0, 80)}{e.content.length > 80 ? '...' : ''}
@@ -103,7 +103,7 @@ export default function KnowledgePage() {
                     <div className="space-y-2">
                       <textarea value={editContent} onChange={ev => setEditContent(ev.target.value)} rows={8} className={inputCls} />
                       <div className="flex gap-2">
-                        <Button onClick={() => handleSave(e._id)}>Save</Button>
+                        <Button onClick={() => handleSave(e.id)}>Save</Button>
                         <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
                       </div>
                     </div>
@@ -111,8 +111,8 @@ export default function KnowledgePage() {
                     <>
                       <pre className="text-sm text-text-secondary whitespace-pre-wrap break-words">{e.content}</pre>
                       <div className="flex gap-3 mt-3">
-                        <button onClick={() => { setEditingId(e._id); setEditContent(e.content); }} className="text-xs text-accent hover:underline">Edit</button>
-                        <button onClick={() => handleDelete(e._id)} className="text-xs text-danger hover:underline">Delete</button>
+                        <button onClick={() => { setEditingId(e.id); setEditContent(e.content); }} className="text-xs text-accent hover:underline">Edit</button>
+                        <button onClick={() => handleDelete(e.id)} className="text-xs text-danger hover:underline">Delete</button>
                       </div>
                     </>
                   )}

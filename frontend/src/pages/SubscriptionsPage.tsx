@@ -149,12 +149,12 @@ export default function SubscriptionsPage() {
 
         <div className="space-y-2">
           {loading ? <Spinner text="Loading subscriptions..." /> : subs.length === 0 ? <EmptyState message="No subscriptions yet" /> : subs.map(s => {
-            const isExpanded = expanded === s._id;
+            const isExpanded = expanded === s.id;
             return (
               <ExpandableItem
-                key={s._id}
+                key={s.id}
                 expanded={isExpanded}
-                onToggle={() => setExpanded(isExpanded ? null : s._id)}
+                onToggle={() => setExpanded(isExpanded ? null : s.id)}
                 header={
                   <>
                     <span className="text-xl">{getCategoryIcon(s.category)}</span>
@@ -188,7 +188,7 @@ export default function SubscriptionsPage() {
                     </div>
                   )}
                   <div className="pt-2">
-                    <button onClick={() => { api.deleteSubscription(s._id).then(load); }} className="text-xs text-danger hover:underline">Delete subscription</button>
+                    <button onClick={() => { api.deleteSubscription(s.id).then(load); }} className="text-xs text-danger hover:underline">Delete subscription</button>
                   </div>
                 </div>
               </ExpandableItem>

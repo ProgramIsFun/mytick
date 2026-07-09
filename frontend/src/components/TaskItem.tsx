@@ -32,12 +32,12 @@ export default function TaskItem({ task, groups: _groups, isOwner, onUpdate, onD
       <input
         type="checkbox"
         checked={isDone}
-        onChange={() => onUpdate(task._id, { status: isDone ? 'pending' : 'done' })}
+        onChange={() => onUpdate(task.id, { status: isDone ? 'pending' : 'done' })}
         disabled={!isOwner}
         className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
       />
 
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/tasks/${task._id}`)}>
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/tasks/${task.id}`)}>
         <div className={`text-sm font-medium truncate ${isDone ? 'line-through text-text-muted' : 'text-text-primary'}`}>
           {task.type === 'project' && <span className="mr-1">📁</span>}
           {task.title}
@@ -63,7 +63,7 @@ export default function TaskItem({ task, groups: _groups, isOwner, onUpdate, onD
 
       {isOwner && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onUpdate(task._id, { pinned: !task.pinned })} className="text-xs px-2 py-1 rounded hover:bg-surface-hover border border-transparent" title={task.pinned ? 'Unpin' : 'Pin'}>
+          <button onClick={() => onUpdate(task.id, { pinned: !task.pinned })} className="text-xs px-2 py-1 rounded hover:bg-surface-hover border border-transparent" title={task.pinned ? 'Unpin' : 'Pin'}>
             {task.pinned ? '📌' : '📍'}
           </button>
           {task.visibility === 'public' && (
@@ -72,7 +72,7 @@ export default function TaskItem({ task, groups: _groups, isOwner, onUpdate, onD
             </button>
           )}
           <button
-            onClick={() => onDelete(task._id)}
+            onClick={() => onDelete(task.id)}
             className="text-xs px-2 py-1 rounded hover:bg-danger/10 text-danger border border-transparent hover:border-danger/20"
           >
             ✕

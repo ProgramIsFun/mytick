@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import { STATUS_BADGE } from '../constants/task';
 import EmptyState from '../components/EmptyState';
 
-interface Task { _id: string; title: string; description: string; status: string; createdAt: string; }
+interface Task { id: string; title: string; description: string; status: string; createdAt: string; }
 
 export default function PublicTasksPage() {
   const { username } = useParams<{ username: string }>();
@@ -30,7 +30,7 @@ export default function PublicTasksPage() {
             {tasks.map(t => {
               const badge = STATUS_BADGE[t.status] || STATUS_BADGE.pending;
               return (
-                <div key={t._id} className="px-4 py-3 border-b border-border-light">
+                <div key={t.id} className="px-4 py-3 border-b border-border-light">
                   <div className="flex items-center gap-3">
                     <span className={`flex-1 text-sm font-medium ${t.status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'}`}>{t.title}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>{badge.label}</span>

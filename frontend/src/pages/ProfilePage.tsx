@@ -6,7 +6,7 @@ import EmptyState from '../components/EmptyState';
 import TagPills from '../components/TagPills';
 
 interface Project {
-  _id: string; title: string; description: string; status: string;
+  id: string; title: string; description: string; status: string;
   tags?: string[]; metadata?: { repoUrl?: string; projectType?: string } | null;
   createdAt: string;
 }
@@ -53,7 +53,7 @@ export default function ProfilePage() {
       <main className="max-w-3xl mx-auto px-4 py-6">
         <div className="space-y-3">
           {profile.projects.map(p => (
-            <div key={p._id} className="border border-border rounded-lg p-5 bg-surface hover:border-accent/30 transition-colors">
+            <div key={p.id} className="border border-border rounded-lg p-5 bg-surface hover:border-accent/30 transition-colors">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-text-primary">📁 {p.title}</h2>

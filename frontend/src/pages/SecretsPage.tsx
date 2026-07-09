@@ -111,7 +111,7 @@ export default function SecretsPage() {
       }
 
       if (isEditing && secret) {
-        await api.updateSecret(secret._id, payload);
+        await api.updateSecret(secret.id, payload);
       } else {
         await api.createSecret(payload);
       }
@@ -127,7 +127,7 @@ export default function SecretsPage() {
   const handleDelete = async () => {
     if (!secret || !window.confirm('Delete this secret? This action cannot be undone.')) return;
     try {
-      await api.deleteSecret(secret._id);
+      await api.deleteSecret(secret.id);
       navigate('/secrets');
     } catch {
       alert('Error deleting secret');
@@ -527,8 +527,8 @@ export default function SecretsPage() {
       <div className="space-y-2">
         {secrets.map(s => (
           <div
-            key={s._id}
-            onClick={() => navigate(`/secrets/${s._id}`)}
+            key={s.id}
+            onClick={() => navigate(`/secrets/${s.id}`)}
             className="bg-surface border border-border rounded-lg p-4 hover:bg-surface-hover cursor-pointer transition-colors"
           >
             <div className="flex items-start justify-between">

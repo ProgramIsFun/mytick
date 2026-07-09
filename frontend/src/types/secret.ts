@@ -1,5 +1,5 @@
 export interface Secret {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   provider: 'bitwarden' | 'bitwarden_sm' | '1password' | 'lastpass' | 'vault' | 'aws_secrets' | 'custom' | 'client_encrypted';

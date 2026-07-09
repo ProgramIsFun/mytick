@@ -66,7 +66,7 @@ export default function AccountsPage() {
             </div>
             <select value={form.parentAccountId} onChange={e => setForm({ ...form, parentAccountId: e.target.value })} className={inputCls}>
               <option value="">No parent account (root)</option>
-              {accounts.map(acc => <option key={acc._id} value={acc._id}>{PROVIDERS[acc.provider]?.emoji || '⚙️'} {acc.name}</option>)}
+              {accounts.map(acc => <option key={acc.id} value={acc.id}>{PROVIDERS[acc.provider]?.emoji || '⚙️'} {acc.name}</option>)}
             </select>
             <div className="grid grid-cols-2 gap-3">
               <input placeholder="URL" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={inputCls} />
@@ -90,12 +90,12 @@ export default function AccountsPage() {
         <div className="space-y-2">
           {loading ? <Spinner text="Loading accounts..." /> : accounts.length === 0 ? <EmptyState message="No accounts yet" /> : accounts.map(a => {
             const prov = PROVIDERS[a.provider] || PROVIDERS.custom;
-            const isExpanded = expanded === a._id;
+            const isExpanded = expanded === a.id;
             return (
               <ExpandableItem
-                key={a._id}
+                key={a.id}
                 expanded={isExpanded}
-                onToggle={() => setExpanded(isExpanded ? null : a._id)}
+                onToggle={() => setExpanded(isExpanded ? null : a.id)}
                 header={
                   <>
                     <span className="text-xl">{prov.emoji}</span>
@@ -136,9 +136,9 @@ export default function AccountsPage() {
                         <span className="text-text-muted">Credentials:</span>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {a.credentials.map((c) => {
-                            const isEditing = editCred?.accountId === a._id && editCred?.key === c.key;
-                            const secretId = typeof c.secretId === 'object' ? c.secretId?._id : c.secretId;
-                            const secret = secrets.find(s => s._id === secretId);
+                            const isEditing = editCred?.accountId === a.id && editCred?.key === c.key;
+                            const secretId = typeof c.secretId === 'object' ? c.secretId?.id : c.secretId;
+                            const secret = secrets.find(s => s.id === secretId);
 
                             return (
                               <div key={c.key} className="flex items-center gap-1">
@@ -154,7 +154,7 @@ export default function AccountsPage() {
                                     <button
                                       onClick={async () => {
                                         try {
-                                          await api.updateAccount(a._id, {
+                                          await api.updateAccount(a.id, {
                                             credentials: a.credentials.map(cred =>
                                               cred.key === c.key ? { ...cred, secretId: editValue || null } : cred
                                             ),
@@ -181,7 +181,7 @@ export default function AccountsPage() {
                                     </span>
                                     {secret ? (
                                       <button
-                                        onClick={(e) => { e.stopPropagation(); navigate(`/secrets/${secret._id}`); }}
+                                        onClick={(e) => { e.stopPropagation(); navigate(`/secrets/${secret.id}`); }}
                                         className="text-[11px] px-1.5 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
                                       >
                                         {secret.name}
@@ -198,7 +198,7 @@ export default function AccountsPage() {
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setEditCred({ accountId: a._id, key: c.key });
+                                        setEditCred({ accountId: a.id, key: c.key });
                                         setEditValue(secretId || '');
                                       }}
                                       className="text-[11px] px-1 py-0.5 rounded border border-border hover:bg-surface-hover text-text-muted hover:text-text-primary"
@@ -215,14 +215,14 @@ export default function AccountsPage() {
                       </div>
                     )}
                     {/* Sub-accounts */}
-                    {accounts.filter(sub => sub.parentAccountId === a._id).length > 0 && (
+                    {accounts.filter(sub => sub.parentAccountId === a.id).length > 0 && (
                       <div>
-                        <span className="text-text-muted">Sub-accounts ({accounts.filter(sub => sub.parentAccountId === a._id).length}):</span>
+                        <span className="text-text-muted">Sub-accounts ({accounts.filter(sub => sub.parentAccountId === a.id).length}):</span>
                         <div className="mt-1 space-y-1">
-                          {accounts.filter(sub => sub.parentAccountId === a._id).map(sub => (
+                          {accounts.filter(sub => sub.parentAccountId === a.id).map(sub => (
                             <button
-                              key={sub._id}
-                              onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${sub._id}`); }}
+                              key={sub.id}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${sub.id}`); }}
                               className="text-xs px-2 py-1 rounded bg-surface border border-border hover:bg-surface-hover flex items-center gap-1"
                             >
                               {PROVIDERS[sub.provider]?.emoji || '⚙️'} {sub.name}
@@ -232,7 +232,7 @@ export default function AccountsPage() {
                       </div>
                     )}
                     <div className="pt-2">
-                      <button onClick={() => handleDelete(a._id)} className="text-xs text-danger hover:underline">Delete account</button>
+                      <button onClick={() => handleDelete(a.id)} className="text-xs text-danger hover:underline">Delete account</button>
                     </div>
                   </div>
               </ExpandableItem>

@@ -66,11 +66,11 @@ export default function DomainsPage() {
             <div className="grid grid-cols-2 gap-3">
               <select value={form.registrarAccountId} onChange={e => setForm({ ...form, registrarAccountId: e.target.value })} className={inputCls}>
                 <option value="">Registrar account...</option>
-                {accounts.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
               <select value={form.dnsAccountId} onChange={e => setForm({ ...form, dnsAccountId: e.target.value })} className={inputCls}>
                 <option value="">DNS account...</option>
-                {accounts.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
             <input placeholder="Nameservers (comma separated)" value={form.nameservers} onChange={e => setForm({ ...form, nameservers: e.target.value })} className={inputCls} />
@@ -93,12 +93,12 @@ export default function DomainsPage() {
 
         <div className="space-y-2">
           {domains.map(d => {
-            const isExpanded = expanded === d._id;
+            const isExpanded = expanded === d.id;
             return (
               <ExpandableItem
-                key={d._id}
+                key={d.id}
                 expanded={isExpanded}
-                onToggle={() => setExpanded(isExpanded ? null : d._id)}
+                onToggle={() => setExpanded(isExpanded ? null : d.id)}
                 header={
                   <>
                     <span className="text-xl">🌐</span>
@@ -118,7 +118,7 @@ export default function DomainsPage() {
                       <div>
                         <span className="text-text-muted">Project:</span> 
                         <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${(d.projectId as Project)._id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${(d.projectId as Project).id}`); }}
                           className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
                         >
                           {(d.projectId as Project).title} →
@@ -129,7 +129,7 @@ export default function DomainsPage() {
                       <div>
                         <span className="text-text-muted">Registrar:</span> 
                         <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.registrarAccountId as Account)._id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.registrarAccountId as Account).id}`); }}
                           className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
                         >
                           {(d.registrarAccountId as Account).name} →
@@ -140,7 +140,7 @@ export default function DomainsPage() {
                       <div>
                         <span className="text-text-muted">DNS:</span> 
                         <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.dnsAccountId as Account)._id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.dnsAccountId as Account).id}`); }}
                           className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
                         >
                           {(d.dnsAccountId as Account).name} →
@@ -152,7 +152,7 @@ export default function DomainsPage() {
                     {d.expiryDate && <div><span className="text-text-muted">Expires:</span> <span className="text-text-primary">{new Date(d.expiryDate).toLocaleDateString()}</span></div>}
                     {d.notes && <div><span className="text-text-muted">Notes:</span> <span className="text-text-secondary whitespace-pre-wrap">{d.notes}</span></div>}
                     <div className="pt-2">
-                      <button onClick={() => { api.deleteDomain(d._id).then(load); }} className="text-xs text-danger hover:underline">Delete domain</button>
+                      <button onClick={() => { api.deleteDomain(d.id).then(load); }} className="text-xs text-danger hover:underline">Delete domain</button>
                     </div>
                   </div>
               </ExpandableItem>

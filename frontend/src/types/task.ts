@@ -1,11 +1,11 @@
 export interface Task {
-  _id: string; title: string; description: string; status: string;
+  id: string; title: string; description: string; status: string;
   visibility: string; groupIds: string[]; shareToken: string; userId: string;
   deadline: string | null;
 }
 
 export interface TaskItemData {
-  _id: string;
+  id: string;
   title: string;
   status: string;
   type?: string;
@@ -19,4 +19,4 @@ export interface TaskItemData {
   metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: unknown[]; members?: unknown[] } | null;
 }
 
-export interface GroupRef { _id: string; name: string; }
+export interface GroupRef { id: string; name: string; }

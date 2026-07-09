@@ -200,7 +200,7 @@ export default function DashboardPage() {
               ) : (
                 tasks.filter(t => showGroupTasks || t.userId === user?.id).map(task => (
                   <TaskItem
-                    key={task._id}
+                    key={task.id}
                     task={task}
                     groups={groups}
                     isOwner={task.userId === user?.id}

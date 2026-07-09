@@ -99,8 +99,8 @@ export default function TaskForm({ groups, onCreate }: Props) {
                 <label className="text-xs font-medium text-text-secondary mb-2 block">Share with groups</label>
                 <div className="flex flex-wrap gap-2">
                   {groups.map(g => (
-                    <label key={g._id} className={`text-xs flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors ${selectedGroups.includes(g._id) ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-secondary hover:bg-surface-hover'}`}>
-                      <input type="checkbox" checked={selectedGroups.includes(g._id)} onChange={() => toggleGroup(g._id)} className="hidden" />
+                    <label key={g.id} className={`text-xs flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors ${selectedGroups.includes(g.id) ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-secondary hover:bg-surface-hover'}`}>
+                      <input type="checkbox" checked={selectedGroups.includes(g.id)} onChange={() => toggleGroup(g.id)} className="hidden" />
                       {g.name}
                     </label>
                   ))}

@@ -16,18 +16,7 @@ async function request(path: string, options: RequestInit = {}) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(err.error || 'Request failed');
   }
-  return addIdAlias(await res.json());
-}
-
-// Recursively add _id alias to any object that has an id field
-function addIdAlias<T>(data: T): T {
-  if (Array.isArray(data)) return data.map(addIdAlias) as T;
-  if (data && typeof data === 'object') {
-    const obj = data as Record<string, unknown>;
-    if ('id' in obj && !('_id' in obj)) obj._id = obj.id;
-    for (const val of Object.values(obj)) addIdAlias(val);
-  }
-  return data;
+  return await res.json();
 }
 
 function buildQuery(base: string, params: Record<string, string | undefined>) {

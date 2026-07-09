@@ -5,7 +5,7 @@ export type { CommonSecretRef as SecretRef };
 export interface Credential { key: string; secretId: CommonSecretRef | string; }
 
 export interface Account {
-  _id: string; name: string; provider: string; url: string;
+  id: string; name: string; provider: string; url: string;
   username: string; notes: string; tags: string[]; credentials: Credential[];
   parentAccountId: string | null;
 }

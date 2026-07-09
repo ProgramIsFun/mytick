@@ -100,7 +100,7 @@ export default function DatabaseDetailPage() {
             <div>
               <label className="text-xs font-medium text-text-muted block mb-1">Account</label>
               <button
-                onClick={() => navigate(`/accounts/${db.accountId!._id}`)}
+                onClick={() => navigate(`/accounts/${db.accountId!.id}`)}
                 className="text-sm text-accent hover:underline"
               >
                 {db.accountId.name}
@@ -113,7 +113,7 @@ export default function DatabaseDetailPage() {
               <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigate(`/secrets/${(db.secretId as Secret)._id}`)}
+                  onClick={() => navigate(`/secrets/${(db.secretId as Secret).id}`)}
                   className="text-sm text-accent hover:underline"
                 >
                   {db.secretId.name} ({db.secretId.provider})
@@ -203,7 +203,7 @@ export default function DatabaseDetailPage() {
                 </thead>
                 <tbody>
                   {backups.map(b => (
-                    <tr key={b._id} className="border-b border-border/50 hover:bg-surface-hover/50">
+                    <tr key={b.id} className="border-b border-border/50 hover:bg-surface-hover/50">
                       <td className="py-2 pr-4">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded ${
                           b.status === 'success' ? 'bg-success/20 text-success' :

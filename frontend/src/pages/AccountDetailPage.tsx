@@ -29,7 +29,7 @@ export default function AccountDetailPage() {
           const inputs: Record<string, string> = {};
           for (const cred of account.credentials) {
             inputs[cred.key] = cred.secretId
-              ? (typeof cred.secretId === 'object' ? cred.secretId._id : cred.secretId)
+              ? (typeof cred.secretId === 'object' ? cred.secretId.id : cred.secretId)
               : '';
           }
           setSecretIdInputs(inputs);
@@ -39,7 +39,7 @@ export default function AccountDetailPage() {
   }, [id]);
 
   const resolveName = (secretId: string) => {
-    const s = secrets.find(s => s._id === secretId);
+    const s = secrets.find(s => s.id === secretId);
     return s ? `${s.name} (${s.provider})` : null;
   };
 
@@ -199,7 +199,7 @@ export default function AccountDetailPage() {
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
           <div>
             <label className="text-xs font-medium text-text-muted block mb-1">Created</label>
-            <p className="text-sm text-text-primary">{formatObjectIdDate(account._id)}</p>
+            <p className="text-sm text-text-primary">{formatObjectIdDate(account.id)}</p>
           </div>
         </div>
       </div>

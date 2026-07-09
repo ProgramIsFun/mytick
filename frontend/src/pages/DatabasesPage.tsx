@@ -97,7 +97,7 @@ export default function DatabasesPage() {
               <label className="text-xs font-medium text-text-muted block mb-2">Secret (optional)</label>
               <select value={form.secretId} onChange={e => setForm({ ...form, secretId: e.target.value })} className={inputCls}>
                 <option value="">No secret</option>
-                {secrets.map(s => <option key={s._id} value={s._id}>{s.name} ({s.provider})</option>)}
+                {secrets.map(s => <option key={s.id} value={s.id}>{s.name} ({s.provider})</option>)}
               </select>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -107,7 +107,7 @@ export default function DatabasesPage() {
             </div>
             <select value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })} className={inputCls}>
               <option value="">No linked account</option>
-              {accounts.map(a => <option key={a._id} value={a._id}>{a.name} ({a.provider})</option>)}
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.provider})</option>)}
             </select>
             <div className="border border-border rounded-lg p-3 bg-surface-secondary">
               <label className="flex items-center gap-2 mb-2">
@@ -162,8 +162,8 @@ export default function DatabasesPage() {
                   const dbType = DB_TYPES[db.type] || DB_TYPES.other;
 
                   return (
-                    <div key={db._id} className="border border-border rounded-lg bg-surface overflow-hidden">
-                      <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover" onClick={() => navigate(`/databases/${db._id}`)}>
+                    <div key={db.id} className="border border-border rounded-lg bg-surface overflow-hidden">
+                      <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover" onClick={() => navigate(`/databases/${db.id}`)}>
                         <span className="text-xl">{dbType.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export default function DatabasesPage() {
                         </div>
                         {db.accountId && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${db.accountId?._id || ''}`); }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${db.accountId?.id || ''}`); }}
                             className="text-xs px-2 py-1 rounded-md border border-border text-text-secondary hover:text-accent hover:border-accent hover:bg-accent/5 transition-colors"
                             title="View account details"
                           >
@@ -214,10 +214,10 @@ export default function DatabasesPage() {
                   <div className="space-y-1.5 max-h-[calc(100vh-180px)] overflow-y-auto">
                     {allBackups.map(b => (
                       <div
-                        key={b._id}
+                        key={b.id}
                         className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-hover cursor-pointer text-xs"
                         onClick={() => {
-                          const dbId = typeof b.databaseId === 'object' ? b.databaseId._id : b.databaseId;
+                          const dbId = typeof b.databaseId === 'object' ? b.databaseId.id : b.databaseId;
                           navigate(`/databases/${dbId}`);
                         }}
                       >
