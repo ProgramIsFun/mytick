@@ -199,7 +199,7 @@ router.get('/roots', asyncHandler(async (req: AuthRequest, res: Response) => {
 }));
 
 router.get('/:id/blocking', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const tasks = await taskRepo.findBlockedBy(req.params.id as string);
+  const tasks = await taskRepo.findBlocking(req.params.id as string);
   res.json(tasks);
 }));
 

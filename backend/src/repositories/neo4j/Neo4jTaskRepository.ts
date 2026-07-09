@@ -99,11 +99,25 @@ export class Neo4jTaskRepository implements ITaskRepository {
     const session = getSession();
     try {
       const result = await session.run(
-        `MATCH (t:Task {id: $taskId})<-[:BLOCKED_BY]-(blocker:Task)
+        `MATCH (t:Task {id: $taskId})-[:BLOCKED_BY]->(blocker:Task)
          RETURN '' AS userId, blocker`,
         { taskId }
       );
       return result.records.map(r => recordToTaskSimple(r, 'blocker', r.get('userId')));
+    } finally {
+      await session.close();
+    }
+  }
+
+  async findBlocking(taskId: string): Promise<ITask[]> {
+    const session = getSession();
+    try {
+      const result = await session.run(
+        `MATCH (t:Task {id: $taskId})<-[:BLOCKED_BY]-(blocked:Task)
+         RETURN '' AS userId, blocked`,
+        { taskId }
+      );
+      return result.records.map(r => recordToTaskSimple(r, 'blocked', r.get('userId')));
     } finally {
       await session.close();
     }
@@ -196,6 +210,15 @@ export class Neo4jTaskRepository implements ITaskRepository {
           );
         }
       }
+      if (data.parentId) {
+        await session.executeWrite(tx =>
+          tx.run(
+            `MATCH (parent:Task {id: $parentId}), (child:Task {id: $childId})
+             MERGE (parent)-[:PARENT_OF]->(child)`,
+            { parentId: data.parentId, childId: id }
+          )
+        );
+      }
       return (await this.findById(id))!;
     } finally {
       await session.close();
@@ -244,6 +267,23 @@ export class Neo4jTaskRepository implements ITaskRepository {
           await session.run(
             `MATCH (t:Task {id: $id}), (g:Group {id: $gid}) MERGE (t)-[:VISIBLE_TO]->(g)`,
             { id, gid: g }
+          );
+        }
+      }
+      if (data.parentId !== undefined) {
+        await session.run(
+          `MATCH (t:Task {id: $id})-[r:PARENT_OF]->(t) DELETE r`,
+          { id }
+        );
+        await session.run(
+          `MATCH ()-[r:PARENT_OF]->(t:Task {id: $id}) DELETE r`,
+          { id }
+        );
+        if (data.parentId) {
+          await session.run(
+            `MATCH (parent:Task {id: $parentId}), (child:Task {id: $childId})
+             MERGE (parent)-[:PARENT_OF]->(child)`,
+            { parentId: data.parentId, childId: id }
           );
         }
       }
@@ -316,8 +356,8 @@ export class Neo4jTaskRepository implements ITaskRepository {
         { id }
       );
       const versions = result.records.map(r => ({
-        description: r.get('description'),
-        savedAt: new Date(r.get('savedAt')),
+        description: r.get('d.description'),
+        savedAt: new Date(r.get('d.savedAt')),
       }));
       if (index < 0 || index >= versions.length) return;
       const current = await session.run(

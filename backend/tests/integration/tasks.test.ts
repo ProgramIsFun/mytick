@@ -275,11 +275,11 @@ describe('task status filter', () => {
   beforeAll(async () => {
     await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'Done task' });
     const res = await request(app).get('/api/tasks?limit=1').set('Authorization', `Bearer ${token}`);
-    await request(app).patch(`/api/tasks/${res.body.tasks[0]._id}`).set('Authorization', `Bearer ${token}`)
+    await request(app).patch(`/api/tasks/${res.body.tasks[0].id}`).set('Authorization', `Bearer ${token}`)
       .send({ status: 'done' });
     await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'In progress task' });
     const res2 = await request(app).get('/api/tasks?limit=1').set('Authorization', `Bearer ${token}`);
-    await request(app).patch(`/api/tasks/${res2.body.tasks[0]._id}`).set('Authorization', `Bearer ${token}`)
+    await request(app).patch(`/api/tasks/${res2.body.tasks[0].id}`).set('Authorization', `Bearer ${token}`)
       .send({ status: 'in_progress' });
   });
 
@@ -323,7 +323,7 @@ describe('root tasks endpoint', () => {
 
     const res = await request(app).get('/api/tasks/roots').set('Authorization', `Bearer ${freshToken}`);
     expect(res.status).toBe(200);
-    const ids = res.body.tasks.map((t: any) => t._id);
+    const ids = res.body.tasks.map((t: any) => t.id);
     expect(ids).toContain(parent.body.id);
     expect(ids).toContain(standalone.body.id);
     expect(ids).not.toContain(child.body.id);

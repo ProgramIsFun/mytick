@@ -43,6 +43,7 @@ export interface ITaskRepository {
   }): Promise<{ tasks: ITask[]; total: number }>;
   findByShareToken(shareToken: string): Promise<ITask | null>;
   findBlockedBy(taskId: string): Promise<ITask[]>;
+  findBlocking(taskId: string): Promise<ITask[]>;
   findSubtasks(parentId: string): Promise<ITask[]>;
   countByStatus(userId: string, groupIds?: string[]): Promise<Record<string, number>>;
   create(data: Partial<ITask>): Promise<ITask>;
