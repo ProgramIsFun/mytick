@@ -47,8 +47,9 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
 }));
 
 router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const database = await databaseRepo.findById(req.params.id as string);
-  if (!database) return notFound(res, 'Database not found');
+  const db = await databaseRepo.findById(req.params.id as string);
+  console.log('backup-completed findById:', req.params.id, '->', db ? 'found' : 'null');
+  if (!db) return notFound(res, 'Database not found');
 
   const { status, startedAt, completedAt, sizeBytes, s3Path, s3Bucket, errorMessage, metadata, triggeredBy, lambdaRequestId } = req.body;
 
@@ -57,8 +58,8 @@ router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: 
   const durationMs = end.getTime() - start.getTime();
 
   const backupHistory = await backupHistoryRepo.create({
-    databaseId: database.id,
-    userId: database.userId,
+    databaseId: db.id,
+    userId: db.userId,
     status,
     startedAt: start,
     completedAt: end,
@@ -71,15 +72,16 @@ router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: 
     triggeredBy: triggeredBy || 'scheduled',
     lambdaRequestId,
   });
+  console.log('backupHistoryRepo.create succeeded:', backupHistory?.id);
 
   if (status === 'success') {
-    await databaseRepo.markBackupSuccess(database.id);
+    await databaseRepo.markBackupSuccess(db.id);
   }
 
   res.json({
     message: 'Backup recorded',
     backupId: backupHistory.id,
-    databaseId: database.id,
+    databaseId: db.id,
     status,
   });
 }));

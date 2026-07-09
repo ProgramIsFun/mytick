@@ -44,6 +44,18 @@ export class Neo4jBackupHistoryRepository implements IBackupHistoryRepository {
     const session = getSession();
     const id = nanoid();
     try {
+      const now = new Date().toISOString();
+      const params: Record<string, unknown> = {
+        databaseId: data.databaseId, userId: data.userId, id,
+        status: data.status,
+        startedAt: data.startedAt instanceof Date ? data.startedAt.toISOString() : data.startedAt,
+        completedAt: data.completedAt instanceof Date ? data.completedAt.toISOString() : data.completedAt,
+        durationMs: data.durationMs, sizeBytes: data.sizeBytes || 0,
+        s3Path: data.s3Path, s3Bucket: data.s3Bucket, errorMessage: data.errorMessage || null,
+        metadata: JSON.stringify(data.metadata || {}),
+        triggeredBy: data.triggeredBy || 'scheduled', lambdaRequestId: data.lambdaRequestId || null,
+        createdAt: now, updatedAt: now,
+      };
       await session.executeWrite(tx =>
         tx.run(
           `MATCH (db:Database {id: $databaseId})
@@ -54,18 +66,11 @@ export class Neo4jBackupHistoryRepository implements IBackupHistoryRepository {
              sizeBytes: $sizeBytes, s3Path: $s3Path, s3Bucket: $s3Bucket,
              errorMessage: $errorMessage, metadata: $metadata,
              triggeredBy: $triggeredBy, lambdaRequestId: $lambdaRequestId,
-             createdAt: datetime(), updatedAt: datetime()
+             createdAt: $createdAt, updatedAt: $updatedAt
            })
            MERGE (h)-[:BACKUP_OF]->(db)
            RETURN h`,
-          {
-            databaseId: data.databaseId, userId: data.userId, id,
-            status: data.status, startedAt: data.startedAt, completedAt: data.completedAt,
-            durationMs: data.durationMs, sizeBytes: data.sizeBytes || 0,
-            s3Path: data.s3Path, s3Bucket: data.s3Bucket, errorMessage: data.errorMessage || null,
-            metadata: JSON.stringify(data.metadata || {}),
-            triggeredBy: data.triggeredBy || 'scheduled', lambdaRequestId: data.lambdaRequestId || null,
-          }
+          params
         )
       );
       if (data.status === 'success') {
@@ -81,10 +86,10 @@ function recordToHistory(record: any): IBackupHistory {
   return {
     id: h.id, databaseId: '', userId: '', status: h.status,
     startedAt: new Date(h.startedAt), completedAt: new Date(h.completedAt),
-    durationMs: h.durationMs.toNumber ? h.durationMs.toNumber() : h.durationMs,
-    sizeBytes: h.sizeBytes?.toNumber ? h.sizeBytes.toNumber() : (h.sizeBytes || 0),
+    durationMs: typeof h.durationMs === 'number' ? h.durationMs : Number(h.durationMs),
+    sizeBytes: typeof h.sizeBytes === 'number' ? h.sizeBytes : (h.sizeBytes ? Number(h.sizeBytes) : 0),
     s3Path: h.s3Path, s3Bucket: h.s3Bucket, errorMessage: h.errorMessage,
-    metadata: typeof h.metadata === 'string' ? JSON.parse(h.metadata) : h.metadata,
+    metadata: typeof h.metadata === 'string' ? JSON.parse(h.metadata) : (h.metadata || {}),
     triggeredBy: h.triggeredBy, lambdaRequestId: h.lambdaRequestId,
     createdAt: new Date(h.createdAt), updatedAt: new Date(h.updatedAt),
   };
