@@ -1,6 +1,6 @@
 import { describe, it, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
-import { setupTestDB, teardownTestDB, createTestUser, app } from '../helpers';
+import { setupTestDB, teardownTestDB, createTestUser, cleanBackupHistory, app } from '../helpers';
 
 let token: string;
 let secretId: string;
@@ -448,8 +448,7 @@ describe('all backup history (GET /databases/backup-history)', () => {
   let db2Id: string;
 
   beforeEach(async () => {
-    const BackupHistory = (await import('../../src/models/BackupHistory')).default;
-    await BackupHistory.deleteMany({});
+    await cleanBackupHistory();
 
     const res1 = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({ name: 'DB Alpha', type: 'mongodb', backupEnabled: true });

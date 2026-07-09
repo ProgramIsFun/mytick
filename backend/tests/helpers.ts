@@ -72,4 +72,14 @@ export async function createTestUser(email = 'test@test.com', username = 'testus
   return { token: res.body.token, user: res.body.user, userId: res.body.user.id };
 }
 
+export async function cleanBackupHistory() {
+  if (!driver) throw new Error('Driver not initialized. Call setupTestDB() first.');
+  const session = driver.session();
+  try {
+    await session.run('MATCH (h:BackupHistory) DETACH DELETE h');
+  } finally {
+    await session.close();
+  }
+}
+
 export { app };

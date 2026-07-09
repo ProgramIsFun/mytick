@@ -135,7 +135,7 @@ function recordToDatabase(record: any): IDatabase {
     databaseName: d.databaseName, backupEnabled: d.backupEnabled,
     backupRetentionDays: d.backupRetentionDays, backupFrequency: d.backupFrequency,
     lastBackupAt: d.lastBackupAt ? new Date(d.lastBackupAt) : null,
-    secretId: s?.id || undefined, accountId: a?.id || undefined,
+    secretId: s?.id || null, accountId: a?.id || null,
     tags: d.tags || [], notes: d.notes,
     createdAt: new Date(d.createdAt), updatedAt: new Date(d.updatedAt),
   };
