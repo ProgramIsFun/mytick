@@ -54,3 +54,18 @@ export async function getUserGroupIds(userId: string) {
 export function forbidden(res: Response, msg = 'Forbidden') {
   return res.status(403).json({ error: msg });
 }
+
+/**
+ * Add _id alias for MongoDB compatibility
+ * Neo4j uses 'id', but MongoDB used '_id'
+ */
+export function addIdAlias<T extends { id: string }>(obj: T): T & { _id: string } {
+  return { ...obj, _id: obj.id };
+}
+
+/**
+ * Add _id alias to array of objects
+ */
+export function addIdAliasToArray<T extends { id: string }>(arr: T[]): Array<T & { _id: string }> {
+  return arr.map(addIdAlias);
+}

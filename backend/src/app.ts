@@ -46,19 +46,12 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 app.get('/api/health', async (_req, res) => {
-  const engine = process.env.DB_ENGINE || 'neo4j';
-  if (engine === 'neo4j') {
-    try {
-      const { getDriver } = await import('./neo4j');
-      await getDriver().verifyConnectivity();
-      res.json({ status: 'ok', engine: 'neo4j', db: true });
-    } catch {
-      res.status(503).json({ status: 'unhealthy', engine: 'neo4j', db: false });
-    }
-  } else {
-    const mongoose = await import('mongoose');
-    const dbOk = mongoose.default.connection.readyState === 1;
-    res.status(dbOk ? 200 : 503).json({ status: dbOk ? 'ok' : 'unhealthy', engine: 'mongodb', db: dbOk });
+  try {
+    const { getDriver } = await import('./neo4j');
+    await getDriver().verifyConnectivity();
+    res.json({ status: 'ok', engine: 'neo4j', db: true });
+  } catch {
+    res.status(503).json({ status: 'unhealthy', engine: 'neo4j', db: false });
   }
 });
 
