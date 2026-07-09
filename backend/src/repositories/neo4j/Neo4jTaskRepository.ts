@@ -68,7 +68,7 @@ export class Neo4jTaskRepository implements ITaskRepository {
       const dataParts = matchClauses.map(m => `MATCH ${m} ${where} RETURN u, t AS task`);
       const dataQuery = matchClauses.length > 1
         ? `CALL { ${dataParts.join(' UNION ALL ')} } RETURN u.id AS userId, task ORDER BY task.pinned DESC, task.createdAt DESC SKIP $skip LIMIT $limit`
-        : `${dataParts[0]} RETURN u.id AS userId, task ORDER BY task.pinned DESC, task.createdAt DESC SKIP $skip LIMIT $limit`;
+        : `MATCH ${matchClauses[0]} ${where} RETURN u.id AS userId, t AS task ORDER BY task.pinned DESC, task.createdAt DESC SKIP $skip LIMIT $limit`;
 
       const result = await session.run(dataQuery, { ...params, skip: int(skip), limit: int(limit) });
       return { tasks: result.records.map(r => recordToTaskSimple(r, 'task', r.get('userId'))), total };
@@ -159,6 +159,7 @@ export class Neo4jTaskRepository implements ITaskRepository {
              type: $type, status: $status, visibility: $visibility,
              shareToken: $shareToken, parentId: $parentId,
              deadline: $deadline, tags: $tags, pinned: $pinned,
+             recurrence: $recurrence, metadata: $metadata,
              createdAt: datetime(), updatedAt: datetime()
            })
            MERGE (u)-[:OWNS]->(t)
@@ -168,6 +169,8 @@ export class Neo4jTaskRepository implements ITaskRepository {
             type: data.type || 'task', status: 'pending', visibility: data.visibility || 'private',
             shareToken, parentId: data.parentId || null, deadline: data.deadline || null,
             tags: data.tags || [], pinned: data.pinned || false,
+            recurrence: data.recurrence ? JSON.stringify(data.recurrence) : null,
+            metadata: data.metadata ? JSON.stringify(data.metadata) : null,
           }
         )
       );
@@ -204,11 +207,16 @@ export class Neo4jTaskRepository implements ITaskRepository {
     try {
       const props: string[] = ['u.updatedAt = datetime()'];
       const params: any = { id };
-      const allowed = ['title', 'description', 'status', 'visibility', 'parentId', 'deadline', 'type', 'tags', 'pinned'];
+      const allowed = ['title', 'description', 'status', 'visibility', 'parentId', 'deadline', 'type', 'tags', 'pinned', 'recurrence', 'metadata'];
       for (const key of allowed) {
         if ((data as any)[key] !== undefined) {
           props.push(`t.${key} = $${key}`);
-          params[key] = (data as any)[key];
+          // Serialize recurrence and metadata as JSON strings
+          if (key === 'recurrence' || key === 'metadata') {
+            params[key] = (data as any)[key] ? JSON.stringify((data as any)[key]) : null;
+          } else {
+            params[key] = (data as any)[key];
+          }
         }
       }
       await session.run(
@@ -349,6 +357,17 @@ function recordToTaskSimple(record: any, key = 't', userId = ''): ITask {
     deadline: props.deadline ? new Date(props.deadline) : undefined,
     tags: props.tags || [],
     pinned: props.pinned,
+    recurrence: props.recurrence ? (() => {
+      const rec = typeof props.recurrence === 'string' ? JSON.parse(props.recurrence) : props.recurrence;
+      return {
+        freq: rec.freq,
+        interval: rec.interval,
+        until: rec.until ? new Date(rec.until) : undefined,
+        count: rec.count,
+        byDay: rec.byDay,
+      };
+    })() : null,
+    metadata: props.metadata ? (typeof props.metadata === 'string' ? JSON.parse(props.metadata) : props.metadata) : null,
     createdAt: new Date(props.createdAt),
     updatedAt: new Date(props.updatedAt),
   };
@@ -369,6 +388,17 @@ function recordToTask(record: any, userId = ''): ITask {
     deadline: t.deadline ? new Date(t.deadline) : undefined,
     tags: t.tags || [],
     pinned: t.pinned,
+    recurrence: t.recurrence ? (() => {
+      const rec = typeof t.recurrence === 'string' ? JSON.parse(t.recurrence) : t.recurrence;
+      return {
+        freq: rec.freq,
+        interval: rec.interval,
+        until: rec.until ? new Date(rec.until) : undefined,
+        count: rec.count,
+        byDay: rec.byDay,
+      };
+    })() : null,
+    metadata: t.metadata ? (typeof t.metadata === 'string' ? JSON.parse(t.metadata) : t.metadata) : null,
     groupIds: record.get('groupIds')?.filter((x: string) => x) || [],
     blockedBy: record.get('blockedBy')?.filter((x: string) => x) || [],
     descriptionHistory: record.get('descriptionHistory')?.filter((d: any) => d.description) || [],

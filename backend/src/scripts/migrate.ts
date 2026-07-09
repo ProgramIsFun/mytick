@@ -144,15 +144,20 @@ async function migrateTasks() {
       params: { userId: t.userId.toString(), taskId: id },
     });
     if (t.recurrence) {
+      const recObj: any = {
+        freq: t.recurrence.freq,
+        interval: t.recurrence.interval,
+      };
+      if (t.recurrence.until) recObj.until = dt(t.recurrence.until);
+      if (t.recurrence.count) recObj.count = t.recurrence.count;
+      if (t.recurrence.byDay?.length) recObj.byDay = t.recurrence.byDay;
+      
       stmts.push({
         cypher: `MATCH (n:Task {id: $id})
-          SET n.recurrenceFreq = $freq, n.recurrenceInterval = $interval,
-            n.recurrenceUntil = datetime($until), n.recurrenceCount = $count,
-            n.recurrenceByDay = $byDay`,
+          SET n.recurrence = $recurrence`,
         params: {
-          id, freq: t.recurrence.freq, interval: t.recurrence.interval,
-          until: dt(t.recurrence.until), count: t.recurrence.count || null,
-          byDay: t.recurrence.byDay || [],
+          id,
+          recurrence: JSON.stringify(recObj),
         },
       });
     }
