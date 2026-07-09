@@ -49,7 +49,7 @@ Manage tasks, track projects, organize credentials — across web, mobile, and A
 
 ### Prerequisites
 - Node.js 20+
-- MongoDB (local or Atlas)
+- Neo4j 5+ (local or AuraDB)
 
 ### Backend
 
@@ -92,13 +92,42 @@ npm run mcp:dev        # MCP on port 3100
 ```
 mytick/
 ├── frontend/          # React web app (Vite + TypeScript)
-├── backend/           # Node.js API server (Express + MongoDB)
+├── backend/           # Node.js API server (Express + Neo4j)
 ├── mobile/            # React Native mobile app (Expo)
 ├── workers/           # Background workers & automation
 │   └── nexus-backup/  # Database backup service (AWS Lambda)
 ├── shared/            # Shared types and utilities
 └── scripts/           # Build and deployment scripts
 ```
+
+### Graph Schema
+
+```mermaid
+erDiagram
+  User ||--o{ Account : OWNS
+  User ||--o{ Context : OWNS
+  User ||--o{ Database : OWNS
+  User ||--o{ Domain : OWNS
+  User ||--o{ Group : OWNS
+  User ||--o{ Knowledge : OWNS
+  User ||--o{ Secret : OWNS
+  User ||--o{ Task : OWNS
+  User ||--o{ AuthProvider : HAS_PROVIDER
+  User ||--o{ PushToken : HAS_TOKEN
+  Group ||--o{ User : HAS_MEMBER
+  Task ||--o{ Group : VISIBLE_TO
+  Task ||--o{ TaskDescription : HAS_DESCRIPTION
+  Domain ||--o{ Task : BELONGS_TO_PROJECT
+  Domain ||--o{ Account : REGISTERED_AT
+  Domain ||--o{ Account : DNS_AT
+  Database ||--o{ Secret : USES_SECRET
+  Database ||--o{ Account : MANAGED_BY
+  BackupHistory ||--o{ Database : BACKUP_OF
+  Account ||--o{ Secret : HAS_CREDENTIAL
+  Account ||--o{ Account : PARENT_OF
+```
+
+Run `npm run schema` to generate an up-to-date diagram from your running database.
 
 ### Data Flow
 
@@ -121,22 +150,9 @@ mytick/
               └────────┬─────────┘
                        │
                        ▼
-              ┌──────────────────┐
-              │   MongoDB        │
-              └──────────────────┘
-```
-
-### Data Model
-
-```
-Task (title, status, blockedBy[], projectIds[], deadline, recurrence)
-  ↕ many-to-many
-Project (name, services[], members[])
-  └── Service (accountId, role, mappings[])
-        └── Mapping (envVar, vaultId, target)
-              ↓
-Account (name, provider, credentials[])
-  └── Credential (key, vaultId → password manager)
+               ┌──────────────────┐
+               │   Neo4j Graph    │
+               └──────────────────┘
 ```
 
 ## 📡 API Reference

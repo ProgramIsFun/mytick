@@ -11,6 +11,7 @@
     "notify:dev": "nodemon --exec ts-node --transpile-only src/notify.ts",
     "migrate": "ts-node --transpile-only src/migrations/run.ts",
     "build": "tsc",
+    "schema": "node scripts/schema.mjs",
     "test": "jest --runInBand",
     "start": "node dist/index.js"
   },
