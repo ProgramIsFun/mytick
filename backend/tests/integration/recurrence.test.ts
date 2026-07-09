@@ -1,7 +1,7 @@
 import { describe, it, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
 import { setupTestDB, teardownTestDB, createTestUser, app } from '../helpers';
-import RecurrenceException from '../../src/models/RecurrenceException';
+import { recurrenceExceptionRepo } from '../../src/repositories';
 
 let token: string;
 
@@ -159,8 +159,8 @@ describe('occurrence exceptions', () => {
       date: start.toISOString(),
     });
     expect(res.status).toBe(200);
-    const count = await RecurrenceException.countDocuments({ taskId: create.body.id });
-    expect(count).toBe(0);
+    const exceptions = await recurrenceExceptionRepo.findByTaskAndDateRange([create.body.id], new Date(0), new Date('9999-12-31'));
+    expect(exceptions).toHaveLength(0);
   });
 
   it('deleting a task cleans up exceptions', async () => {
@@ -172,8 +172,8 @@ describe('occurrence exceptions', () => {
       date: start.toISOString(), status: 'done',
     });
     await request(app).delete(`/api/tasks/${create.body.id}`).set(auth());
-    const count = await RecurrenceException.countDocuments({ taskId: create.body.id });
-    expect(count).toBe(0);
+    const exceptions = await recurrenceExceptionRepo.findByTaskAndDateRange([create.body.id], new Date(0), new Date('9999-12-31'));
+    expect(exceptions).toHaveLength(0);
   });
 
   it('rejects non-recurring task', async () => {
