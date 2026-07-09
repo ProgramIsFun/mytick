@@ -58,8 +58,8 @@ export class Neo4jDatabaseRepository implements IDatabaseRepository {
     const session = getSession();
     const id = nanoid();
     try {
-      await session.executeWrite(tx =>
-        tx.run(
+      await session.executeWrite(async tx => {
+        await tx.run(
           `MATCH (u:User {id: $userId})
            CREATE (d:Database {
              id: $id, name: $name, type: $type, host: $host, port: $port,
@@ -74,14 +74,14 @@ export class Neo4jDatabaseRepository implements IDatabaseRepository {
             backupEnabled: data.backupEnabled || false, backupRetentionDays: data.backupRetentionDays || 30,
             backupFrequency: data.backupFrequency || 'daily', tags: data.tags || [], notes: data.notes || '',
           }
-        )
-      );
-      if (data.secretId) {
-        await session.run(`MATCH (d:Database {id: $id}), (s:Secret {id: $sid}) MERGE (d)-[:USES_SECRET]->(s)`, { id, sid: data.secretId });
-      }
-      if (data.accountId) {
-        await session.run(`MATCH (d:Database {id: $id}), (a:Account {id: $aid}) MERGE (d)-[:MANAGED_BY]->(a)`, { id, aid: data.accountId });
-      }
+        );
+        if (data.secretId) {
+          await tx.run(`MATCH (d:Database {id: $id}), (s:Secret {id: $sid}) MERGE (d)-[:USES_SECRET]->(s)`, { id, sid: data.secretId });
+        }
+        if (data.accountId) {
+          await tx.run(`MATCH (d:Database {id: $id}), (a:Account {id: $aid}) MERGE (d)-[:MANAGED_BY]->(a)`, { id, aid: data.accountId });
+        }
+      });
       return (await this.findById(id))!;
     } finally { await session.close(); }
   }
@@ -89,23 +89,25 @@ export class Neo4jDatabaseRepository implements IDatabaseRepository {
   async update(id: string, data: Partial<IDatabase>): Promise<IDatabase | null> {
     const session = getSession();
     try {
-      const props: string[] = ['d.updatedAt = datetime()'];
-      const params: any = { id };
-      const allowed = ['name', 'type', 'host', 'port', 'databaseName', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'tags', 'notes'];
-      for (const key of allowed) {
-        if ((data as any)[key] !== undefined) { props.push(`d.${key} = $${key}`); params[key] = (data as any)[key]; }
-      }
-      if (props.length > 1) {
-        await session.run(`MATCH (u:User)-[:OWNS]->(d:Database {id: $id}) SET ${props.join(', ')}`, params);
-      }
-      if (data.secretId !== undefined) {
-        await session.run(`MATCH (d:Database {id: $id})-[r:USES_SECRET]->() DELETE r`, { id });
-        if (data.secretId) { await session.run(`MATCH (d:Database {id: $id}), (s:Secret {id: $sid}) MERGE (d)-[:USES_SECRET]->(s)`, { id, sid: data.secretId }); }
-      }
-      if (data.accountId !== undefined) {
-        await session.run(`MATCH (d:Database {id: $id})-[r:MANAGED_BY]->() DELETE r`, { id });
-        if (data.accountId) { await session.run(`MATCH (d:Database {id: $id}), (a:Account {id: $aid}) MERGE (d)-[:MANAGED_BY]->(a)`, { id, aid: data.accountId }); }
-      }
+      await session.executeWrite(async tx => {
+        const props: string[] = ['d.updatedAt = datetime()'];
+        const params: any = { id };
+        const allowed = ['name', 'type', 'host', 'port', 'databaseName', 'backupEnabled', 'backupRetentionDays', 'backupFrequency', 'tags', 'notes'];
+        for (const key of allowed) {
+          if ((data as any)[key] !== undefined) { props.push(`d.${key} = $${key}`); params[key] = (data as any)[key]; }
+        }
+        if (props.length > 1) {
+          await tx.run(`MATCH (u:User)-[:OWNS]->(d:Database {id: $id}) SET ${props.join(', ')}`, params);
+        }
+        if (data.secretId !== undefined) {
+          await tx.run(`MATCH (d:Database {id: $id})-[r:USES_SECRET]->() DELETE r`, { id });
+          if (data.secretId) { await tx.run(`MATCH (d:Database {id: $id}), (s:Secret {id: $sid}) MERGE (d)-[:USES_SECRET]->(s)`, { id, sid: data.secretId }); }
+        }
+        if (data.accountId !== undefined) {
+          await tx.run(`MATCH (d:Database {id: $id})-[r:MANAGED_BY]->() DELETE r`, { id });
+          if (data.accountId) { await tx.run(`MATCH (d:Database {id: $id}), (a:Account {id: $aid}) MERGE (d)-[:MANAGED_BY]->(a)`, { id, aid: data.accountId }); }
+        }
+      });
       return this.findById(id);
     } finally { await session.close(); }
   }
@@ -145,7 +147,7 @@ function recordToDatabase(record: any): IDatabase {
 
 function recordToDatabaseSimple(record: any, key = 'd'): IDatabase {
   const d = record.get(key).properties || record.get(key);
-  const s = record.get('secret');
+  const s = record.has('secret') ? record.get('secret') : null;
   return {
     id: d.id, userId: '', name: d.name, type: d.type, host: d.host, port: d.port,
     databaseName: d.databaseName, backupEnabled: d.backupEnabled,

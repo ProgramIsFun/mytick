@@ -63,8 +63,8 @@ export class Neo4jAccountRepository implements IAccountRepository {
     const session = getSession();
     const id = nanoid();
     try {
-      await session.executeWrite(tx =>
-        tx.run(
+      await session.executeWrite(async tx => {
+        await tx.run(
           `MATCH (u:User {id: $userId})
            CREATE (a:Account {
              id: $id, name: $name, provider: $provider,
@@ -78,28 +78,26 @@ export class Neo4jAccountRepository implements IAccountRepository {
             url: data.url || '', username: data.username || '', notes: data.notes || '',
             tags: data.tags || [],
           }
-        )
-      );
-      if (data.parentAccountId) {
-        await session.executeWrite(tx =>
-          tx.run(
+        );
+        if (data.parentAccountId) {
+          await tx.run(
             `MATCH (a:Account {id: $id}), (parent:Account {id: $parentId})
              MERGE (parent)-[:PARENT_OF]->(a)`,
             { id, parentId: data.parentAccountId }
-          )
-        );
-      }
-      if (data.credentials && data.credentials.length > 0) {
-        for (const cred of data.credentials) {
-          if (cred.secretId) {
-            await session.run(
-              `MATCH (a:Account {id: $aid}), (s:Secret {id: $sid})
-               MERGE (a)-[:HAS_CREDENTIAL]->(s)`,
-              { aid: id, sid: cred.secretId }
-            );
+          );
+        }
+        if (data.credentials && data.credentials.length > 0) {
+          for (const cred of data.credentials) {
+            if (cred.secretId) {
+              await tx.run(
+                `MATCH (a:Account {id: $aid}), (s:Secret {id: $sid})
+                 MERGE (a)-[:HAS_CREDENTIAL]->(s)`,
+                { aid: id, sid: cred.secretId }
+              );
+            }
           }
         }
-      }
+      });
       return (await this.findById(id))!;
     } finally {
       await session.close();
@@ -109,31 +107,33 @@ export class Neo4jAccountRepository implements IAccountRepository {
   async update(id: string, data: Partial<IAccount>): Promise<IAccount | null> {
     const session = getSession();
     try {
-      const props: string[] = ['a.updatedAt = datetime()'];
-      const params: any = { id };
-      const allowed = ['name', 'provider', 'url', 'username', 'notes', 'tags'];
-      for (const key of allowed) {
-        if ((data as any)[key] !== undefined) {
-          props.push(`a.${key} = $${key}`);
-          params[key] = (data as any)[key];
+      await session.executeWrite(async tx => {
+        const props: string[] = ['a.updatedAt = datetime()'];
+        const params: any = { id };
+        const allowed = ['name', 'provider', 'url', 'username', 'notes', 'tags'];
+        for (const key of allowed) {
+          if ((data as any)[key] !== undefined) {
+            props.push(`a.${key} = $${key}`);
+            params[key] = (data as any)[key];
+          }
         }
-      }
-      await session.run(
-        `MATCH (u:User)-[:OWNS]->(a:Account {id: $id}) SET ${props.join(', ')}`,
-        params
-      );
-      if (data.parentAccountId !== undefined) {
-        await session.run(
-          `MATCH (a:Account {id: $id})-[r:PARENT_OF]-() DELETE r`,
-          { id }
+        await tx.run(
+          `MATCH (u:User)-[:OWNS]->(a:Account {id: $id}) SET ${props.join(', ')}`,
+          params
         );
-        if (data.parentAccountId) {
-          await session.run(
-            `MATCH (a:Account {id: $id}), (p:Account {id: $parent}) MERGE (p)-[:PARENT_OF]->(a)`,
-            { id, parent: data.parentAccountId }
+        if (data.parentAccountId !== undefined) {
+          await tx.run(
+            `MATCH (a:Account {id: $id})-[r:PARENT_OF]-() DELETE r`,
+            { id }
           );
+          if (data.parentAccountId) {
+            await tx.run(
+              `MATCH (a:Account {id: $id}), (p:Account {id: $parent}) MERGE (p)-[:PARENT_OF]->(a)`,
+              { id, parent: data.parentAccountId }
+            );
+          }
         }
-      }
+      });
       return this.findById(id);
     } finally {
       await session.close();
