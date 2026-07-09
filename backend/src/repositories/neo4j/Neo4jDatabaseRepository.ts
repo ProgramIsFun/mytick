@@ -145,11 +145,13 @@ function recordToDatabase(record: any): IDatabase {
 
 function recordToDatabaseSimple(record: any, key = 'd'): IDatabase {
   const d = record.get(key).properties || record.get(key);
+  const s = record.get('secret');
   return {
     id: d.id, userId: '', name: d.name, type: d.type, host: d.host, port: d.port,
     databaseName: d.databaseName, backupEnabled: d.backupEnabled,
     backupRetentionDays: d.backupRetentionDays, backupFrequency: d.backupFrequency,
     lastBackupAt: d.lastBackupAt ? new Date(d.lastBackupAt) : null,
+    secretId: s?.id || null,
     tags: d.tags || [], notes: d.notes,
     createdAt: new Date(d.createdAt), updatedAt: new Date(d.updatedAt),
   };

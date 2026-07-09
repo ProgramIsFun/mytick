@@ -89,6 +89,17 @@ export class Neo4jAccountRepository implements IAccountRepository {
           )
         );
       }
+      if (data.credentials && data.credentials.length > 0) {
+        for (const cred of data.credentials) {
+          if (cred.secretId) {
+            await session.run(
+              `MATCH (a:Account {id: $aid}), (s:Secret {id: $sid})
+               MERGE (a)-[:HAS_CREDENTIAL]->(s)`,
+              { aid: id, sid: cred.secretId }
+            );
+          }
+        }
+      }
       return (await this.findById(id))!;
     } finally {
       await session.close();

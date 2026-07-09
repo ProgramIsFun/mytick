@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 import { getSession } from '../../neo4j';
 import { ISecret, ISecretRepository } from '../interfaces/ISecretRepository';
+import neo4j from 'neo4j-driver';
 
 export class Neo4jSecretRepository implements ISecretRepository {
   async findById(id: string, userId?: string): Promise<ISecret | null> {
@@ -8,9 +9,9 @@ export class Neo4jSecretRepository implements ISecretRepository {
     try {
       const where = userId ? 'AND u.id = $userId' : '';
       const result = await session.run(
-        `MATCH (u:User)-[:OWNS]->(s:Secret {id: $id})
-         WHERE 1=1 ${where}
-         RETURN s`,
+         `MATCH (u:User)-[:OWNS]->(s:Secret {id: $id})
+          WHERE 1=1 ${where}
+          RETURN s, u {.id} AS owner`,
         { id, userId }
       );
       if (!result.records.length) return null;
@@ -31,8 +32,8 @@ export class Neo4jSecretRepository implements ISecretRepository {
       if (options?.tag) { where += ' AND $tag IN s.tags'; params.tag = options.tag; }
 
       const result = await session.run(
-        `MATCH (u:User)-[:OWNS]->(s:Secret) ${where}
-         RETURN s ORDER BY s.createdAt DESC`,
+         `MATCH (u:User)-[:OWNS]->(s:Secret) ${where}
+          RETURN s, u {.id} AS owner ORDER BY s.createdAt DESC`,
         params
       );
       return result.records.map(recordToSecret);
@@ -109,10 +110,11 @@ export class Neo4jSecretRepository implements ISecretRepository {
   async touch(id: string, userId: string): Promise<ISecret | null> {
     const session = getSession();
     try {
+      const now = Date.now();
       await session.run(
         `MATCH (u:User {id: $userId})-[:OWNS]->(s:Secret {id: $id})
-         SET s.lastAccessedAt = datetime(), s.updatedAt = datetime()`,
-        { id, userId }
+         SET s.lastAccessedAt = datetime({epochMillis: $now}), s.updatedAt = datetime({epochMillis: $now})`,
+        { id, userId, now: neo4j.int(now) }
       );
       return this.findById(id);
     } finally {
@@ -145,9 +147,10 @@ export class Neo4jSecretRepository implements ISecretRepository {
 
 function recordToSecret(record: any): ISecret {
   const s = record.get('s').properties;
+  const owner = record.get('owner');
   return {
     id: s.id,
-    userId: '',
+    userId: owner?.id || '',
     name: s.name,
     description: s.description,
     type: s.type,

@@ -22,7 +22,7 @@ router.get('/backupable', asyncHandler(async (req: AuthRequest, res: Response) =
   const databases = await databaseRepo.findBackupable(req.userId!);
   res.json(databases.map(db => ({
     id: db.id, name: db.name, type: db.type,
-    secret: null,
+    secretId: db.secretId,
     retentionDays: db.backupRetentionDays,
     frequency: db.backupFrequency,
     lastBackupAt: db.lastBackupAt,
