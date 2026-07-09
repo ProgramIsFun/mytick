@@ -1,5 +1,5 @@
 import { RRule, Frequency, Weekday } from 'rrule';
-import { ITask } from '../models/Task';
+import { ITask } from '../repositories/interfaces/ITaskRepository';
 
 const FREQ_MAP: Record<string, Frequency> = {
   daily: RRule.DAILY,

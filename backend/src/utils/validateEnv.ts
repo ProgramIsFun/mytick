@@ -1,14 +1,7 @@
-const required = ['JWT_SECRET', 'ADMIN_API_KEY'] as const;
+const required = ['JWT_SECRET', 'ADMIN_API_KEY', 'NEO4J_URI', 'NEO4J_USER', 'NEO4J_PASSWORD'] as const;
 
 export function validateEnv() {
-  const engine = process.env.DB_ENGINE || 'neo4j';
-  const allRequired = [...required];
-
-  if (engine === 'mongodb') {
-    allRequired.push('MONGODB_URI' as any);
-  }
-
-  const missing = allRequired.filter(key => !process.env[key]);
+  const missing = required.filter(key => !process.env[key]);
   if (missing.length) {
     console.error(`Missing required environment variables: ${missing.join(', ')}`);
     process.exit(1);

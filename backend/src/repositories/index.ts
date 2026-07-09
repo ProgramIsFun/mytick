@@ -11,19 +11,6 @@ import { IContextRepository } from './interfaces/IContextRepository';
 import { IBackupHistoryRepository } from './interfaces/IBackupHistoryRepository';
 import { IRecurrenceExceptionRepository } from './interfaces/IRecurrenceExceptionRepository';
 
-import { MongoUserRepository } from './mongodb/MongoUserRepository';
-import { MongoTaskRepository } from './mongodb/MongoTaskRepository';
-import { MongoAccountRepository } from './mongodb/MongoAccountRepository';
-import { MongoGroupRepository } from './mongodb/MongoGroupRepository';
-import { MongoSecretRepository } from './mongodb/MongoSecretRepository';
-import { MongoDomainRepository } from './mongodb/MongoDomainRepository';
-import { MongoDatabaseRepository } from './mongodb/MongoDatabaseRepository';
-import { MongoSubscriptionRepository } from './mongodb/MongoSubscriptionRepository';
-import { MongoKnowledgeRepository } from './mongodb/MongoKnowledgeRepository';
-import { MongoContextRepository } from './mongodb/MongoContextRepository';
-import { MongoBackupHistoryRepository } from './mongodb/MongoBackupHistoryRepository';
-import { MongoRecurrenceExceptionRepository } from './mongodb/MongoRecurrenceExceptionRepository';
-
 import { Neo4jUserRepository } from './neo4j/Neo4jUserRepository';
 import { Neo4jTaskRepository } from './neo4j/Neo4jTaskRepository';
 import { Neo4jAccountRepository } from './neo4j/Neo4jAccountRepository';
@@ -37,18 +24,16 @@ import { Neo4jContextRepository } from './neo4j/Neo4jContextRepository';
 import { Neo4jBackupHistoryRepository } from './neo4j/Neo4jBackupHistoryRepository';
 import { Neo4jRecurrenceExceptionRepository } from './neo4j/Neo4jRecurrenceExceptionRepository';
 
-const engine = process.env.DB_ENGINE || 'neo4j';
-const isNeo4j = engine === 'neo4j';
-
-export const userRepo: IUserRepository = isNeo4j ? new Neo4jUserRepository() : new MongoUserRepository();
-export const taskRepo: ITaskRepository = isNeo4j ? new Neo4jTaskRepository() : new MongoTaskRepository();
-export const accountRepo: IAccountRepository = isNeo4j ? new Neo4jAccountRepository() : new MongoAccountRepository();
-export const groupRepo: IGroupRepository = isNeo4j ? new Neo4jGroupRepository() : new MongoGroupRepository();
-export const secretRepo: ISecretRepository = isNeo4j ? new Neo4jSecretRepository() : new MongoSecretRepository();
-export const domainRepo: IDomainRepository = isNeo4j ? new Neo4jDomainRepository() : new MongoDomainRepository();
-export const databaseRepo: IDatabaseRepository = isNeo4j ? new Neo4jDatabaseRepository() : new MongoDatabaseRepository();
-export const subscriptionRepo: ISubscriptionRepository = isNeo4j ? new Neo4jSubscriptionRepository() : new MongoSubscriptionRepository();
-export const knowledgeRepo: IKnowledgeRepository = isNeo4j ? new Neo4jKnowledgeRepository() : new MongoKnowledgeRepository();
-export const contextRepo: IContextRepository = isNeo4j ? new Neo4jContextRepository() : new MongoContextRepository();
-export const backupHistoryRepo: IBackupHistoryRepository = isNeo4j ? new Neo4jBackupHistoryRepository() : new MongoBackupHistoryRepository();
-export const recurrenceExceptionRepo: IRecurrenceExceptionRepository = isNeo4j ? new Neo4jRecurrenceExceptionRepository() : new MongoRecurrenceExceptionRepository();
+// Using Neo4j exclusively
+export const userRepo: IUserRepository = new Neo4jUserRepository();
+export const taskRepo: ITaskRepository = new Neo4jTaskRepository();
+export const accountRepo: IAccountRepository = new Neo4jAccountRepository();
+export const groupRepo: IGroupRepository = new Neo4jGroupRepository();
+export const secretRepo: ISecretRepository = new Neo4jSecretRepository();
+export const domainRepo: IDomainRepository = new Neo4jDomainRepository();
+export const databaseRepo: IDatabaseRepository = new Neo4jDatabaseRepository();
+export const subscriptionRepo: ISubscriptionRepository = new Neo4jSubscriptionRepository();
+export const knowledgeRepo: IKnowledgeRepository = new Neo4jKnowledgeRepository();
+export const contextRepo: IContextRepository = new Neo4jContextRepository();
+export const backupHistoryRepo: IBackupHistoryRepository = new Neo4jBackupHistoryRepository();
+export const recurrenceExceptionRepo: IRecurrenceExceptionRepository = new Neo4jRecurrenceExceptionRepository();

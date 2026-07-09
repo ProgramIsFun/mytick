@@ -2,7 +2,7 @@ import { Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../middleware/auth';
 import { MAX_PAGE_LIMIT, DEFAULT_PAGE_LIMIT, MAX_BACKUP_HISTORY_LIMIT, DEFAULT_BACKUP_HISTORY_LIMIT } from '../config/constants';
-import Group from '../models/Group';
+import { groupRepo } from '../repositories';
 
 export function applyUpdates(doc: any, updates: Record<string, any>, allowed: string[]) {
   for (const key of allowed) {
@@ -40,21 +40,17 @@ export function parseBackupHistoryLimit(query: Record<string, any>) {
   return Math.min(parseInt(query.limit as string) || DEFAULT_BACKUP_HISTORY_LIMIT, MAX_BACKUP_HISTORY_LIMIT);
 }
 
+// Note: This function is no longer used with Neo4j repositories
+// Keeping for backward compatibility but should be refactored
 export function findOwned(Model: any, req: AuthRequest) {
-  return Model.findOne({ _id: req.params.id, userId: req.userId });
+  throw new Error('findOwned is deprecated - use repository methods instead');
 }
 
 export async function getUserGroupIds(userId: string) {
-  const userGroups = await Group.find({ 'members.userId': userId }).select('_id');
-  return userGroups.map(g => g._id);
+  const groups = await groupRepo.findByUser(userId);
+  return groups.map((g: { id: string }) => g.id);
 }
 
 export function forbidden(res: Response, msg = 'Forbidden') {
   return res.status(403).json({ error: msg });
-}
-
-let _User: any;
-export async function getUserModel() {
-  if (!_User) _User = (await import('../models/User')).default;
-  return _User;
 }
