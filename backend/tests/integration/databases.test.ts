@@ -17,7 +17,7 @@ beforeAll(async () => {
       providerSecretId: 'test-vault-id-123',
       type: 'connection_string'
     });
-  secretId = secretRes.body._id;
+  secretId = secretRes.body.id;
 }, 30000);
 
 afterAll(async () => {
@@ -49,7 +49,7 @@ describe('database CRUD', () => {
     expect(res.body.host).toBe('cluster.example.net');
     expect(res.body.secretId).toBe(secretId);
     expect(res.body.backupEnabled).toBe(true);
-    databaseId = res.body._id;
+    databaseId = res.body.id;
   });
 
   it('should create a database without secretId', async () => {
@@ -82,7 +82,7 @@ describe('database CRUD', () => {
   it('should get a specific database', async () => {
     const res = await request(app).get(`/api/databases/${databaseId}`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    expect(res.body._id).toBe(databaseId);
+    expect(res.body.id).toBe(databaseId);
     expect(res.body.name).toBe('Test MongoDB');
   });
 
@@ -101,7 +101,7 @@ describe('database CRUD', () => {
     // Create an account first
     const accountRes = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
       .send({ name: 'MongoDB Atlas', provider: 'mongodb_atlas' });
-    accountId = accountRes.body._id;
+    accountId = accountRes.body.id;
 
     // Link database to account
     const res = await request(app).patch(`/api/databases/${databaseId}`).set('Authorization', `Bearer ${token}`)
@@ -161,7 +161,7 @@ describe('database backup workflow', () => {
     expect(res.body.backupEnabled).toBe(true);
     expect(res.body.backupFrequency).toBe('6hours');
     expect(res.body.lastBackupAt).toBeNull();
-    databaseId = res.body._id;
+    databaseId = res.body.id;
   });
 
   it('should list in backupable endpoint', async () => {
@@ -218,7 +218,7 @@ describe('backup history tracking', () => {
         type: 'mongodb',
         backupEnabled: true
       });
-    databaseId = res.body._id;
+    databaseId = res.body.id;
   });
 
   it('should record successful backup with full details', async () => {
@@ -453,11 +453,11 @@ describe('all backup history (GET /databases/backup-history)', () => {
 
     const res1 = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({ name: 'DB Alpha', type: 'mongodb', backupEnabled: true });
-    db1Id = res1.body._id;
+    db1Id = res1.body.id;
 
     const res2 = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({ name: 'DB Beta', type: 'postgres', backupEnabled: true });
-    db2Id = res2.body._id;
+    db2Id = res2.body.id;
   });
 
   it('should return empty array when no backups exist', async () => {
@@ -666,3 +666,4 @@ describe('all backup history (GET /databases/backup-history)', () => {
     expect(res.body.length).toBe(0);
   });
 });
+

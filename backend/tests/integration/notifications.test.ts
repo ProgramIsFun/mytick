@@ -63,21 +63,21 @@ describe('task deadline → notification scheduling', () => {
     const deadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const res = await request(app).post('/api/tasks').set(auth()).send({ title: 'Deadline task', deadline });
     expect(res.status).toBe(201);
-    const notifs = await ScheduledNotification.find({ taskId: res.body._id });
+    const notifs = await ScheduledNotification.find({ taskId: res.body.id });
     expect(notifs).toHaveLength(2);
   });
 
   it('creating a task without deadline schedules nothing', async () => {
     const res = await request(app).post('/api/tasks').set(auth()).send({ title: 'No deadline' });
     expect(res.status).toBe(201);
-    const notifs = await ScheduledNotification.find({ taskId: res.body._id });
+    const notifs = await ScheduledNotification.find({ taskId: res.body.id });
     expect(notifs).toHaveLength(0);
   });
 
   it('updating deadline reschedules notifications', async () => {
     const deadline1 = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Reschedule', deadline: deadline1 });
-    const taskId = create.body._id;
+    const taskId = create.body.id;
 
     const deadline2 = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
     await request(app).patch(`/api/tasks/${taskId}`).set(auth()).send({ deadline: deadline2 });
@@ -93,7 +93,7 @@ describe('task deadline → notification scheduling', () => {
   it('marking task done cancels notifications', async () => {
     const deadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Done task', deadline });
-    const taskId = create.body._id;
+    const taskId = create.body.id;
 
     await request(app).patch(`/api/tasks/${taskId}`).set(auth()).send({ status: 'done' });
     const notifs = await ScheduledNotification.find({ taskId });
@@ -103,7 +103,7 @@ describe('task deadline → notification scheduling', () => {
   it('deleting a task cancels notifications', async () => {
     const deadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Delete me', deadline });
-    const taskId = create.body._id;
+    const taskId = create.body.id;
 
     await request(app).delete(`/api/tasks/${taskId}`).set(auth());
     const notifs = await ScheduledNotification.find({ taskId });
@@ -113,10 +113,11 @@ describe('task deadline → notification scheduling', () => {
   it('removing deadline cancels notifications', async () => {
     const deadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Remove deadline', deadline });
-    const taskId = create.body._id;
+    const taskId = create.body.id;
 
     await request(app).patch(`/api/tasks/${taskId}`).set(auth()).send({ deadline: null });
     const notifs = await ScheduledNotification.find({ taskId });
     expect(notifs).toHaveLength(0);
   });
 });
+

@@ -26,7 +26,7 @@ describe('group CRUD', () => {
     expect(res.body.name).toBe('Test Group');
     expect(res.body.members).toHaveLength(1);
     expect(res.body.members[0].role).toBe('editor');
-    groupId = res.body._id;
+    groupId = res.body.id;
   });
 
   it('should list groups', async () => {
@@ -55,7 +55,7 @@ describe('group members', () => {
   beforeAll(async () => {
     const group = await request(app).post('/api/groups').set('Authorization', `Bearer ${token}`)
       .send({ name: 'Member Test' });
-    groupId = group.body._id;
+    groupId = group.body.id;
 
     const { token: t, user } = await createTestUser('other@test.com', 'otheruser');
     otherToken = t;
@@ -93,3 +93,4 @@ describe('group members', () => {
     expect(res.status).toBe(404);
   });
 });
+

@@ -211,7 +211,7 @@ router.get('/:id/subtasks', asyncHandler(async (req: AuthRequest, res: Response)
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const task = await taskRepo.findById(req.params.id as string, req.userId);
   if (!task) return notFound(res);
-  res.json({ ...task, _id: task.id });
+  res.json(task);
 }));
 
 router.post('/', validate(createTaskSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -248,7 +248,7 @@ router.post('/', validate(createTaskSchema), asyncHandler(async (req: AuthReques
   await scheduleDeadlineAlerts(notificationQueue, task.id, req.userId!, task.deadline || null, task.recurrence);
   }
 
-  res.status(201).json({ ...task, _id: task.id });
+  res.status(201).json(task);
 }));
 
 async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
@@ -307,7 +307,7 @@ router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRe
   }
 
   const updated = await taskRepo.findById(task.id);
-  res.json({ ...updated, _id: updated!.id });
+  res.json(updated);
 }));
 
 router.post('/:id/rollback/:index', asyncHandler(async (req: AuthRequest, res: Response) => {

@@ -31,7 +31,7 @@ describe('recurring tasks', () => {
   it('should update recurrence on a task', async () => {
     const deadline = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
     const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Gym', deadline });
-    const res = await request(app).patch(`/api/tasks/${create.body._id}`).set(auth()).send({
+    const res = await request(app).patch(`/api/tasks/${create.body.id}`).set(auth()).send({
       recurrence: { freq: 'weekly', interval: 1 },
     });
     expect(res.status).toBe(200);
@@ -43,7 +43,7 @@ describe('recurring tasks', () => {
     const create = await request(app).post('/api/tasks').set(auth()).send({
       title: 'Temp recurring', deadline, recurrence: { freq: 'daily', interval: 1 },
     });
-    const res = await request(app).patch(`/api/tasks/${create.body._id}`).set(auth()).send({
+    const res = await request(app).patch(`/api/tasks/${create.body.id}`).set(auth()).send({
       recurrence: null,
     });
     expect(res.status).toBe(200);
@@ -93,7 +93,7 @@ describe('GET /tasks/calendar', () => {
 
     // Skip tomorrow's occurrence
     const tomorrow = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    await request(app).post(`/api/tasks/${create.body._id}/occurrences`).set(auth()).send({
+    await request(app).post(`/api/tasks/${create.body.id}/occurrences`).set(auth()).send({
       date: tomorrow.toISOString(), status: 'skipped',
     });
 
@@ -113,7 +113,7 @@ describe('GET /tasks/calendar', () => {
     });
 
     // Mark today as done
-    await request(app).post(`/api/tasks/${create.body._id}/occurrences`).set(auth()).send({
+    await request(app).post(`/api/tasks/${create.body.id}/occurrences`).set(auth()).send({
       date: start.toISOString(), status: 'done',
     });
 
@@ -140,7 +140,7 @@ describe('occurrence exceptions', () => {
     const create = await request(app).post('/api/tasks').set(auth()).send({
       title: 'Exception test', deadline: start.toISOString(), recurrence: { freq: 'daily', interval: 1 },
     });
-    const res = await request(app).post(`/api/tasks/${create.body._id}/occurrences`).set(auth()).send({
+    const res = await request(app).post(`/api/tasks/${create.body.id}/occurrences`).set(auth()).send({
       date: start.toISOString(), status: 'done',
     });
     expect(res.status).toBe(200);
@@ -152,14 +152,14 @@ describe('occurrence exceptions', () => {
     const create = await request(app).post('/api/tasks').set(auth()).send({
       title: 'Revert test', deadline: start.toISOString(), recurrence: { freq: 'daily', interval: 1 },
     });
-    await request(app).post(`/api/tasks/${create.body._id}/occurrences`).set(auth()).send({
+    await request(app).post(`/api/tasks/${create.body.id}/occurrences`).set(auth()).send({
       date: start.toISOString(), status: 'done',
     });
-    const res = await request(app).delete(`/api/tasks/${create.body._id}/occurrences`).set(auth()).send({
+    const res = await request(app).delete(`/api/tasks/${create.body.id}/occurrences`).set(auth()).send({
       date: start.toISOString(),
     });
     expect(res.status).toBe(200);
-    const count = await RecurrenceException.countDocuments({ taskId: create.body._id });
+    const count = await RecurrenceException.countDocuments({ taskId: create.body.id });
     expect(count).toBe(0);
   });
 
@@ -168,17 +168,17 @@ describe('occurrence exceptions', () => {
     const create = await request(app).post('/api/tasks').set(auth()).send({
       title: 'Cleanup test', deadline: start.toISOString(), recurrence: { freq: 'daily', interval: 1 },
     });
-    await request(app).post(`/api/tasks/${create.body._id}/occurrences`).set(auth()).send({
+    await request(app).post(`/api/tasks/${create.body.id}/occurrences`).set(auth()).send({
       date: start.toISOString(), status: 'done',
     });
-    await request(app).delete(`/api/tasks/${create.body._id}`).set(auth());
-    const count = await RecurrenceException.countDocuments({ taskId: create.body._id });
+    await request(app).delete(`/api/tasks/${create.body.id}`).set(auth());
+    const count = await RecurrenceException.countDocuments({ taskId: create.body.id });
     expect(count).toBe(0);
   });
 
   it('rejects non-recurring task', async () => {
     const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Not recurring' });
-    const res = await request(app).post(`/api/tasks/${create.body._id}/occurrences`).set(auth()).send({
+    const res = await request(app).post(`/api/tasks/${create.body.id}/occurrences`).set(auth()).send({
       date: new Date().toISOString(), status: 'done',
     });
     expect(res.status).toBe(404);
@@ -231,7 +231,7 @@ describe('recurrence end conditions', () => {
 
     // End series from day 3
     const day3 = new Date(start.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const endRes = await request(app).post(`/api/tasks/${create.body._id}/end-series`).set(auth()).send({
+    const endRes = await request(app).post(`/api/tasks/${create.body.id}/end-series`).set(auth()).send({
       date: day3.toISOString(),
     });
     expect(endRes.status).toBe(200);
@@ -247,9 +247,10 @@ describe('recurrence end conditions', () => {
 
   it('POST /end-series rejects non-recurring task', async () => {
     const create = await request(app).post('/api/tasks').set(auth()).send({ title: 'Not recurring 2' });
-    const res = await request(app).post(`/api/tasks/${create.body._id}/end-series`).set(auth()).send({
+    const res = await request(app).post(`/api/tasks/${create.body.id}/end-series`).set(auth()).send({
       date: new Date().toISOString(),
     });
     expect(res.status).toBe(404);
   });
 });
+

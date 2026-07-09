@@ -10,7 +10,7 @@ beforeAll(async () => {
   ({ token } = await createTestUser());
   const acc = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
     .send({ name: 'Namecheap', provider: 'custom' });
-  accountId = acc.body._id;
+  accountId = acc.body.id;
 }, 30000);
 
 afterAll(async () => {
@@ -27,7 +27,7 @@ describe('domain CRUD', () => {
     expect(res.body.name).toBe('mytick.app');
     expect(res.body.autoRenew).toBe(true);
     expect(res.body.nameservers).toHaveLength(2);
-    domainId = res.body._id;
+    domainId = res.body.id;
   });
 
   it('should require name', async () => {
@@ -76,3 +76,4 @@ describe('domain isolation', () => {
     expect(res.body.every((d: any) => d.name !== 'secret.dev')).toBe(true);
   });
 });
+

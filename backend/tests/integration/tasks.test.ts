@@ -21,7 +21,7 @@ describe('task CRUD', () => {
       .send({ title: 'Test task' });
     expect(res.status).toBe(201);
     expect(res.body.title).toBe('Test task');
-    taskId = res.body._id;
+    taskId = res.body.id;
   });
 
   it('should get a task', async () => {
@@ -68,7 +68,7 @@ describe('task deadline', () => {
   it('should update deadline', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Update me' });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ deadline: '2026-05-01T00:00:00.000Z' });
     expect(res.status).toBe(200);
     expect(res.body.deadline).toBe('2026-05-01T00:00:00.000Z');
@@ -77,7 +77,7 @@ describe('task deadline', () => {
   it('should clear deadline with null', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Clear me', deadline: '2026-06-01T00:00:00.000Z' });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ deadline: null });
     expect(res.status).toBe(200);
     expect(res.body.deadline).toBeNull();
@@ -90,21 +90,21 @@ describe('task cycle detection', () => {
     const b = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'B' });
     const c = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'C' });
 
-    await request(app).patch(`/api/tasks/${a.body._id}`).set('Authorization', `Bearer ${token}`)
-      .send({ blockedBy: [b.body._id] });
-    await request(app).patch(`/api/tasks/${b.body._id}`).set('Authorization', `Bearer ${token}`)
-      .send({ blockedBy: [c.body._id] });
+    await request(app).patch(`/api/tasks/${a.body.id}`).set('Authorization', `Bearer ${token}`)
+      .send({ blockedBy: [b.body.id] });
+    await request(app).patch(`/api/tasks/${b.body.id}`).set('Authorization', `Bearer ${token}`)
+      .send({ blockedBy: [c.body.id] });
 
-    const res = await request(app).patch(`/api/tasks/${c.body._id}`).set('Authorization', `Bearer ${token}`)
-      .send({ blockedBy: [a.body._id] });
+    const res = await request(app).patch(`/api/tasks/${c.body.id}`).set('Authorization', `Bearer ${token}`)
+      .send({ blockedBy: [a.body.id] });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Circular dependency detected');
   });
 
   it('should reject self-reference', async () => {
     const a = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'Self' });
-    const res = await request(app).patch(`/api/tasks/${a.body._id}`).set('Authorization', `Bearer ${token}`)
-      .send({ blockedBy: [a.body._id] });
+    const res = await request(app).patch(`/api/tasks/${a.body.id}`).set('Authorization', `Bearer ${token}`)
+      .send({ blockedBy: [a.body.id] });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('A task cannot block itself');
   });
@@ -112,8 +112,8 @@ describe('task cycle detection', () => {
   it('should allow valid dependency chain', async () => {
     const a = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'X' });
     const b = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'Y' });
-    const res = await request(app).patch(`/api/tasks/${a.body._id}`).set('Authorization', `Bearer ${token}`)
-      .send({ blockedBy: [b.body._id] });
+    const res = await request(app).patch(`/api/tasks/${a.body.id}`).set('Authorization', `Bearer ${token}`)
+      .send({ blockedBy: [b.body.id] });
     expect(res.status).toBe(200);
   });
 });
@@ -135,7 +135,7 @@ describe('task description history', () => {
   it('should save old description on update', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'History test', description: 'original' });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ description: 'updated' });
     expect(res.status).toBe(200);
     expect(res.body.description).toBe('updated');
@@ -146,7 +146,7 @@ describe('task description history', () => {
   it('should not save history if description unchanged', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'No change', description: 'same' });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ description: 'same' });
     expect(res.status).toBe(200);
     expect(res.body.descriptionHistory).toHaveLength(0);
@@ -155,9 +155,9 @@ describe('task description history', () => {
   it('should rollback description', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Rollback test', description: 'v1' });
-    await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ description: 'v2' });
-    const res = await request(app).post(`/api/tasks/${task.body._id}/rollback/0`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).post(`/api/tasks/${task.body.id}/rollback/0`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.description).toBe('v1');
     expect(res.body.descriptionHistory).toHaveLength(2);
@@ -166,7 +166,7 @@ describe('task description history', () => {
   it('should reject invalid rollback index', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Bad rollback' });
-    const res = await request(app).post(`/api/tasks/${task.body._id}/rollback/99`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).post(`/api/tasks/${task.body.id}/rollback/99`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(400);
   });
 });
@@ -176,11 +176,11 @@ describe('task blocking endpoint', () => {
     const blocker = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Blocker' });
     const blocked1 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Blocked 1', blockedBy: [blocker.body._id] });
+      .send({ title: 'Blocked 1', blockedBy: [blocker.body.id] });
     const blocked2 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Blocked 2', blockedBy: [blocker.body._id] });
+      .send({ title: 'Blocked 2', blockedBy: [blocker.body.id] });
 
-    const res = await request(app).get(`/api/tasks/${blocker.body._id}/blocking`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get(`/api/tasks/${blocker.body.id}/blocking`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(2);
     const titles = res.body.map((t: any) => t.title);
@@ -191,7 +191,7 @@ describe('task blocking endpoint', () => {
   it('should return empty for task blocking nothing', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Lonely' });
-    const res = await request(app).get(`/api/tasks/${task.body._id}/blocking`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get(`/api/tasks/${task.body.id}/blocking`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(0);
   });
@@ -216,7 +216,7 @@ describe('task visibility and permissions', () => {
   it('should not let other user update my task', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'My task' });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${otherToken}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${otherToken}`)
       .send({ title: 'Hacked' });
     expect(res.status).toBe(404);
   });
@@ -224,7 +224,7 @@ describe('task visibility and permissions', () => {
   it('should not let other user delete my task', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Undeletable' });
-    const res = await request(app).delete(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${otherToken}`);
+    const res = await request(app).delete(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${otherToken}`);
     expect(res.status).toBe(404);
   });
 
@@ -247,11 +247,11 @@ describe('task creation with groups', () => {
 
     // Add token user as viewer
     const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
-    await request(app).post(`/api/groups/${group.body._id}/members`).set('Authorization', `Bearer ${ownerToken}`)
+    await request(app).post(`/api/groups/${group.body.id}/members`).set('Authorization', `Bearer ${ownerToken}`)
       .send({ userId: me.body.id, role: 'viewer' });
 
     const res = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
-      .send({ title: 'Viewer task', groupIds: [group.body._id], visibility: 'group' });
+      .send({ title: 'Viewer task', groupIds: [group.body.id], visibility: 'group' });
     expect(res.status).toBe(403);
   });
 });
@@ -317,16 +317,16 @@ describe('root tasks endpoint', () => {
     const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
       .send({ title: 'Parent' });
     const child = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
-      .send({ title: 'Child', parentId: parent.body._id });
+      .send({ title: 'Child', parentId: parent.body.id });
     const standalone = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
       .send({ title: 'Standalone' });
 
     const res = await request(app).get('/api/tasks/roots').set('Authorization', `Bearer ${freshToken}`);
     expect(res.status).toBe(200);
     const ids = res.body.tasks.map((t: any) => t._id);
-    expect(ids).toContain(parent.body._id);
-    expect(ids).toContain(standalone.body._id);
-    expect(ids).not.toContain(child.body._id);
+    expect(ids).toContain(parent.body.id);
+    expect(ids).toContain(standalone.body.id);
+    expect(ids).not.toContain(child.body.id);
   });
 
   it('should support status filter', async () => {
@@ -358,11 +358,11 @@ describe('subtasks endpoint', () => {
     const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
       .send({ title: 'Parent task' });
     await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
-      .send({ title: 'Sub 1', parentId: parent.body._id });
+      .send({ title: 'Sub 1', parentId: parent.body.id });
     await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
-      .send({ title: 'Sub 2', parentId: parent.body._id });
+      .send({ title: 'Sub 2', parentId: parent.body.id });
 
-    const res = await request(app).get(`/api/tasks/${parent.body._id}/subtasks`).set('Authorization', `Bearer ${freshToken}`);
+    const res = await request(app).get(`/api/tasks/${parent.body.id}/subtasks`).set('Authorization', `Bearer ${freshToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(2);
     const titles = res.body.map((t: any) => t.title);
@@ -374,7 +374,7 @@ describe('subtasks endpoint', () => {
     const { token: freshToken } = await createTestUser('nosub@test.com', 'nosubuser');
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${freshToken}`)
       .send({ title: 'Lonely' });
-    const res = await request(app).get(`/api/tasks/${task.body._id}/subtasks`).set('Authorization', `Bearer ${freshToken}`);
+    const res = await request(app).get(`/api/tasks/${task.body.id}/subtasks`).set('Authorization', `Bearer ${freshToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(0);
   });
@@ -398,7 +398,7 @@ describe('task type', () => {
   it('should update type from task to project', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Promote me' });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ type: 'project' });
     expect(res.status).toBe(200);
     expect(res.body.type).toBe('project');
@@ -458,7 +458,7 @@ describe('task metadata (project)', () => {
   it('should update metadata', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Update meta', type: 'project', metadata: { repoUrl: 'old' } });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ metadata: { repoUrl: 'new-url' } });
     expect(res.status).toBe(200);
     expect(res.body.metadata.repoUrl).toBe('new-url');
@@ -467,7 +467,7 @@ describe('task metadata (project)', () => {
   it('should clear metadata with null', async () => {
     const task = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Clear meta', type: 'project', metadata: { repoUrl: 'x' } });
-    const res = await request(app).patch(`/api/tasks/${task.body._id}`).set('Authorization', `Bearer ${token}`)
+    const res = await request(app).patch(`/api/tasks/${task.body.id}`).set('Authorization', `Bearer ${token}`)
       .send({ metadata: null });
     expect(res.status).toBe(200);
     expect(res.body.metadata).toBeNull();
@@ -550,25 +550,25 @@ describe('task completion validation', () => {
     // Create parent task
     const parent = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Parent task' });
-    parentTaskId = parent.body._id;
+    parentTaskId = parent.body.id;
 
     // Create subtasks
     const sub1 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Subtask 1', parentId: parentTaskId });
-    subtask1Id = sub1.body._id;
+    subtask1Id = sub1.body.id;
 
     const sub2 = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Subtask 2', parentId: parentTaskId });
-    subtask2Id = sub2.body._id;
+    subtask2Id = sub2.body.id;
 
     // Create blocking/blocked tasks
     const blocking = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Blocking task' });
-    blockingTaskId = blocking.body._id;
+    blockingTaskId = blocking.body.id;
 
     const blocked = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Blocked task', blockedBy: [blockingTaskId] });
-    blockedTaskId = blocked.body._id;
+    blockedTaskId = blocked.body.id;
   });
 
   it('should prevent marking parent as done when subtasks are incomplete', async () => {
@@ -641,7 +641,7 @@ describe('task completion validation', () => {
     const simple = await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`)
       .send({ title: 'Simple task' });
     
-    const res = await request(app).patch(`/api/tasks/${simple.body._id}`)
+    const res = await request(app).patch(`/api/tasks/${simple.body.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ status: 'done' });
     
@@ -649,3 +649,4 @@ describe('task completion validation', () => {
     expect(res.body.status).toBe('done');
   });
 });
+

@@ -24,7 +24,7 @@ describe('account CRUD', () => {
     expect(res.body.provider).toBe('firebase');
     expect(res.body.credentials).toHaveLength(1);
     expect(res.body.credentials[0].secretId).toBe('507f1f77bcf86cd799439011');
-    accountId = res.body._id;
+    accountId = res.body.id;
   });
 
   it('should require name and provider', async () => {
@@ -85,7 +85,7 @@ describe('account hierarchy', () => {
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('AWS Root');
     expect(res.body.parentAccountId).toBeNull();
-    rootAccountId = res.body._id;
+    rootAccountId = res.body.id;
   });
 
   it('should create a sub-account', async () => {
@@ -94,7 +94,7 @@ describe('account hierarchy', () => {
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('IAM Developer');
     expect(res.body.parentAccountId).toBe(rootAccountId);
-    subAccount1Id = res.body._id;
+    subAccount1Id = res.body.id;
   });
 
   it('should create another sub-account', async () => {
@@ -103,7 +103,7 @@ describe('account hierarchy', () => {
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('IAM Production');
     expect(res.body.parentAccountId).toBe(rootAccountId);
-    subAccount2Id = res.body._id;
+    subAccount2Id = res.body.id;
   });
 
   it('should get sub-accounts of root account', async () => {
@@ -136,6 +136,7 @@ describe('account hierarchy', () => {
   it('sub-accounts should still exist after parent deletion', async () => {
     const res = await request(app).get(`/api/accounts/${subAccount2Id}`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    expect(res.body._id).toBe(subAccount2Id);
+    expect(res.body.id).toBe(subAccount2Id);
   });
 });
+

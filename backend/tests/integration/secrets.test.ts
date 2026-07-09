@@ -46,7 +46,7 @@ describe('Secrets API - /api/secrets', () => {
       expect(res.body.providerSecretId).toBe(secretData.providerSecretId);
       expect(res.body.type).toBe(secretData.type);
       expect(res.body.tags).toEqual(secretData.tags);
-      expect(res.body._id).toBeDefined();
+      expect(res.body.id).toBeDefined();
       expect(res.body.userId).toBe(userId);
     });
 
@@ -249,7 +249,7 @@ describe('Secrets API - /api/secrets', () => {
 
       expect(res.body.name).toBe('Test Secret Details');
       expect(res.body.description).toBe('Detailed test secret');
-      expect(res.body._id).toBe(secret._id.toString());
+      expect(res.body.id).toBe(secret._id.toString());
     });
 
     it('should return 404 for non-existent secret', async () => {
@@ -563,3 +563,4 @@ describe('Secrets API - /api/secrets', () => {
     });
   });
 });
+
