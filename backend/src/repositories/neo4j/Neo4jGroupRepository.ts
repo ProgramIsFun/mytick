@@ -8,8 +8,10 @@ export class Neo4jGroupRepository implements IGroupRepository {
     try {
       const result = await session.run(
         `MATCH (g:Group {id: $id})
-         OPTIONAL MATCH (g)-[:HAS_MEMBER]->(m:User)
-         RETURN g, collect(m {.id, .username, .name}) AS members`,
+         OPTIONAL MATCH (g)<-[:OWNS]-(o:User)
+         OPTIONAL MATCH (g)-[r:HAS_MEMBER]->(m:User)
+         RETURN g, o.id AS ownerId,
+                collect(m {.id, .username, .name, role: r.role}) AS members`,
         { id }
       );
       if (!result.records.length) return null;
@@ -24,8 +26,9 @@ export class Neo4jGroupRepository implements IGroupRepository {
     try {
       const result = await session.run(
         `MATCH (u:User {id: $userId})-[:OWNS]->(g:Group)
-         OPTIONAL MATCH (g)-[:HAS_MEMBER]->(m:User)
-         RETURN g, collect(m {.id, .username, .name}) AS members`,
+         OPTIONAL MATCH (g)-[r:HAS_MEMBER]->(m:User)
+         RETURN g, u.id AS ownerId,
+                collect(m {.id, .username, .name, role: r.role}) AS members`,
         { userId }
       );
       return result.records.map(recordToGroup);
@@ -113,13 +116,13 @@ function recordToGroup(record: any): IGroup {
   const g = record.get('g').properties;
   const members = (record.get('members') || []).filter((m: any) => m?.id).map((m: any) => ({
     userId: m.id,
-    role: 'viewer' as 'editor' | 'viewer',
+    role: (m.role || 'viewer') as 'editor' | 'viewer',
     username: m.username,
     name: m.name,
   }));
   return {
     id: g.id,
-    ownerId: '',
+    ownerId: record.get('ownerId') || '',
     name: g.name,
     members,
     createdAt: new Date(g.createdAt),

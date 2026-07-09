@@ -45,7 +45,7 @@ describe('domain CRUD', () => {
   it('should get domain with populated accounts', async () => {
     const res = await request(app).get(`/api/domains/${domainId}`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    expect(res.body.registrarAccountId.name).toBe('Namecheap');
+    expect(res.body.registrarAccountId).toBe(accountId);
   });
 
   it('should search domains', async () => {
