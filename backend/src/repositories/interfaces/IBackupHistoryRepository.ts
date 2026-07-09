@@ -1,6 +1,6 @@
 export interface IBackupHistory {
   id: string;
-  databaseId: string;
+  databaseId: string | { id: string; name: string; type: string };
   userId: string;
   status: string;
   startedAt: Date;

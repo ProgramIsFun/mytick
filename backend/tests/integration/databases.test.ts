@@ -503,7 +503,7 @@ describe('all backup history (GET /databases/backup-history)', () => {
     expect(res.status).toBe(200);
     expect(res.body.length).toBeGreaterThanOrEqual(2);
 
-    const dbIds = res.body.map((b: any) => typeof b.databaseId === 'object' ? b.databaseId._id : b.databaseId);
+    const dbIds = res.body.map((b: any) => typeof b.databaseId === 'object' ? b.databaseId.id : b.databaseId);
     expect(dbIds).toContain(db1Id);
     expect(dbIds).toContain(db2Id);
   });
@@ -529,7 +529,7 @@ describe('all backup history (GET /databases/backup-history)', () => {
 
     expect(res.status).toBe(200);
     const record = res.body.find((b: any) =>
-      (typeof b.databaseId === 'object' ? b.databaseId._id : b.databaseId) === db1Id
+      (typeof b.databaseId === 'object' ? b.databaseId.id : b.databaseId) === db1Id
     );
     expect(record).toBeTruthy();
     expect(record.databaseId).toHaveProperty('name', 'DB Alpha');

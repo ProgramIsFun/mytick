@@ -81,8 +81,10 @@ export class Neo4jBackupHistoryRepository implements IBackupHistoryRepository {
 
 function recordToHistory(record: any): IBackupHistory {
   const h = record.get('h').properties || record.get('h');
+  const db = record.get('database');
+  const databaseId = db ? { id: db.id, name: db.name, type: db.type } : '';
   return {
-    id: h.id, databaseId: '', userId: '', status: h.status,
+    id: h.id, databaseId, userId: '', status: h.status,
     startedAt: new Date(h.startedAt), completedAt: new Date(h.completedAt),
     durationMs: typeof h.durationMs === 'number' ? h.durationMs : Number(h.durationMs),
     sizeBytes: typeof h.sizeBytes === 'number' ? h.sizeBytes : (h.sizeBytes ? Number(h.sizeBytes) : 0),
