@@ -8,12 +8,13 @@ export class Neo4jDatabaseRepository implements IDatabaseRepository {
     try {
       const where = userId ? 'AND u.id = $userId' : '';
       const result = await session.run(
-        `MATCH (u:User)-[:OWNS]->(d:Database {id: $id})
-         WHERE 1=1 ${where}
-         OPTIONAL MATCH (d)-[:USES_SECRET]->(s:Secret)
-         OPTIONAL MATCH (d)-[:MANAGED_BY]->(a:Account)
-         RETURN d, s {.id, .name, .provider} AS secret,
-                a {.id, .name, .provider} AS account`,
+         `MATCH (u:User)-[:OWNS]->(d:Database {id: $id})
+          WHERE 1=1 ${where}
+          OPTIONAL MATCH (d)-[:USES_SECRET]->(s:Secret)
+          OPTIONAL MATCH (d)-[:MANAGED_BY]->(a:Account)
+          RETURN d, s {.id, .name, .provider} AS secret,
+                 a {.id, .name, .provider} AS account,
+                 u {.id} AS owner`,
         { id, userId }
       );
       if (!result.records.length) return null;
@@ -130,8 +131,9 @@ function recordToDatabase(record: any): IDatabase {
   const d = record.get('d').properties;
   const s = record.get('secret');
   const a = record.get('account');
+  const owner = record.get('owner');
   return {
-    id: d.id, userId: '', name: d.name, type: d.type, host: d.host, port: d.port,
+    id: d.id, userId: owner?.id || '', name: d.name, type: d.type, host: d.host, port: d.port,
     databaseName: d.databaseName, backupEnabled: d.backupEnabled,
     backupRetentionDays: d.backupRetentionDays, backupFrequency: d.backupFrequency,
     lastBackupAt: d.lastBackupAt ? new Date(d.lastBackupAt) : null,
