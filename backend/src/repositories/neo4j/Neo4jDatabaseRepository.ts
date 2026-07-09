@@ -121,7 +121,7 @@ export class Neo4jDatabaseRepository implements IDatabaseRepository {
   async markBackupSuccess(id: string): Promise<IDatabase | null> {
     const session = getSession();
     try {
-      await session.run(`MATCH (d:Database {id: $id}) SET d.lastBackupAt = datetime()`, { id });
+      await session.run(`MATCH (d:Database {id: $id}) SET d.lastBackupAt = $now`, { id, now: new Date().toISOString() });
       return this.findById(id);
     } finally { await session.close(); }
   }

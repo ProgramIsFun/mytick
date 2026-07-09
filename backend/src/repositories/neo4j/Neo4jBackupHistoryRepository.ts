@@ -14,7 +14,7 @@ export class Neo4jBackupHistoryRepository implements IBackupHistoryRepository {
       const result = await session.run(
         `MATCH (u:User)-[:OWNS]->(db:Database {id: $databaseId})<-[:BACKUP_OF]-(h:BackupHistory)
          ${where}
-         RETURN h ORDER BY h.completedAt DESC LIMIT $limit`,
+         RETURN h, db {.id, .name, .type} AS database ORDER BY h.completedAt DESC LIMIT $limit`,
         { ...params, limit: int(limit) }
       );
       return result.records.map(recordToHistory);
@@ -73,10 +73,8 @@ export class Neo4jBackupHistoryRepository implements IBackupHistoryRepository {
           params
         )
       );
-      if (data.status === 'success') {
-        await session.run(`MATCH (db:Database {id: $id}) SET db.lastBackupAt = datetime()`, { id: data.databaseId });
-      }
-      return (await this.findByDatabase(data.databaseId!, data.userId!)).find(h => true)!;
+
+      return (await this.findByDatabase(data.databaseId as string, data.userId!)).find(h => true)!;
     } finally { await session.close(); }
   }
 }
