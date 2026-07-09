@@ -160,7 +160,7 @@ function recordToAccount(record: any): IAccount {
   return {
     id: a.id,
     userId: record.get('userId') || '',
-    parentAccountId: record.get('parentAccountId') || undefined,
+    parentAccountId: record.get('parentAccountId') ?? null,
     name: a.name,
     provider: a.provider,
     url: a.url || undefined,
@@ -178,7 +178,7 @@ function recordToAccountSimple(record: any, key = 'a'): IAccount {
   return {
     id: props.id,
     userId: record.get('userId') || '',
-    parentAccountId: record.get('parentAccountId') || undefined,
+    parentAccountId: record.get('parentAccountId') ?? null,
     name: props.name,
     provider: props.provider,
     url: props.url || undefined,

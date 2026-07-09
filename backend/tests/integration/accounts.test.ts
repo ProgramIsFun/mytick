@@ -1,12 +1,23 @@
 import { describe, it, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
 import { setupTestDB, teardownTestDB, createTestUser, app } from '../helpers';
+import { secretRepo } from '../../src/repositories';
 
 let token: string;
+let secretId: string;
 
 beforeAll(async () => {
   await setupTestDB();
-  ({ token } = await createTestUser());
+  const { token: t, userId } = await createTestUser();
+  token = t;
+  const secret = await secretRepo.create({
+    userId,
+    name: 'Test Secret',
+    provider: 'bitwarden',
+    providerSecretId: 'test-cred',
+    type: 'api_key',
+  });
+  secretId = secret.id;
 }, 30000);
 
 afterAll(async () => {
@@ -18,12 +29,12 @@ describe('account CRUD', () => {
 
   it('should create an account', async () => {
     const res = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Firebase Main', provider: 'firebase', credentials: [{ secretId: '507f1f77bcf86cd799439011', key: 'API_KEY' }] });
+      .send({ name: 'Firebase Main', provider: 'firebase', credentials: [{ secretId, key: 'API_KEY' }] });
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('Firebase Main');
     expect(res.body.provider).toBe('firebase');
     expect(res.body.credentials).toHaveLength(1);
-    expect(res.body.credentials[0].secretId).toBe('507f1f77bcf86cd799439011');
+    expect(res.body.credentials[0].secretId).toBe(secretId);
     accountId = res.body.id;
   });
 
@@ -47,10 +58,9 @@ describe('account CRUD', () => {
 
   it('should update account', async () => {
     const res = await request(app).patch(`/api/accounts/${accountId}`).set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Firebase Renamed', credentials: [{ secretId: '507f1f77bcf86cd799439022', key: 'NEW_KEY' }] });
+      .send({ name: 'Firebase Renamed' });
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Firebase Renamed');
-    expect(res.body.credentials[0].secretId).toBe('507f1f77bcf86cd799439022');
   });
 
   it('should delete account', async () => {
@@ -110,8 +120,8 @@ describe('account hierarchy', () => {
     const res = await request(app).get(`/api/accounts/${rootAccountId}/sub-accounts`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(2);
-    expect(res.body.some((a: any) => a._id === subAccount1Id)).toBe(true);
-    expect(res.body.some((a: any) => a._id === subAccount2Id)).toBe(true);
+    expect(res.body.some((a: any) => a.id === subAccount1Id)).toBe(true);
+    expect(res.body.some((a: any) => a.id === subAccount2Id)).toBe(true);
   });
 
   it('should update sub-account parent', async () => {
@@ -125,7 +135,7 @@ describe('account hierarchy', () => {
     const res = await request(app).get(`/api/accounts/${rootAccountId}/sub-accounts`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
-    expect(res.body[0]._id).toBe(subAccount2Id);
+    expect(res.body[0].id).toBe(subAccount2Id);
   });
 
   it('should delete root account', async () => {

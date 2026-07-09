@@ -1,13 +1,16 @@
 import { describe, it, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
 import { setupTestDB, teardownTestDB, createTestUser, app } from '../helpers';
-import User from '../../src/models/User';
+import { userRepo } from '../../src/repositories';
 
 let token: string;
+let userId: string;
 
 beforeAll(async () => {
   await setupTestDB();
-  ({ token } = await createTestUser());
+  const u = await createTestUser('push@test.com', 'pushuser');
+  token = u.token;
+  userId = u.user.id;
 }, 30000);
 
 afterAll(async () => {
@@ -23,7 +26,7 @@ describe('POST /api/auth/fcm-token', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Token registered');
 
-    const user = await User.findOne({ email: 'test@test.com' });
+    const user = await userRepo.findById(userId);
     expect(user!.fcmTokens).toContain('test-token-123');
     expect(user!.pushTokens).toEqual(
       expect.arrayContaining([expect.objectContaining({ token: 'test-token-123', provider: 'fcm' })])
@@ -36,7 +39,7 @@ describe('POST /api/auth/fcm-token', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ fcmToken: 'test-token-123' });
 
-    const user = await User.findOne({ email: 'test@test.com' });
+    const user = await userRepo.findById(userId);
     const count = user!.fcmTokens.filter(t => t === 'test-token-123').length;
     expect(count).toBe(1);
   });
@@ -48,7 +51,7 @@ describe('POST /api/auth/fcm-token', () => {
       .set('User-Agent', 'TestBrowser/1.0')
       .send({ fcmToken: 'token-with-device' });
 
-    const user = await User.findOne({ email: 'test@test.com' });
+    const user = await userRepo.findById(userId);
     const pt = user!.pushTokens.find(t => t.token === 'token-with-device');
     expect(pt).toBeDefined();
     expect(pt!.device).toContain('TestBrowser');
@@ -60,7 +63,7 @@ describe('POST /api/auth/fcm-token', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ fcmToken: 'huawei-token-456', provider: 'huawei', device: 'Huawei P50' });
 
-    const user = await User.findOne({ email: 'test@test.com' });
+    const user = await userRepo.findById(userId);
     const pt = user!.pushTokens.find(t => t.token === 'huawei-token-456');
     expect(pt).toBeDefined();
     expect(pt!.provider).toBe('huawei');
@@ -91,7 +94,7 @@ describe('DELETE /api/auth/fcm-token', () => {
       .send({ fcmToken: 'test-token-123' });
     expect(res.status).toBe(200);
 
-    const user = await User.findOne({ email: 'test@test.com' });
+    const user = await userRepo.findById(userId);
     expect(user!.fcmTokens).not.toContain('test-token-123');
     expect(user!.pushTokens.find(t => t.token === 'test-token-123')).toBeUndefined();
   });
@@ -114,7 +117,6 @@ describe('GET /api/auth/fcm-tokens', () => {
 
 describe('POST /api/auth/test-push', () => {
   it('should return 400 when no tokens registered', async () => {
-    // Create a fresh user with no tokens
     const { token: freshToken } = await createTestUser('fresh@test.com', 'freshuser');
     const res = await request(app)
       .post('/api/auth/test-push')
@@ -131,4 +133,3 @@ describe('POST /api/auth/test-push', () => {
     expect(res.status).toBe(401);
   });
 });
-
