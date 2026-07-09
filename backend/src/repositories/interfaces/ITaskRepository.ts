@@ -10,7 +10,7 @@ export interface ITask {
   shareToken?: string;
   blockedBy?: string[];
   parentId?: string;
-  deadline?: Date;
+  deadline?: Date | null;
   tags?: string[];
   pinned?: boolean;
   descriptionHistory?: { description: string; savedAt: Date }[];

@@ -354,7 +354,7 @@ function recordToTaskSimple(record: any, key = 't', userId = ''): ITask {
     visibility: props.visibility,
     shareToken: props.shareToken,
     parentId: props.parentId || undefined,
-    deadline: props.deadline ? new Date(props.deadline) : undefined,
+    deadline: props.deadline ? new Date(props.deadline) : null,
     tags: props.tags || [],
     pinned: props.pinned,
     recurrence: props.recurrence ? (() => {
@@ -385,7 +385,7 @@ function recordToTask(record: any, userId = ''): ITask {
     visibility: t.visibility,
     shareToken: t.shareToken,
     parentId: t.parentId || undefined,
-    deadline: t.deadline ? new Date(t.deadline) : undefined,
+    deadline: t.deadline ? new Date(t.deadline) : null,
     tags: t.tags || [],
     pinned: t.pinned,
     recurrence: t.recurrence ? (() => {
