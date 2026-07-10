@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { logger } from './utils/logger';
+import { globalLimiter, authLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/auth';
 import taskRoutes from './routes/tasks';
 import groupRoutes from './routes/groups';
@@ -34,7 +35,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api', globalLimiter);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/accounts', accountRoutes);
