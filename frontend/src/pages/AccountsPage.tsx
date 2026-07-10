@@ -58,7 +58,7 @@ export default function AccountsPage() {
             </div>
             <select value={form.parentAccountId} onChange={e => setForm({ ...form, parentAccountId: e.target.value })} className={inputCls}>
               <option value="">No parent account (root)</option>
-              {(accounts ?? []).map(acc => <option key={acc.id} value={acc.id}>{PROVIDERS[acc.provider]?.emoji || '⚙️'} {acc.name}</option>)}
+              {(accounts ?? []).map((acc: Account) => <option key={acc.id} value={acc.id}>{PROVIDERS[acc.provider]?.emoji || '⚙️'} {acc.name}</option>)}
             </select>
             <div className="grid grid-cols-2 gap-3">
               <input placeholder="URL" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className={inputCls} />
@@ -73,7 +73,7 @@ export default function AccountsPage() {
 
         <div className="space-y-2">
           <DataState loading={loading} items={accounts ?? []} loadingText="Loading accounts..." emptyMessage="No accounts yet">
-            {(accounts ?? []).map(a => {
+            {(accounts ?? []).map((a: Account) => {
               const prov = PROVIDERS[a.provider] || PROVIDERS.custom;
               const isExpanded = expanded === a.id;
               return (
@@ -133,11 +133,11 @@ export default function AccountsPage() {
                         </div>
                       </div>
                     )}
-                    {(accounts ?? []).filter(sub => sub.parentAccountId === a.id).length > 0 && (
+                    {(accounts ?? []).filter((sub: Account) => sub.parentAccountId === a.id).length > 0 && (
                       <div>
-                        <span className="text-text-muted">Sub-accounts ({(accounts ?? []).filter(sub => sub.parentAccountId === a.id).length}):</span>
+                        <span className="text-text-muted">Sub-accounts ({(accounts ?? []).filter((sub: Account) => sub.parentAccountId === a.id).length}):</span>
                         <div className="mt-1 space-y-1">
-                          {(accounts ?? []).filter(sub => sub.parentAccountId === a.id).map(sub => (
+                          {(accounts ?? []).filter((sub: Account) => sub.parentAccountId === a.id).map((sub: Account) => (
                             <button key={sub.id} onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${sub.id}`); }} className="text-xs px-2 py-1 rounded bg-surface border border-border hover:bg-surface-hover flex items-center gap-1">
                               {PROVIDERS[sub.provider]?.emoji || '⚙️'} {sub.name}
                             </button>

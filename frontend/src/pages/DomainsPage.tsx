@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Domain, AccountRef as Account, ProjectRef as Project } from '../types/domain';
+import type { AccountRef as Account, ProjectRef as Project } from '../types/domain';
 import { inputCls } from '../constants/styles';
 import { expiryBadge } from '../utils/domain';
 import PageHeader from '../components/PageHeader';
@@ -80,7 +80,7 @@ export default function DomainsPage() {
 
         <div className="space-y-2">
           <DataState loading={loading} items={domains ?? []} loadingText="Loading domains..." emptyMessage="No domains yet">
-            {(domains ?? []).map(d => {
+            {(domains ?? []).map((d: any) => {
               const isExpanded = expanded === d.id;
               return (
                 <ExpandableItem key={d.id} expanded={isExpanded} onToggle={() => setExpanded(isExpanded ? null : d.id)} header={

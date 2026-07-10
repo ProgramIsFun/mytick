@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Database, BackupRecord, AccountRef as Account, SecretRef as Secret } from '../types/database';
+import type { BackupRecord, AccountRef as Account, SecretRef as Secret } from '../types/database';
 import { DB_TYPES } from '../constants/databases';
 import { inputCls } from '../constants/styles';
 import { formatSize, timeSince } from '../utils/format';
@@ -116,9 +116,9 @@ export default function DatabasesPage() {
               <input type="text" placeholder="Search databases..." value={search} onChange={e => setSearch(e.target.value)} className={inputCls} />
             </div>
 
-            <DataState loading={loading} items={databases ?? []} loadingText="Loading databases..." emptyMessage="No databases found. Create one to get started.">
+              <DataState loading={loading} items={databases ?? []} loadingText="Loading databases..." emptyMessage="No databases found. Create one to get started.">
               <div className="space-y-2">
-                {(databases ?? []).map(db => {
+                {(databases ?? []).map((db: any) => {
                   const dbType = DB_TYPES[db.type] || DB_TYPES.other;
                   return (
                     <div key={db.id} className="border border-border rounded-lg bg-surface overflow-hidden">

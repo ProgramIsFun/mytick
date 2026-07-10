@@ -4,7 +4,6 @@ import { secretsApi } from '../api/client';
 import Spinner from '../components/Spinner';
 import type { Secret } from '../types/secret';
 import { PROVIDERS, TYPES } from '../constants/secrets';
-import EmptyState from '../components/EmptyState';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import { encrypt, decrypt } from '../utils/crypto';
@@ -43,7 +42,7 @@ export default function SecretsPage() {
   const [revealError, setRevealError] = useState('');
   const [revealing, setRevealing] = useState(false);
 
-  const { data: secrets, loading: listLoading, load: loadSecrets } = useLoadData<Secret[]>(() => secretsApi.list());
+  const { data: secrets, loading: listLoading, load: loadSecrets } = useLoadData(() => secretsApi.list());
   const { data: secret, loading: detailLoading, load: loadSecret } = useLoadData<Secret>(() => secretsApi.get(id!));
 
   useEffect(() => { if (id) loadSecret(); }, [id]);
@@ -308,7 +307,7 @@ export default function SecretsPage() {
 
       <input type="text" placeholder="Search secrets..." value={search} onChange={e => setSearch(e.target.value)} className={`${inputCls} mb-4`} />
 
-      <DataState loading={listLoading} items={secrets} emptyMessage="No secrets found">
+      <DataState loading={listLoading} items={secrets ?? []} emptyMessage="No secrets found">
         {(secrets || []).map(s => (
           <div key={s.id} onClick={() => navigate(`/secrets/${s.id}`)} className="bg-surface border border-border rounded-lg p-4 hover:bg-surface-hover cursor-pointer transition-colors mb-2">
             <div className="flex items-start justify-between">

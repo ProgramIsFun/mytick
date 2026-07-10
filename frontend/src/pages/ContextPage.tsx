@@ -26,12 +26,6 @@ export default function ContextPage() {
     load();
   };
 
-  const handleSave = async (key: string) => {
-    await api.setContext(key, editValue);
-    setEditingKey(null);
-    load();
-  };
-
   const handleDelete = async (key: string) => {
     await api.deleteContext(key);
     load();
@@ -58,7 +52,7 @@ export default function ContextPage() {
 
         <DataState loading={loading} items={entries ?? []} loadingText="Loading context..." emptyMessage="No context entries yet">
           <div className="space-y-2">
-            {(entries ?? []).map(e => {
+            {(entries ?? []).map((e: ContextEntry) => {
               const isExpanded = expanded === e.key;
               const isEditing = editingKey === e.key;
               return (

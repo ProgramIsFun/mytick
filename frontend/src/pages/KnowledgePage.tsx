@@ -31,12 +31,6 @@ export default function KnowledgePage() {
     load();
   };
 
-  const handleSave = async (id: string) => {
-    await api.updateKnowledge(id, { content: editContent });
-    setEditingId(null);
-    load();
-  };
-
   const handleDelete = async (id: string) => {
     await api.deleteKnowledge(id);
     load();
@@ -66,7 +60,7 @@ export default function KnowledgePage() {
 
         <DataState loading={loading} items={data ?? []} loadingText="Loading knowledge..." emptyMessage="No knowledge entries yet">
           <div className="space-y-2">
-            {(data ?? []).map(e => {
+            {(data ?? []).map((e: KnowledgeEntry) => {
               const isExpanded = expanded === e.id;
               const isEditing = editingId === e.id;
               return (

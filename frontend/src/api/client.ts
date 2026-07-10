@@ -1,4 +1,9 @@
 import { STORAGE_TOKEN_KEY } from '../constants/storage';
+import type { Account } from '../types/account';
+import type { Database } from '../types/database';
+import type { Secret } from '../types/secret';
+import type { Domain } from '../types/domain';
+import type { Subscription } from '../types/subscription';
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
@@ -27,7 +32,7 @@ function buildQuery(base: string, params: Record<string, string | undefined>) {
   return parts.length ? `${base}?${parts.join('&')}` : base;
 }
 
-function crud<T = Record<string, unknown>>(basePath: string, listFn?: (params?: Record<string, string>) => Promise<T>) {
+function crud<T>(basePath: string, listFn?: (params?: Record<string, string>) => Promise<T>) {
   return {
     list: listFn ?? ((params?: Record<string, string | undefined>) => request(buildQuery(basePath, params || {})) as Promise<T>),
     get: (id: string) => request(`${basePath}/${id}`),
@@ -37,11 +42,11 @@ function crud<T = Record<string, unknown>>(basePath: string, listFn?: (params?: 
   };
 }
 
-export const accountsApi = crud('/accounts');
-export const domainsApi = crud('/domains');
-export const databasesApi = crud('/databases');
-export const secretsApi = crud('/secrets');
-export const subscriptionsApi = crud('/subscriptions');
+export const accountsApi = crud<Account[]>('/accounts');
+export const domainsApi = crud<Domain[]>('/domains');
+export const databasesApi = crud<Database[]>('/databases');
+export const secretsApi = crud<Secret[]>('/secrets');
+export const subscriptionsApi = crud<Subscription[]>('/subscriptions');
 
 export const api = {
   // Auth

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import type { Subscription, SubscriptionStats } from '../types/subscription';
+import type { SubscriptionStats } from '../types/subscription';
 import { BILLING_CYCLES, SUBSCRIPTION_STATUSES, SUBSCRIPTION_STATUS_COLORS, getCategoryIcon } from '../constants/subscriptions';
 import { inputCls } from '../constants/styles';
 import PageHeader from '../components/PageHeader';
@@ -131,7 +131,7 @@ export default function SubscriptionsPage() {
 
         <div className="space-y-2">
           <DataState loading={loading} items={subs ?? []} loadingText="Loading subscriptions..." emptyMessage="No subscriptions yet">
-            {(subs ?? []).map(s => {
+            {(subs ?? []).map((s: any) => {
               const isExpanded = expanded === s.id;
               return (
                 <ExpandableItem key={s.id} expanded={isExpanded} onToggle={() => setExpanded(isExpanded ? null : s.id)} header={

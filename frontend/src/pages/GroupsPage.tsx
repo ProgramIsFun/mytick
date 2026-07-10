@@ -3,7 +3,6 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { Group } from '../types/group';
 import { inputCls } from '../constants/styles';
-import FormActions from '../components/FormActions';
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
