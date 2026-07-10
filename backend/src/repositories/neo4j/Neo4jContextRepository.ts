@@ -1,5 +1,6 @@
 import { getSession } from '../../neo4j';
 import { IContext, IContextRepository } from '../interfaces/IContextRepository';
+import { nanoid } from 'nanoid';
 
 export class Neo4jContextRepository implements IContextRepository {
   async findByUser(userId: string): Promise<IContext[]> {
@@ -29,13 +30,14 @@ export class Neo4jContextRepository implements IContextRepository {
   async upsert(userId: string, key: string, value: string): Promise<IContext> {
     const session = getSession();
     try {
+      const id = nanoid();
       await session.run(
         `MATCH (u:User {id: $userId})
-         MERGE (c:Context {key: $key})
+         MERGE (c:Context {key: $key, userId: $userId})
          ON CREATE SET c.id = $id, c.value = $value, c.updatedAt = datetime(), c.createdAt = datetime()
          ON MATCH SET c.value = $value, c.updatedAt = datetime()
          MERGE (u)-[:OWNS]->(c)`,
-        { userId, key, value, id: key }
+        { userId, key, value, id }
       );
       return (await this.findByKey(userId, key))!;
     } finally { await session.close(); }
@@ -56,5 +58,5 @@ export class Neo4jContextRepository implements IContextRepository {
 
 function recordToContext(record: any): IContext {
   const c = record.get('c').properties;
-  return { id: c.id || c.key, userId: '', key: c.key, value: c.value, updatedAt: new Date(c.updatedAt) };
+  return { id: c.id, key: c.key, value: c.value, updatedAt: new Date(c.updatedAt) };
 }

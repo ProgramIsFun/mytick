@@ -1,6 +1,5 @@
 export interface IContext {
   id: string;
-  userId: string;
   key: string;
   value: string;
   updatedAt: Date;

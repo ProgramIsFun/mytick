@@ -284,7 +284,6 @@ const spec = swaggerJsdoc({
           type: 'object',
           properties: {
             id: { type: 'string' },
-            userId: { type: 'string' },
             key: { type: 'string' },
             value: { type: 'string' },
             updatedAt: { type: 'string', format: 'date-time' },
