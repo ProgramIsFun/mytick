@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import { accountRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { notFound, badRequest } from '../utils/routeHelpers';
+import { notFound } from '../utils/routeHelpers';
+import { validate, createAccountSchema, updateAccountSchema } from '../utils/validation';
 
 const router = Router();
 router.use(auth);
@@ -138,9 +139,8 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/Account'
  */
-router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/', validate(createAccountSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, provider, parentAccountId, url, username, notes, tags, credentials } = req.body;
-  if (!name || !provider) return badRequest(res, 'name and provider required');
   const account = await accountRepo.create({
     userId: req.userId, name, provider,
     parentAccountId: parentAccountId || null,
@@ -194,7 +194,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       404:
  *         description: Account not found
  */
-router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.patch('/:id', validate(updateAccountSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const account = await accountRepo.update(req.params.id as string, req.body);
   if (!account) return notFound(res);
   res.json(account);

@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import { secretRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { notFound, badRequest } from '../utils/routeHelpers';
+import { notFound } from '../utils/routeHelpers';
+import { validate, createSecretSchema, updateSecretSchema } from '../utils/validation';
 
 const router = Router();
 router.use(auth);
@@ -128,11 +129,8 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/Secret'
  */
-router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/', validate(createSecretSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, description, provider, providerSecretId, type, tags, expiresAt } = req.body;
-  if (!name || !provider || !providerSecretId || !type) {
-    return badRequest(res, 'name, provider, providerSecretId, and type are required');
-  }
   const secret = await secretRepo.create({
     userId: req.userId, name, description: description || '',
     provider, providerSecretId, type, tags: tags || [], expiresAt: expiresAt || null,
@@ -185,7 +183,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       404:
  *         description: Secret not found
  */
-router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.patch('/:id', validate(updateSecretSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const secret = await secretRepo.update(req.params.id as string, req.body);
   if (!secret) return notFound(res);
   res.json(secret);

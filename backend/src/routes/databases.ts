@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import { databaseRepo, backupHistoryRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { notFound, badRequest, parseBackupHistoryLimit, forbidden } from '../utils/routeHelpers';
+import { notFound, parseBackupHistoryLimit, forbidden } from '../utils/routeHelpers';
+import { validate, createDatabaseSchema, updateDatabaseSchema, backupCompletedSchema } from '../utils/validation';
 
 const router = Router();
 
@@ -231,7 +232,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       404:
  *         description: Database not found
  */
-router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/:id/backup-completed', validate(backupCompletedSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const db = await databaseRepo.findById(req.params.id as string);
   console.log('backup-completed findById:', req.params.id, '->', db ? 'found' : 'null');
   if (!db) return notFound(res, 'Database not found');
@@ -326,9 +327,8 @@ router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: 
  *             schema:
  *               $ref: '#/components/schemas/Database'
  */
-router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/', validate(createDatabaseSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, type, secretId, host, port, database, backupEnabled, backupRetentionDays, backupFrequency, accountId, tags, notes } = req.body;
-  if (!name || !type) return badRequest(res, 'name and type are required');
   const db = await databaseRepo.create({
     userId: req.userId, name, type, secretId: secretId || null,
     host: host || '', port: port || null, databaseName: database || '',
@@ -393,7 +393,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       404:
  *         description: Database not found
  */
-router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.patch('/:id', validate(updateDatabaseSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const database = await databaseRepo.update(req.params.id as string, req.body);
   if (!database) return notFound(res);
   res.json(database);

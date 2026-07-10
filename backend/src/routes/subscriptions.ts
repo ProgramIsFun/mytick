@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import { subscriptionRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { notFound, badRequest } from '../utils/routeHelpers';
+import { notFound } from '../utils/routeHelpers';
+import { validate, createSubscriptionSchema, updateSubscriptionSchema } from '../utils/validation';
 import { notificationQueue } from '../queues';
 import { scheduleSubscriptionAlerts } from '../queues/scheduleSubscriptionAlerts';
 
@@ -180,11 +181,8 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/Subscription'
  */
-router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/', validate(createSubscriptionSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, provider, amount, currency, billingCycle, nextBillingDate, expiryDate, autoRenew, status, category, paymentMethod, url, notes, tags } = req.body;
-  if (!name || !provider || amount === undefined || !billingCycle) {
-    return badRequest(res, 'name, provider, amount, and billingCycle required');
-  }
   const sub = await subscriptionRepo.create({
     userId: req.userId, name, provider, amount,
     currency: currency || 'USD', billingCycle,
@@ -264,7 +262,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       404:
  *         description: Subscription not found
  */
-router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.patch('/:id', validate(updateSubscriptionSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const sub = await subscriptionRepo.update(req.params.id as string, req.body);
   if (!sub) return notFound(res);
 

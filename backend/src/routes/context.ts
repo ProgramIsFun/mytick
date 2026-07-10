@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import { contextRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { notFound, badRequest } from '../utils/routeHelpers';
+import { notFound } from '../utils/routeHelpers';
+import { validate, upsertContextSchema } from '../utils/validation';
 
 const router = Router();
 router.use(auth);
@@ -91,9 +92,8 @@ router.get('/:key', asyncHandler(async (req: AuthRequest, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/Context'
  */
-router.put('/:key', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.put('/:key', validate(upsertContextSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { value } = req.body;
-  if (value === undefined) return badRequest(res, 'value required');
   const entry = await contextRepo.upsert(req.userId!, req.params.key as string, value);
   res.json(entry);
 }));

@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import { domainRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { notFound, badRequest } from '../utils/routeHelpers';
+import { notFound } from '../utils/routeHelpers';
+import { validate, createDomainSchema, updateDomainSchema } from '../utils/validation';
 
 const router = Router();
 router.use(auth);
@@ -127,9 +128,8 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/Domain'
  */
-router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/', validate(createDomainSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, projectId, registrarAccountId, dnsAccountId, expiryDate, autoRenew, nameservers, sslProvider, notes, tags } = req.body;
-  if (!name) return badRequest(res, 'name required');
   const domain = await domainRepo.create({
     userId: req.userId, name, projectId: projectId || null,
     registrarAccountId: registrarAccountId || null, dnsAccountId: dnsAccountId || null,
@@ -195,7 +195,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       404:
  *         description: Domain not found
  */
-router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.patch('/:id', validate(updateDomainSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const domain = await domainRepo.update(req.params.id as string, req.body);
   if (!domain) return notFound(res);
   res.json(domain);
