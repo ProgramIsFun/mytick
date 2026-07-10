@@ -30,6 +30,7 @@ coverage/
 *.tgz
 .cache/
 .firebase/
+*.tsbuildinfo
 
 # Terraform
 workers/nexus-backup/terraform/.terraform/
