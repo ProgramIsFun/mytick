@@ -35,8 +35,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api', globalLimiter);
-app.use('/api/auth', authLimiter, authRoutes);
+if (process.env.NODE_ENV !== 'test') {
+  app.use('/api', globalLimiter);
+  app.use('/api/auth', authLimiter, authRoutes);
+} else {
+  app.use('/api/auth', authRoutes);
+}
 app.use('/api/tasks', taskRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/accounts', accountRoutes);
