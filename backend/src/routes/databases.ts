@@ -232,10 +232,14 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *       404:
  *         description: Database not found
  */
-router.post('/:id/backup-completed', validate(backupCompletedSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/:id/backup-completed', asyncHandler(async (req: AuthRequest, res: Response) => {
   const db = await databaseRepo.findById(req.params.id as string);
   console.log('backup-completed findById:', req.params.id, '->', db ? 'found' : 'null');
   if (!db) return notFound(res, 'Database not found');
+
+  const parsed = backupCompletedSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+  req.body = parsed.data;
 
   const { status, startedAt, completedAt, sizeBytes, s3Path, s3Bucket, errorMessage, metadata, triggeredBy, lambdaRequestId } = req.body;
 

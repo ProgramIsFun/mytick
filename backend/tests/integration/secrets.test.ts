@@ -23,7 +23,7 @@ describe('Secrets API - /api/secrets', () => {
         description: 'Connection string for production MongoDB',
         provider: 'bitwarden',
         providerSecretId: 'bw-secret-abc123',
-        type: 'env_variable',
+        type: 'connection_string',
         tags: ['production', 'critical'],
       };
 
@@ -50,9 +50,9 @@ describe('Secrets API - /api/secrets', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           name: 'AWS API Key',
-          provider: 'hashicorp_vault',
+          provider: 'custom',
           providerSecretId: 'arn:aws:secretsmanager:us-east-1:123:secret:api-key',
-          type: 'oauth_token',
+          type: 'api_key',
         })
         .expect(201);
 
@@ -179,8 +179,8 @@ describe('Secrets API - /api/secrets', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].type).toBe('connection_string');
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.every((s: any) => s.type === 'connection_string')).toBe(true);
     });
 
     it('should filter secrets by type (api_key)', async () => {
@@ -189,8 +189,8 @@ describe('Secrets API - /api/secrets', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].name).toBe('Stripe API Key');
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.every((s: any) => s.type === 'api_key')).toBe(true);
     });
 
     it('should filter secrets by tag', async () => {

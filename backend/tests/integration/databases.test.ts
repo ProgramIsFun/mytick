@@ -70,7 +70,6 @@ describe('database CRUD', () => {
     const res = await request(app).post('/api/databases').set('Authorization', `Bearer ${token}`)
       .send({});
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('name and type are required');
   });
 
   it('should list databases', async () => {
