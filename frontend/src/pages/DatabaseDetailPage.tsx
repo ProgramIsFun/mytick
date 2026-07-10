@@ -8,6 +8,7 @@ import { DB_TYPES } from '../constants/databases';
 import { formatSize, formatDuration } from '../utils/format';
 import SecretPicker from '../components/SecretPicker';
 import TagsField from '../components/TagsField';
+import BackButton from '../components/BackButton';
 
 export default function DatabaseDetailPage() {
   const navigate = useNavigate();
@@ -23,11 +24,7 @@ export default function DatabaseDetailPage() {
   useEffect(() => {
     if (id) {
       Promise.all([api.getDatabase(id), api.getSecrets()])
-        .then(([db, secrets]) => {
-          setDb(db);
-          setSecrets(secrets);
-          setLoading(false);
-        });
+        .then(([db, secrets]) => { setDb(db); setSecrets(secrets); setLoading(false); });
     }
   }, [id]);
 
@@ -46,9 +43,7 @@ export default function DatabaseDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <button onClick={() => navigate('/databases')} className="text-sm text-accent hover:underline mb-2">
-          ← Back to Databases
-        </button>
+        <BackButton to="/databases" label="Databases" />
         <div className="flex items-center gap-3">
           <span className="text-4xl">{dbType.emoji}</span>
           <div>
@@ -60,15 +55,7 @@ export default function DatabaseDetailPage() {
 
       <div className="flex gap-1 mb-4 border-b border-border">
         {(['details', 'backups'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? 'text-accent border-b-2 border-accent'
-                : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab ? 'text-accent border-b-2 border-accent' : 'text-text-muted hover:text-text-primary'}`}>
             {tab === 'details' ? 'Details' : `Backups${backups.length > 0 ? ` (${backups.length})` : ''}`}
           </button>
         ))}
@@ -77,109 +64,43 @@ export default function DatabaseDetailPage() {
       {activeTab === 'details' ? (
         <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Host</label>
-              <div className="text-sm text-text-primary font-mono">{db.host}</div>
-            </div>
-            {db.port && (
-              <div>
-                <label className="text-xs font-medium text-text-muted block mb-1">Port</label>
-                <div className="text-sm text-text-primary font-mono">{db.port}</div>
-              </div>
-            )}
+            <div><label className="text-xs font-medium text-text-muted block mb-1">Host</label><div className="text-sm text-text-primary font-mono">{db.host}</div></div>
+            {db.port && <div><label className="text-xs font-medium text-text-muted block mb-1">Port</label><div className="text-sm text-text-primary font-mono">{db.port}</div></div>}
           </div>
-
-          {db.database && (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Database</label>
-              <div className="text-sm text-text-primary">{db.database}</div>
-            </div>
-          )}
-
-          {db.accountId && (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Account</label>
-              <button
-                onClick={() => navigate(`/accounts/${db.accountId!.id}`)}
-                className="text-sm text-accent hover:underline"
-              >
-                {db.accountId.name}
-              </button>
-            </div>
-          )}
+          {db.database && <div><label className="text-xs font-medium text-text-muted block mb-1">Database</label><div className="text-sm text-text-primary">{db.database}</div></div>}
+          {db.accountId && <div><label className="text-xs font-medium text-text-muted block mb-1">Account</label><button onClick={() => navigate(`/accounts/${db.accountId!.id}`)} className="text-sm text-accent hover:underline">{db.accountId.name}</button></div>}
 
           {db.secretId && typeof db.secretId === 'object' ? (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
+            <div><label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate(`/secrets/${(db.secretId as Secret).id}`)}
-                  className="text-sm text-accent hover:underline"
-                >
-                  {db.secretId.name} ({db.secretId.provider})
-                </button>
-                <button
-                  onClick={() => setShowSecretModal(true)}
-                  className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
-                >
-                  ✏️ Update
-                </button>
+                <button onClick={() => navigate(`/secrets/${(db.secretId as Secret).id}`)} className="text-sm text-accent hover:underline">{db.secretId.name} ({db.secretId.provider})</button>
+                <button onClick={() => setShowSecretModal(true)} className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover">✏️ Update</button>
               </div>
             </div>
           ) : db.secretId ? (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
+            <div><label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
               <div className="flex items-center gap-2">
                 <div className="text-xs text-warning">⚠️ Secret reference missing</div>
-                <button
-                  onClick={() => setShowSecretModal(true)}
-                  className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
-                >
-                  ✏️ Select Secret
-                </button>
+                <button onClick={() => setShowSecretModal(true)} className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover">✏️ Select Secret</button>
               </div>
             </div>
           ) : (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
+            <div><label className="text-xs font-medium text-text-muted block mb-1">Secret</label>
               <div className="flex items-center gap-2">
                 <div className="text-xs text-text-muted">No secret configured</div>
-                <button
-                  onClick={() => setShowSecretModal(true)}
-                  className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover"
-                >
-                  ✏️ Select Secret
-                </button>
+                <button onClick={() => setShowSecretModal(true)} className="text-xs px-2 py-0.5 rounded border border-border hover:bg-surface-hover">✏️ Select Secret</button>
               </div>
             </div>
           )}
 
-          {db.notes && (
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Notes</label>
-              <div className="text-sm text-text-primary whitespace-pre-wrap">{db.notes}</div>
-            </div>
-          )}
+          {db.notes && <div><label className="text-xs font-medium text-text-muted block mb-1">Notes</label><div className="text-sm text-text-primary whitespace-pre-wrap">{db.notes}</div></div>}
 
           <TagsField tags={db.tags} />
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-            <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Backup Enabled</label>
-              <div className="text-sm text-text-primary">{db.backupEnabled ? 'Yes' : 'No'}</div>
-            </div>
-            {db.backupEnabled && (
-              <div>
-                <label className="text-xs font-medium text-text-muted block mb-1">Backup Retention</label>
-                <div className="text-sm text-text-primary">{db.backupRetentionDays} days</div>
-              </div>
-            )}
-            {db.lastBackupAt && (
-              <div>
-                <label className="text-xs font-medium text-text-muted block mb-1">Last Backup</label>
-                <div className="text-sm text-text-primary">{new Date(db.lastBackupAt).toLocaleString()}</div>
-              </div>
-            )}
+            <div><label className="text-xs font-medium text-text-muted block mb-1">Backup Enabled</label><div className="text-sm text-text-primary">{db.backupEnabled ? 'Yes' : 'No'}</div></div>
+            {db.backupEnabled && <div><label className="text-xs font-medium text-text-muted block mb-1">Backup Retention</label><div className="text-sm text-text-primary">{db.backupRetentionDays} days</div></div>}
+            {db.lastBackupAt && <div><label className="text-xs font-medium text-text-muted block mb-1">Last Backup</label><div className="text-sm text-text-primary">{new Date(db.lastBackupAt).toLocaleString()}</div></div>}
           </div>
         </div>
       ) : (
@@ -204,30 +125,12 @@ export default function DatabaseDetailPage() {
                 <tbody>
                   {backups.map(b => (
                     <tr key={b.id} className="border-b border-border/50 hover:bg-surface-hover/50">
-                      <td className="py-2 pr-4">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          b.status === 'success' ? 'bg-success/20 text-success' :
-                          b.status === 'failed' ? 'bg-error/20 text-error' :
-                          'bg-warning/20 text-warning'
-                        }`}>
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-4 text-text-primary whitespace-nowrap">
-                        {new Date(b.completedAt).toLocaleString()}
-                      </td>
-                      <td className="py-2 pr-4 text-text-primary whitespace-nowrap">
-                        {formatDuration(b.durationMs)}
-                      </td>
-                      <td className="py-2 pr-4 text-text-primary whitespace-nowrap">
-                        {formatSize(b.sizeBytes)}
-                      </td>
-                      <td className="py-2 pr-4 text-text-primary">
-                        <span className="text-xs">{b.triggeredBy}</span>
-                      </td>
-                      <td className="py-2 pr-4 text-error max-w-xs truncate">
-                        {b.errorMessage || ''}
-                      </td>
+                      <td className="py-2 pr-4"><span className={`text-xs font-medium px-2 py-0.5 rounded ${b.status === 'success' ? 'bg-success/20 text-success' : b.status === 'failed' ? 'bg-error/20 text-error' : 'bg-warning/20 text-warning'}`}>{b.status}</span></td>
+                      <td className="py-2 pr-4 text-text-primary whitespace-nowrap">{new Date(b.completedAt).toLocaleString()}</td>
+                      <td className="py-2 pr-4 text-text-primary whitespace-nowrap">{formatDuration(b.durationMs)}</td>
+                      <td className="py-2 pr-4 text-text-primary whitespace-nowrap">{formatSize(b.sizeBytes)}</td>
+                      <td className="py-2 pr-4 text-text-primary"><span className="text-xs">{b.triggeredBy}</span></td>
+                      <td className="py-2 pr-4 text-error max-w-xs truncate">{b.errorMessage || ''}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -239,33 +142,11 @@ export default function DatabaseDetailPage() {
 
       {showSecretModal && (
         <>
-          <SecretPicker
-            secrets={secrets}
-            title="Update Secret"
-            description="Select an existing secret or create a new one."
-            onSelect={async (secretId) => {
-              try {
-                await api.updateDatabase(id!, { secretId });
-                const updatedDb = await api.getDatabase(id!);
-                setDb(updatedDb);
-                alert('Secret ID updated successfully!');
-                setShowSecretModal(false);
-              } catch {
-                alert('Failed to update secret ID');
-              }
-            }}
-            onClose={() => setShowSecretModal(false)}
-          />
+          <SecretPicker secrets={secrets} title="Update Secret" description="Select an existing secret or create a new one." onSelect={async (secretId) => {
+            try { await api.updateDatabase(id!, { secretId }); const updatedDb = await api.getDatabase(id!); setDb(updatedDb); alert('Secret ID updated successfully!'); setShowSecretModal(false); } catch { alert('Failed to update secret ID'); }
+          }} onClose={() => setShowSecretModal(false)} />
           <div className="text-center mt-2">
-            <button
-              onClick={() => {
-                setShowSecretModal(false);
-                navigate('/secrets/new');
-              }}
-              className="text-sm text-accent hover:underline"
-            >
-              + Create New Secret
-            </button>
+            <button onClick={() => { setShowSecretModal(false); navigate('/secrets/new'); }} className="text-sm text-accent hover:underline">+ Create New Secret</button>
           </div>
         </>
       )}

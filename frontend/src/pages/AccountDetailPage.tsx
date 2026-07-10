@@ -7,6 +7,7 @@ import type { Secret } from '../types/secret';
 import { PROVIDERS } from '../constants/accounts';
 import SecretPicker from '../components/SecretPicker';
 import TagsField from '../components/TagsField';
+import BackButton from '../components/BackButton';
 import { formatObjectIdDate } from '../utils/format';
 
 export default function AccountDetailPage() {
@@ -69,9 +70,7 @@ export default function AccountDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <button onClick={() => navigate('/accounts')} className="text-sm text-accent hover:underline mb-2">
-          ← Back to Accounts
-        </button>
+        <BackButton to="/accounts" label="Accounts" />
         <div className="flex items-center gap-3">
           <span className="text-4xl">{prov.emoji}</span>
           <div>
@@ -82,100 +81,44 @@ export default function AccountDetailPage() {
       </div>
 
       <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
-        {account.username && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Username</label>
-            <div className="text-sm text-text-primary">{account.username}</div>
-          </div>
-        )}
-
-        {account.url && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">URL</label>
-            <a href={account.url} target="_blank" rel="noreferrer" className="text-sm text-accent hover:underline break-all">
-              {account.url}
-            </a>
-          </div>
-        )}
-
-        {account.notes && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Notes</label>
-            <div className="text-sm text-text-primary whitespace-pre-wrap">{account.notes}</div>
-          </div>
-        )}
+        {account.username && <div><label className="text-xs font-medium text-text-muted block mb-1">Username</label><div className="text-sm text-text-primary">{account.username}</div></div>}
+        {account.url && <div><label className="text-xs font-medium text-text-muted block mb-1">URL</label><a href={account.url} target="_blank" rel="noreferrer" className="text-sm text-accent hover:underline break-all">{account.url}</a></div>}
+        {account.notes && <div><label className="text-xs font-medium text-text-muted block mb-1">Notes</label><div className="text-sm text-text-primary whitespace-pre-wrap">{account.notes}</div></div>}
 
         <TagsField tags={account.tags} />
 
         <div>
           <label className="text-xs font-medium text-text-muted block mb-1">Credentials ({account.credentials.length})</label>
           <div className="space-y-3">
-            {account.credentials.length === 0 && (
-              <div className="text-sm text-text-muted">No credentials configured.</div>
-            )}
+            {account.credentials.length === 0 && <div className="text-sm text-text-muted">No credentials configured.</div>}
             {account.credentials.map((cred) => {
               const isEditing = editingKey === cred.key;
               const currentId = secretIdInputs[cred.key] ?? '';
               const resolved = resolveName(currentId);
-
               return (
                 <div key={cred.key} className="bg-surface-secondary p-3 rounded border border-border">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-text-muted">{cred.key}</span>
                   </div>
-
                   {isEditing ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={currentId}
-                          onChange={e => setSecretIdInputs(prev => ({ ...prev, [cred.key]: e.target.value }))}
-                          placeholder="Paste Secret ID..."
-                          className="flex-1 text-sm px-2 py-1.5 rounded border border-border bg-surface text-text-primary font-mono placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
-                        />
-                        <button
-                          onClick={() => setBrowseKey(cred.key)}
-                          className="text-xs px-2 py-1.5 rounded border border-border hover:bg-surface-hover text-text-primary"
-                        >
-                          Browse
-                        </button>
+                        <input type="text" value={currentId} onChange={e => setSecretIdInputs(prev => ({ ...prev, [cred.key]: e.target.value }))} placeholder="Paste Secret ID..." className="flex-1 text-sm px-2 py-1.5 rounded border border-border bg-surface text-text-primary font-mono placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent" />
+                        <button onClick={() => setBrowseKey(cred.key)} className="text-xs px-2 py-1.5 rounded border border-border hover:bg-surface-hover text-text-primary">Browse</button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSave(cred.key)}
-                          disabled={saving === cred.key}
-                          className="text-xs px-3 py-1.5 rounded bg-accent text-white hover:opacity-90 disabled:opacity-50"
-                        >
-                          {saving === cred.key ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          onClick={() => setEditingKey(null)}
-                          className="text-xs px-3 py-1.5 rounded border border-border hover:bg-surface-hover text-text-primary"
-                        >
-                          Cancel
-                        </button>
+                        <button onClick={() => handleSave(cred.key)} disabled={saving === cred.key} className="text-xs px-3 py-1.5 rounded bg-accent text-white hover:opacity-90 disabled:opacity-50">{saving === cred.key ? 'Saving...' : 'Save'}</button>
+                        <button onClick={() => setEditingKey(null)} className="text-xs px-3 py-1.5 rounded border border-border hover:bg-surface-hover text-text-primary">Cancel</button>
                       </div>
                     </div>
                   ) : (
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          {resolved ? (
-                            <div className="text-xs text-text-muted">→ {resolved}</div>
-                          ) : currentId ? (
-                            <div className="text-xs text-text-muted font-mono truncate">→ {currentId}</div>
-                          ) : (
-                            <div className="text-xs text-warning">No secret assigned</div>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => setEditingKey(cred.key)}
-                          className="ml-3 text-xs px-3 py-1 rounded bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 font-medium shrink-0"
-                        >
-                          Edit
-                        </button>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        {resolved ? <div className="text-xs text-text-muted">→ {resolved}</div>
+                          : currentId ? <div className="text-xs text-text-muted font-mono truncate">→ {currentId}</div>
+                          : <div className="text-xs text-warning">No secret assigned</div>}
                       </div>
+                      <button onClick={() => setEditingKey(cred.key)} className="ml-3 text-xs px-3 py-1 rounded bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 font-medium shrink-0">Edit</button>
                     </div>
                   )}
                 </div>
@@ -184,37 +127,14 @@ export default function AccountDetailPage() {
           </div>
         </div>
 
-        {account.parentAccountId && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Parent Account</label>
-            <button
-              onClick={() => navigate(`/accounts/${account.parentAccountId}`)}
-              className="text-sm text-accent hover:underline"
-            >
-              View parent account
-            </button>
-          </div>
-        )}
+        {account.parentAccountId && <div><label className="text-xs font-medium text-text-muted block mb-1">Parent Account</label><button onClick={() => navigate(`/accounts/${account.parentAccountId}`)} className="text-sm text-accent hover:underline">View parent account</button></div>}
 
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Created</label>
-            <p className="text-sm text-text-primary">{formatObjectIdDate(account.id)}</p>
-          </div>
+          <div><label className="text-xs font-medium text-text-muted block mb-1">Created</label><p className="text-sm text-text-primary">{formatObjectIdDate(account.id)}</p></div>
         </div>
       </div>
 
-      {browseKey && (
-        <SecretPicker
-          secrets={secrets}
-          title={`Select Secret for ${browseKey}`}
-          onSelect={(secretId) => {
-            setSecretIdInputs(prev => ({ ...prev, [browseKey]: secretId }));
-            setBrowseKey(null);
-          }}
-          onClose={() => setBrowseKey(null)}
-        />
-      )}
+      {browseKey && <SecretPicker secrets={secrets} title={`Select Secret for ${browseKey}`} onSelect={(secretId) => { setSecretIdInputs(prev => ({ ...prev, [browseKey]: secretId })); setBrowseKey(null); }} onClose={() => setBrowseKey(null)} />}
     </div>
   );
 }

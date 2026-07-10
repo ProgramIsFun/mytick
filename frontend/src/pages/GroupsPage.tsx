@@ -2,7 +2,8 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { Group } from '../types/group';
-import { inputClsFull as inputCls } from '../constants/styles';
+import { inputCls } from '../constants/styles';
+import FormActions from '../components/FormActions';
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -13,7 +14,7 @@ export default function GroupsPage() {
   const [error, setError] = useState('');
   const { user } = useAuth();
 
-  const load = async () => { try { setGroups(await api.getGroups()); } catch (e: any) { setError(e.message); } };
+  const load = async () => { try { setGroups(await api.getGroups()); } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to load'); } };
   useEffect(() => { load(); }, []);
 
   const handleCreate = async (e: FormEvent) => {
@@ -26,7 +27,7 @@ export default function GroupsPage() {
     e.preventDefault();
     if (!addMemberGroupId || !memberUserId.trim()) return;
     try { await api.addMember(addMemberGroupId, memberUserId.trim(), memberRole); setMemberUserId(''); setAddMemberGroupId(null); load(); }
-    catch (e: any) { setError(e.message); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to add member'); }
   };
 
   return (
@@ -47,10 +48,8 @@ export default function GroupsPage() {
                 <h3 className="text-sm font-semibold text-text-primary">👥 {group.name}</h3>
                 {isOwner && (
                   <div className="flex gap-2">
-                    <button onClick={() => setAddMemberGroupId(addMemberGroupId === group.id ? null : group.id)}
-                      className="text-xs px-2.5 py-1 rounded-md border border-border hover:bg-surface-hover transition-colors">+ Member</button>
-                    <button onClick={() => { api.deleteGroup(group.id); load(); }}
-                      className="text-xs px-2.5 py-1 rounded-md text-danger hover:bg-danger/10 transition-colors">Delete</button>
+                    <button onClick={() => setAddMemberGroupId(addMemberGroupId === group.id ? null : group.id)} className="text-xs px-2.5 py-1 rounded-md border border-border hover:bg-surface-hover transition-colors">+ Member</button>
+                    <button onClick={() => { api.deleteGroup(group.id); load(); }} className="text-xs px-2.5 py-1 rounded-md text-danger hover:bg-danger/10 transition-colors">Delete</button>
                   </div>
                 )}
               </div>
@@ -59,10 +58,7 @@ export default function GroupsPage() {
                 {group.members.map(m => (
                   <div key={m.userId} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-surface-secondary text-sm">
                     <span className="text-text-primary">@{m.username || m.userId} <span className="text-text-muted">· {m.role}</span></span>
-                    {isOwner && (
-                      <button onClick={() => { api.removeMember(group.id, m.userId); load(); }}
-                        className="text-[11px] text-danger hover:underline">Remove</button>
-                    )}
+                    {isOwner && <button onClick={() => { api.removeMember(group.id, m.userId); load(); }} className="text-[11px] text-danger hover:underline">Remove</button>}
                   </div>
                 ))}
                 {group.members.length === 0 && <p className="text-xs text-text-muted py-1">No members yet</p>}

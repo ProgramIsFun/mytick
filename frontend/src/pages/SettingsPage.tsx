@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { requestNotificationPermission } from '../firebase';
-import { inputClsFull as inputCls } from '../constants/styles';
+import { inputCls } from '../constants/styles';
 import { STORAGE_TOKEN_KEY } from '../constants/storage';
 
 function DebugPushSection() {

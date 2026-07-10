@@ -1,30 +1,26 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import Spinner from '../components/Spinner';
 import type { KnowledgeEntry } from '../types/knowledge';
 import { inputCls } from '../constants/styles';
 import PageHeader from '../components/PageHeader';
 import ExpandableItem from '../components/ExpandableItem';
-import EmptyState from '../components/EmptyState';
-import Button from '../components/Button';
+import DataState from '../components/DataState';
+import FormActions from '../components/FormActions';
+import { useLoadData } from '../hooks/useLoadData';
+import { useDebouncedEffect } from '../hooks/useDebouncedEffect';
 
 export default function KnowledgePage() {
-  const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [formContent, setFormContent] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [search, setSearch] = useState('');
-
-  const load = () => {
-    setLoading(true);
-    api.getKnowledge(search ? { q: search } : undefined)
-      .then(res => setEntries(res.items))
-      .finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, [search]);
+  const { data, loading, load } = useLoadData(() =>
+    api.getKnowledge(search ? { q: search } : undefined).then(res => res.items)
+  );
+  useEffect(() => { load(); }, []);
+  useDebouncedEffect(() => { load(); }, [search]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +47,7 @@ export default function KnowledgePage() {
       <PageHeader
         title="Knowledge"
         backTo="/"
-        count={entries.length}
+        count={data?.length ?? 0}
         countLabel="entries"
         actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>}
       />
@@ -59,33 +55,18 @@ export default function KnowledgePage() {
       <main className="max-w-4xl mx-auto px-4 py-6">
         {creating && (
           <form onSubmit={handleCreate} className="border border-border rounded-lg p-4 bg-surface mb-4 space-y-3">
-            <textarea
-              placeholder="What do you know?"
-              value={formContent}
-              onChange={e => setFormContent(e.target.value)}
-              rows={4}
-              className={inputCls}
-            />
-            <div className="flex gap-2">
-              <Button type="submit">Save</Button>
-              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
-            </div>
+            <textarea placeholder="What do you know?" value={formContent} onChange={e => setFormContent(e.target.value)} rows={4} className={inputCls} />
+            <FormActions submitLabel="Save" onCancel={() => setCreating(false)} />
           </form>
         )}
 
         <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Search knowledge..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className={inputCls}
-          />
+          <input type="text" placeholder="Search knowledge..." value={search} onChange={e => setSearch(e.target.value)} className={inputCls} />
         </div>
 
-        {loading ? <Spinner text="Loading knowledge..." /> : (
+        <DataState loading={loading} items={data ?? []} loadingText="Loading knowledge..." emptyMessage="No knowledge entries yet">
           <div className="space-y-2">
-            {entries.map(e => {
+            {(data ?? []).map(e => {
               const isExpanded = expanded === e.id;
               const isEditing = editingId === e.id;
               return (
@@ -93,19 +74,12 @@ export default function KnowledgePage() {
                   key={e.id}
                   expanded={isExpanded}
                   onToggle={() => setExpanded(isExpanded ? null : e.id)}
-                  header={
-                    <span className="text-sm text-text-secondary truncate">
-                      {e.content.slice(0, 80)}{e.content.length > 80 ? '...' : ''}
-                    </span>
-                  }
+                  header={<span className="text-sm text-text-secondary truncate">{e.content.slice(0, 80)}{e.content.length > 80 ? '...' : ''}</span>}
                 >
                   {isEditing ? (
                     <div className="space-y-2">
                       <textarea value={editContent} onChange={ev => setEditContent(ev.target.value)} rows={8} className={inputCls} />
-                      <div className="flex gap-2">
-                        <Button onClick={() => handleSave(e.id)}>Save</Button>
-                        <Button variant="secondary" onClick={() => setEditingId(null)}>Cancel</Button>
-                      </div>
+                      <FormActions submitLabel="Save" onCancel={() => setEditingId(null)} />
                     </div>
                   ) : (
                     <>
@@ -119,10 +93,13 @@ export default function KnowledgePage() {
                 </ExpandableItem>
               );
             })}
-            {entries.length === 0 && <EmptyState message="No knowledge entries yet" />}
           </div>
-        )}
+        </DataState>
       </main>
     </div>
   );
+}
+
+function Button({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return <button className="px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors" {...props}>{children}</button>;
 }

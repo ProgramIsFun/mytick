@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import { inputClsFull as inputCls } from '../constants/styles';
+import { inputCls } from '../constants/styles';
 
 export default function LoginPage() {
   const { login } = useAuth();

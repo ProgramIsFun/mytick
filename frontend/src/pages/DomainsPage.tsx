@@ -1,32 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import Spinner from '../components/Spinner';
 import type { Domain, AccountRef as Account, ProjectRef as Project } from '../types/domain';
 import { inputCls } from '../constants/styles';
 import { expiryBadge } from '../utils/domain';
 import PageHeader from '../components/PageHeader';
 import ExpandableItem from '../components/ExpandableItem';
-import EmptyState from '../components/EmptyState';
+import DataState from '../components/DataState';
+import FormActions from '../components/FormActions';
 import Button from '../components/Button';
+import { useLoadData } from '../hooks/useLoadData';
+import { useDebouncedEffect } from '../hooks/useDebouncedEffect';
 
 export default function DomainsPage() {
   const navigate = useNavigate();
-  const [domains, setDomains] = useState<Domain[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: '', registrarAccountId: '', dnsAccountId: '', expiryDate: '', autoRenew: false, nameservers: '', sslProvider: '', notes: '' });
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
-  const load = () => {
-    setLoading(true);
-    api.getDomains(search || undefined).then(setDomains).finally(() => setLoading(false));
-    api.getAccounts().then(setAccounts);
-  };
-  useEffect(() => { load(); }, []);
-  useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
+  const { data: domains, loading, load } = useLoadData(() => api.getDomains(search || undefined));
+  useEffect(() => { load(); api.getAccounts().then(setAccounts); }, []);
+  useDebouncedEffect(() => { load(); }, [search]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,13 +44,7 @@ export default function DomainsPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <PageHeader
-        title="Domains"
-        backTo="/"
-        count={domains.length}
-        countLabel="domains"
-        actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>}
-      />
+      <PageHeader title="Domains" backTo="/" count={domains?.length ?? 0} countLabel="domains" actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>} />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {creating && (
@@ -82,24 +72,18 @@ export default function DomainsPage() {
               </label>
             </div>
             <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
-            <div className="flex gap-2">
-              <Button type="submit">Create</Button>
-              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
-            </div>
+            <FormActions submitLabel="Create" onCancel={() => setCreating(false)} />
           </form>
         )}
 
         <input placeholder="Search domains..." value={search} onChange={e => setSearch(e.target.value)} className={`${inputCls} mb-4`} />
 
         <div className="space-y-2">
-          {domains.map(d => {
-            const isExpanded = expanded === d.id;
-            return (
-              <ExpandableItem
-                key={d.id}
-                expanded={isExpanded}
-                onToggle={() => setExpanded(isExpanded ? null : d.id)}
-                header={
+          <DataState loading={loading} items={domains ?? []} loadingText="Loading domains..." emptyMessage="No domains yet">
+            {(domains ?? []).map(d => {
+              const isExpanded = expanded === d.id;
+              return (
+                <ExpandableItem key={d.id} expanded={isExpanded} onToggle={() => setExpanded(isExpanded ? null : d.id)} header={
                   <>
                     <span className="text-xl">🌐</span>
                     <div className="flex-1 min-w-0">
@@ -111,42 +95,11 @@ export default function DomainsPage() {
                     </div>
                     {expiryBadge(d.expiryDate)}
                   </>
-                }
-              >
-                <div className="space-y-2 text-sm">
-                    {d.projectId && (
-                      <div>
-                        <span className="text-text-muted">Project:</span> 
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${(d.projectId as Project).id}`); }}
-                          className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
-                        >
-                          {(d.projectId as Project).title} →
-                        </button>
-                      </div>
-                    )}
-                    {d.registrarAccountId && (
-                      <div>
-                        <span className="text-text-muted">Registrar:</span> 
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.registrarAccountId as Account).id}`); }}
-                          className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
-                        >
-                          {(d.registrarAccountId as Account).name} →
-                        </button>
-                      </div>
-                    )}
-                    {d.dnsAccountId && (
-                      <div>
-                        <span className="text-text-muted">DNS:</span> 
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.dnsAccountId as Account).id}`); }}
-                          className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20"
-                        >
-                          {(d.dnsAccountId as Account).name} →
-                        </button>
-                      </div>
-                    )}
+                }>
+                  <div className="space-y-2 text-sm">
+                    {d.projectId && <div><span className="text-text-muted">Project:</span> <button onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${(d.projectId as Project).id}`); }} className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20">{(d.projectId as Project).title} →</button></div>}
+                    {d.registrarAccountId && <div><span className="text-text-muted">Registrar:</span> <button onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.registrarAccountId as Account).id}`); }} className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20">{(d.registrarAccountId as Account).name} →</button></div>}
+                    {d.dnsAccountId && <div><span className="text-text-muted">DNS:</span> <button onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${(d.dnsAccountId as Account).id}`); }} className="ml-2 text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20">{(d.dnsAccountId as Account).name} →</button></div>}
                     {d.nameservers.length > 0 && <div><span className="text-text-muted">Nameservers:</span> <span className="font-mono text-xs text-text-secondary">{d.nameservers.join(', ')}</span></div>}
                     {d.sslProvider && <div><span className="text-text-muted">SSL:</span> <span className="text-text-primary">{d.sslProvider}</span></div>}
                     {d.expiryDate && <div><span className="text-text-muted">Expires:</span> <span className="text-text-primary">{new Date(d.expiryDate).toLocaleDateString()}</span></div>}
@@ -155,10 +108,10 @@ export default function DomainsPage() {
                       <button onClick={() => { api.deleteDomain(d.id).then(load); }} className="text-xs text-danger hover:underline">Delete domain</button>
                     </div>
                   </div>
-              </ExpandableItem>
-            );
-          })}
-          {loading ? <Spinner text="Loading domains..." /> : domains.length === 0 ? <EmptyState message="No domains yet" /> : null}
+                </ExpandableItem>
+              );
+            })}
+          </DataState>
         </div>
       </main>
     </div>

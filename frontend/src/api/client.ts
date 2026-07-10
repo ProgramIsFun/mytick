@@ -27,6 +27,22 @@ function buildQuery(base: string, params: Record<string, string | undefined>) {
   return parts.length ? `${base}?${parts.join('&')}` : base;
 }
 
+function crud<T = Record<string, unknown>>(basePath: string, listFn?: (params?: Record<string, string>) => Promise<T>) {
+  return {
+    list: listFn ?? ((params?: Record<string, string | undefined>) => request(buildQuery(basePath, params || {})) as Promise<T>),
+    get: (id: string) => request(`${basePath}/${id}`),
+    create: (data: Record<string, unknown>) => request(basePath, { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Record<string, unknown>) => request(`${basePath}/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) => request(`${basePath}/${id}`, { method: 'DELETE' }),
+  };
+}
+
+export const accountsApi = crud('/accounts');
+export const domainsApi = crud('/domains');
+export const databasesApi = crud('/databases');
+export const secretsApi = crud('/secrets');
+export const subscriptionsApi = crud('/subscriptions');
+
 export const api = {
   // Auth
   register: (data: { email: string; password: string; name: string; username: string }) =>
@@ -87,40 +103,34 @@ export const api = {
     request('/auth/test-push', { method: 'POST', body: JSON.stringify(tokenIndex !== undefined ? { tokenIndex } : {}) }),
   getFcmTokens: () => request('/auth/fcm-tokens'),
 
-  // Accounts
+  // Accounts (standard CRUD via accountsApi)
   getAccounts: (q?: string, tag?: string) =>
     request(buildQuery('/accounts', { q, tag })),
-  getAccount: (id: string) => request(`/accounts/${id}`),
-  createAccount: (data: Record<string, unknown>) =>
-    request('/accounts', { method: 'POST', body: JSON.stringify(data) }),
-  updateAccount: (id: string, data: Record<string, unknown>) =>
-    request(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteAccount: (id: string) => request(`/accounts/${id}`, { method: 'DELETE' }),
+  getAccount: accountsApi.get,
+  createAccount: accountsApi.create,
+  updateAccount: accountsApi.update,
+  deleteAccount: accountsApi.delete,
 
-  // Domains
+  // Domains (standard CRUD via domainsApi)
   getDomains: (q?: string, tag?: string, projectId?: string) =>
     request(buildQuery('/domains', { q, tag, projectId })),
-  getDomain: (id: string) => request(`/domains/${id}`),
-  createDomain: (data: Record<string, unknown>) =>
-    request('/domains', { method: 'POST', body: JSON.stringify(data) }),
-  updateDomain: (id: string, data: Record<string, unknown>) =>
-    request(`/domains/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteDomain: (id: string) => request(`/domains/${id}`, { method: 'DELETE' }),
+  getDomain: domainsApi.get,
+  createDomain: domainsApi.create,
+  updateDomain: domainsApi.update,
+  deleteDomain: domainsApi.delete,
 
-  // Databases
+  // Databases (standard CRUD via databasesApi + custom backup methods)
   getDatabases: (q?: string, type?: string, backupEnabled?: boolean) =>
     request(buildQuery('/databases', {
       ...(q ? { search: q } : {}),
       ...(type ? { type } : {}),
       ...(backupEnabled !== undefined ? { backupEnabled: String(backupEnabled) } : {}),
     })),
-  getDatabase: (id: string) => request(`/databases/${id}`),
+  getDatabase: databasesApi.get,
   getBackupableDatabases: () => request('/databases/backupable'),
-  createDatabase: (data: Record<string, unknown>) =>
-    request('/databases', { method: 'POST', body: JSON.stringify(data) }),
-  updateDatabase: (id: string, data: Record<string, unknown>) =>
-    request(`/databases/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteDatabase: (id: string) => request(`/databases/${id}`, { method: 'DELETE' }),
+  createDatabase: databasesApi.create,
+  updateDatabase: databasesApi.update,
+  deleteDatabase: databasesApi.delete,
   markBackupSuccess: (id: string) =>
     request(`/databases/${id}/backup-success`, { method: 'POST' }),
   getBackupHistory: (id: string, limit = 50) =>
@@ -128,25 +138,21 @@ export const api = {
   getAllBackupHistory: (limit = 50) =>
     request(`/databases/backup-history?limit=${limit}`),
 
-  // Secrets
-  getSecrets: () => request('/secrets'),
-  getSecret: (id: string) => request(`/secrets/${id}`),
-  createSecret: (data: Record<string, unknown>) =>
-    request('/secrets', { method: 'POST', body: JSON.stringify(data) }),
-  updateSecret: (id: string, data: Record<string, unknown>) =>
-    request(`/secrets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteSecret: (id: string) => request(`/secrets/${id}`, { method: 'DELETE' }),
+  // Secrets (standard CRUD via secretsApi)
+  getSecrets: secretsApi.list,
+  getSecret: secretsApi.get,
+  createSecret: secretsApi.create,
+  updateSecret: secretsApi.update,
+  deleteSecret: secretsApi.delete,
 
-  // Subscriptions
+  // Subscriptions (standard CRUD via subscriptionsApi + custom stats)
   getSubscriptions: (params?: { status?: string; category?: string; tag?: string; q?: string }) =>
     request(buildQuery('/subscriptions', params || {})),
-  getSubscription: (id: string) => request(`/subscriptions/${id}`),
+  getSubscription: subscriptionsApi.get,
   getSubscriptionStats: () => request('/subscriptions/stats'),
-  createSubscription: (data: Record<string, unknown>) =>
-    request('/subscriptions', { method: 'POST', body: JSON.stringify(data) }),
-  updateSubscription: (id: string, data: Record<string, unknown>) =>
-    request(`/subscriptions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteSubscription: (id: string) => request(`/subscriptions/${id}`, { method: 'DELETE' }),
+  createSubscription: subscriptionsApi.create,
+  updateSubscription: subscriptionsApi.update,
+  deleteSubscription: subscriptionsApi.delete,
 
   // Context
   getContextEntries: () => request('/context'),

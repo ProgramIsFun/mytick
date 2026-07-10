@@ -5,6 +5,7 @@ import Spinner from '../components/Spinner';
 import type { Domain } from '../types/domain';
 import { expiryBadge } from '../utils/domain';
 import TagsField from '../components/TagsField';
+import BackButton from '../components/BackButton';
 import { formatObjectIdDate } from '../utils/format';
 
 export default function DomainDetailPage() {
@@ -25,9 +26,7 @@ export default function DomainDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <button onClick={() => navigate('/domains')} className="text-sm text-accent hover:underline mb-2">
-          ← Back to Domains
-        </button>
+        <BackButton to="/domains" label="Domains" />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-text-primary">{domain.name}</h1>
@@ -40,69 +39,17 @@ export default function DomainDetailPage() {
       </div>
 
       <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
-        {domain.registrarAccountId && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Registrar Account</label>
-            <button
-              onClick={() => navigate(`/accounts/${domain.registrarAccountId!.id}`)}
-              className="text-sm text-accent hover:underline"
-            >
-              {domain.registrarAccountId.name}
-            </button>
-          </div>
-        )}
-
-        {domain.dnsAccountId && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">DNS Account</label>
-            <button
-              onClick={() => navigate(`/accounts/${domain.dnsAccountId!.id}`)}
-              className="text-sm text-accent hover:underline"
-            >
-              {domain.dnsAccountId.name}
-            </button>
-          </div>
-        )}
-
-        {domain.projectId && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Project</label>
-            <div className="text-sm text-text-primary">{domain.projectId.title}</div>
-          </div>
-        )}
-
-        {domain.nameservers.length > 0 && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Nameservers</label>
-            <div className="text-sm text-text-primary space-y-1">
-              {domain.nameservers.map((ns, idx) => (
-                <div key={idx}>{ns}</div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {domain.sslProvider && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">SSL Provider</label>
-            <div className="text-sm text-text-primary">{domain.sslProvider}</div>
-          </div>
-        )}
-
-        {domain.notes && (
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Notes</label>
-            <div className="text-sm text-text-primary whitespace-pre-wrap">{domain.notes}</div>
-          </div>
-        )}
+        {domain.registrarAccountId && <div><label className="text-xs font-medium text-text-muted block mb-1">Registrar Account</label><button onClick={() => navigate(`/accounts/${domain.registrarAccountId!.id}`)} className="text-sm text-accent hover:underline">{domain.registrarAccountId.name}</button></div>}
+        {domain.dnsAccountId && <div><label className="text-xs font-medium text-text-muted block mb-1">DNS Account</label><button onClick={() => navigate(`/accounts/${domain.dnsAccountId!.id}`)} className="text-sm text-accent hover:underline">{domain.dnsAccountId.name}</button></div>}
+        {domain.projectId && <div><label className="text-xs font-medium text-text-muted block mb-1">Project</label><div className="text-sm text-text-primary">{domain.projectId.title}</div></div>}
+        {domain.nameservers.length > 0 && <div><label className="text-xs font-medium text-text-muted block mb-1">Nameservers</label><div className="text-sm text-text-primary space-y-1">{domain.nameservers.map((ns, idx) => <div key={idx}>{ns}</div>)}</div></div>}
+        {domain.sslProvider && <div><label className="text-xs font-medium text-text-muted block mb-1">SSL Provider</label><div className="text-sm text-text-primary">{domain.sslProvider}</div></div>}
+        {domain.notes && <div><label className="text-xs font-medium text-text-muted block mb-1">Notes</label><div className="text-sm text-text-primary whitespace-pre-wrap">{domain.notes}</div></div>}
 
         <TagsField tags={domain.tags} />
 
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-          <div>
-            <label className="text-xs font-medium text-text-muted block mb-1">Created</label>
-            <p className="text-sm text-text-primary">{formatObjectIdDate(domain.id)}</p>
-          </div>
+          <div><label className="text-xs font-medium text-text-muted block mb-1">Created</label><p className="text-sm text-text-primary">{formatObjectIdDate(domain.id)}</p></div>
         </div>
       </div>
     </div>

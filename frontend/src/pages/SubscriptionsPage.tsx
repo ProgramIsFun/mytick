@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import Spinner from '../components/Spinner';
 import type { Subscription, SubscriptionStats } from '../types/subscription';
 import { BILLING_CYCLES, SUBSCRIPTION_STATUSES, SUBSCRIPTION_STATUS_COLORS, getCategoryIcon } from '../constants/subscriptions';
 import { inputCls } from '../constants/styles';
 import PageHeader from '../components/PageHeader';
 import ExpandableItem from '../components/ExpandableItem';
-import EmptyState from '../components/EmptyState';
+import DataState from '../components/DataState';
+import FormActions from '../components/FormActions';
 import Button from '../components/Button';
 import TagPills from '../components/TagPills';
 import { formatAmount } from '../utils/format';
+import { useLoadData } from '../hooks/useLoadData';
+import { useDebouncedEffect } from '../hooks/useDebouncedEffect';
 
 function nextDateBadge(date: string | null, label: string) {
   if (!date) return null;
@@ -30,8 +32,6 @@ function nextDateBadge(date: string | null, label: string) {
 }
 
 export default function SubscriptionsPage() {
-  const [subs, setSubs] = useState<Subscription[]>([]);
-  const [stats, setStats] = useState<SubscriptionStats | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
@@ -41,35 +41,26 @@ export default function SubscriptionsPage() {
   });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<SubscriptionStats | null>(null);
 
-  const load = () => {
-    setLoading(true);
+  const { data: subs, loading, load } = useLoadData(() =>
     Promise.all([
       api.getSubscriptions({ q: search || undefined, status: statusFilter || undefined }),
       api.getSubscriptionStats(),
-    ]).then(([data, s]) => { setSubs(data); setStats(s); }).finally(() => setLoading(false));
-  };
+    ]).then(([data, s]) => { setStats(s); return data; })
+  );
   useEffect(() => { load(); }, []);
-  useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search, statusFilter]);
+  useDebouncedEffect(() => { load(); }, [search, statusFilter]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.provider || !form.amount || !form.billingCycle) return;
     await api.createSubscription({
-      name: form.name,
-      provider: form.provider,
-      amount: parseFloat(form.amount),
-      currency: form.currency,
-      billingCycle: form.billingCycle,
-      nextBillingDate: form.nextBillingDate || null,
-      expiryDate: form.expiryDate || null,
-      autoRenew: form.autoRenew,
-      status: form.status,
-      category: form.category,
-      paymentMethod: form.paymentMethod,
-      url: form.url,
-      notes: form.notes,
+      name: form.name, provider: form.provider, amount: parseFloat(form.amount),
+      currency: form.currency, billingCycle: form.billingCycle,
+      nextBillingDate: form.nextBillingDate || null, expiryDate: form.expiryDate || null,
+      autoRenew: form.autoRenew, status: form.status, category: form.category,
+      paymentMethod: form.paymentMethod, url: form.url, notes: form.notes,
       tags: form.tags ? form.tags.split(',').map(s => s.trim()) : [],
     });
     setForm({ name: '', provider: '', amount: '', currency: 'USD', billingCycle: 'monthly', nextBillingDate: '', expiryDate: '', autoRenew: false, status: 'active', category: '', paymentMethod: '', url: '', notes: '', tags: '' });
@@ -79,13 +70,7 @@ export default function SubscriptionsPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <PageHeader
-        title="Subscriptions"
-        backTo="/"
-        count={subs.length}
-        countLabel="subscriptions"
-        actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>}
-      />
+      <PageHeader title="Subscriptions" backTo="/" count={subs?.length ?? 0} countLabel="subscriptions" actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>} />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {stats && stats.total > 0 && (
@@ -132,10 +117,7 @@ export default function SubscriptionsPage() {
             </div>
             <input placeholder="Tags (comma separated)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className={inputCls} />
             <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
-            <div className="flex gap-2">
-              <Button type="submit">Create</Button>
-              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
-            </div>
+            <FormActions submitLabel="Create" onCancel={() => setCreating(false)} />
           </form>
         )}
 
@@ -148,14 +130,11 @@ export default function SubscriptionsPage() {
         </div>
 
         <div className="space-y-2">
-          {loading ? <Spinner text="Loading subscriptions..." /> : subs.length === 0 ? <EmptyState message="No subscriptions yet" /> : subs.map(s => {
-            const isExpanded = expanded === s.id;
-            return (
-              <ExpandableItem
-                key={s.id}
-                expanded={isExpanded}
-                onToggle={() => setExpanded(isExpanded ? null : s.id)}
-                header={
+          <DataState loading={loading} items={subs ?? []} loadingText="Loading subscriptions..." emptyMessage="No subscriptions yet">
+            {(subs ?? []).map(s => {
+              const isExpanded = expanded === s.id;
+              return (
+                <ExpandableItem key={s.id} expanded={isExpanded} onToggle={() => setExpanded(isExpanded ? null : s.id)} header={
                   <>
                     <span className="text-xl">{getCategoryIcon(s.category)}</span>
                     <div className="flex-1 min-w-0">
@@ -166,34 +145,27 @@ export default function SubscriptionsPage() {
                         <span className="ml-2">· {formatAmount(s.amount, s.currency)}</span>
                       </div>
                     </div>
-                    <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${SUBSCRIPTION_STATUS_COLORS[s.status]}`}>
-                      {SUBSCRIPTION_STATUSES[s.status]}
-                    </span>
+                    <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${SUBSCRIPTION_STATUS_COLORS[s.status]}`}>{SUBSCRIPTION_STATUSES[s.status]}</span>
                     {nextDateBadge(s.nextBillingDate, 'Billing')}
                   </>
-                }
-              >
-                <div className="space-y-2 text-sm">
-                  {s.nextBillingDate && <div><span className="text-text-muted">Next billing:</span> <span className="text-text-primary">{new Date(s.nextBillingDate).toLocaleDateString()}</span></div>}
-                  {s.expiryDate && <div><span className="text-text-muted">Expires:</span> <span className="text-text-primary">{new Date(s.expiryDate).toLocaleDateString()}</span></div>}
-                  <div><span className="text-text-muted">Amount:</span> <span className="text-text-primary">{formatAmount(s.amount, s.currency)} / {BILLING_CYCLES[s.billingCycle].toLowerCase()}</span></div>
-                  {s.paymentMethod && <div><span className="text-text-muted">Payment:</span> <span className="text-text-primary">{s.paymentMethod}</span></div>}
-                  {s.category && <div><span className="text-text-muted">Category:</span> <span className="text-text-primary">{s.category}</span></div>}
-                  {s.url && <div><span className="text-text-muted">URL:</span> <a href={s.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">{s.url}</a></div>}
-                  {s.notes && <div><span className="text-text-muted">Notes:</span> <span className="text-text-secondary whitespace-pre-wrap">{s.notes}</span></div>}
-                  {s.tags.length > 0 && (
-                    <div className="flex gap-1">
-                      <span className="text-text-muted">Tags:</span>
-                      <TagPills tags={s.tags} />
+                }>
+                  <div className="space-y-2 text-sm">
+                    {s.nextBillingDate && <div><span className="text-text-muted">Next billing:</span> <span className="text-text-primary">{new Date(s.nextBillingDate).toLocaleDateString()}</span></div>}
+                    {s.expiryDate && <div><span className="text-text-muted">Expires:</span> <span className="text-text-primary">{new Date(s.expiryDate).toLocaleDateString()}</span></div>}
+                    <div><span className="text-text-muted">Amount:</span> <span className="text-text-primary">{formatAmount(s.amount, s.currency)} / {BILLING_CYCLES[s.billingCycle].toLowerCase()}</span></div>
+                    {s.paymentMethod && <div><span className="text-text-muted">Payment:</span> <span className="text-text-primary">{s.paymentMethod}</span></div>}
+                    {s.category && <div><span className="text-text-muted">Category:</span> <span className="text-text-primary">{s.category}</span></div>}
+                    {s.url && <div><span className="text-text-muted">URL:</span> <a href={s.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">{s.url}</a></div>}
+                    {s.notes && <div><span className="text-text-muted">Notes:</span> <span className="text-text-secondary whitespace-pre-wrap">{s.notes}</span></div>}
+                    {s.tags.length > 0 && <div className="flex gap-1"><span className="text-text-muted">Tags:</span><TagPills tags={s.tags} /></div>}
+                    <div className="pt-2">
+                      <button onClick={() => { api.deleteSubscription(s.id).then(load); }} className="text-xs text-danger hover:underline">Delete subscription</button>
                     </div>
-                  )}
-                  <div className="pt-2">
-                    <button onClick={() => { api.deleteSubscription(s.id).then(load); }} className="text-xs text-danger hover:underline">Delete subscription</button>
                   </div>
-                </div>
-              </ExpandableItem>
-            );
-          })}
+                </ExpandableItem>
+              );
+            })}
+          </DataState>
         </div>
       </main>
     </div>

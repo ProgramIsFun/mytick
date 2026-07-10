@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { PageSpinner } from '../components/Spinner';
 import { STATUS_BADGE } from '../constants/task';
-import { inputClsFull as inputCls } from '../constants/styles';
+import { inputCls } from '../constants/styles';
 
 interface DescriptionVersion { description: string; savedAt: string; }
 interface Task { id: string; title: string; description: string; status: string; visibility: string; groupIds: string[]; shareToken: string; userId: string; descriptionHistory: DescriptionVersion[]; blockedBy: string[]; createdAt: string; type?: string; tags?: string[]; metadata?: { projectType?: string; repoUrl?: string; localPath?: string; environments?: string[]; services?: { accountId: string; role: string; env?: string; mappings?: { target: string; envVar: string; vaultId: string }[] }[]; members?: { userId: string; role: string }[] } | null; }

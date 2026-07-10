@@ -11,10 +11,22 @@ import GroupsPage from './GroupsPage';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import Alert from '../components/Alert';
+import { useDebouncedEffect } from '../hooks/useDebouncedEffect';
 import type { Group } from '../types/group';
 import type { TaskItemData as Task } from '../types/task';
 
 type Tab = 'tasks' | 'calendar' | 'groups';
+
+const NAV_ITEMS = [
+  { route: '/subscriptions', label: 'Subscriptions', icon: '💳' },
+  { route: '/accounts', label: 'Accounts', icon: '🔑' },
+  { route: '/domains', label: 'Domains', icon: '🌐' },
+  { route: '/databases', label: 'Databases', icon: '🗄️' },
+  { route: '/secrets', label: 'Secrets', icon: '🔐' },
+  { route: '/context', label: 'Context', icon: '📋' },
+  { route: '/knowledge', label: 'Knowledge', icon: '🧠' },
+  { route: '/settings', label: 'Settings', icon: '⚙️' },
+];
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -40,11 +52,10 @@ export default function DashboardPage() {
       setLoadingTasks(true);
       const res = await api.getTasks(p, 20, typeFilter, tagFilter, searchQuery || undefined, showDone ? undefined : 'done,abandoned');
       setTasks(res.tasks); setTotalPages(res.totalPages); setPage(res.page);
-      // Collect unique tags
       const tags = new Set<string>(allTags);
-      res.tasks.forEach((t: any) => t.tags?.forEach((tag: string) => tags.add(tag)));
+      res.tasks.forEach((t: Task) => t.tags?.forEach((tag: string) => tags.add(tag)));
       setAllTags([...tags].sort());
-    } catch (err: any) { setError(err.message); }
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Failed to load'); }
     finally { setLoadingTasks(false); }
   };
 
@@ -52,10 +63,7 @@ export default function DashboardPage() {
 
   useEffect(() => { loadTasks(); loadGroups(); }, []);
   useEffect(() => { loadTasks(1); }, [typeFilter, tagFilter, showDone]);
-  useEffect(() => {
-    const t = setTimeout(() => loadTasks(1), 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
+  useDebouncedEffect(() => { loadTasks(1); }, [searchQuery]);
 
   const handleCreate = async (title: string, groupIds: string[], deadline?: string, recurrence?: { freq: string; interval: number } | null) => {
     await api.createTask({ title, groupIds, visibility: groupIds.length > 0 ? 'group' : 'private', deadline, recurrence, type: typeFilter === 'project' ? 'project' : 'task' });
@@ -78,22 +86,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      {/* Header */}
       <header className="border-b border-border bg-surface-secondary">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold text-text-primary">MyTick</h1>
             <nav className="flex gap-1">
               {tabs.map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                    tab === t.key
-                      ? 'bg-accent/10 text-accent font-medium'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                  }`}
-                >
+                <button key={t.key} onClick={() => setTab(t.key)} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${tab === t.key ? 'bg-accent/10 text-accent font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}>
                   {t.icon} {t.label}
                 </button>
               ))}
@@ -101,24 +100,18 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-              >
+              <button onClick={() => setShowMenu(!showMenu)} className="text-sm px-3 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors">
                 ⚙️ {user?.name} ▾
               </button>
               {showMenu && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                   <div className="absolute right-0 top-full mt-1 z-20 w-44 bg-surface border border-border rounded-md shadow-lg py-1">
-                    <button onClick={() => { navigate('/subscriptions'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">💳 Subscriptions</button>
-                    <button onClick={() => { navigate('/accounts'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🔑 Accounts</button>
-                    <button onClick={() => { navigate('/domains'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🌐 Domains</button>
-                    <button onClick={() => { navigate('/databases'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🗄️ Databases</button>
-                    <button onClick={() => { navigate('/secrets'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🔐 Secrets</button>
-                    <button onClick={() => { navigate('/context'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">📋 Context</button>
-                    <button onClick={() => { navigate('/knowledge'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">🧠 Knowledge</button>
-                    <button onClick={() => { navigate('/settings'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">⚙️ Settings</button>
+                    {NAV_ITEMS.map(item => (
+                      <button key={item.route} onClick={() => { navigate(item.route); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">
+                        {item.icon} {item.label}
+                      </button>
+                    ))}
                     <hr className="my-1 border-border-light" />
                     <button onClick={logout} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-danger">🚪 Logout</button>
                   </div>
@@ -129,7 +122,6 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         {tab === 'tasks' && (
           <>
@@ -138,15 +130,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mt-6 mb-3 gap-2">
               <div className="flex items-center gap-1 flex-wrap">
                 {([['All', undefined], ['Tasks', 'task'], ['Projects', 'project']] as [string, string | undefined][]).map(([label, value]) => (
-                  <button
-                    key={label}
-                    onClick={() => setTypeFilter(value)}
-                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                      typeFilter === value
-                        ? 'bg-accent/10 text-accent font-medium'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                    }`}
-                  >
+                  <button key={label} onClick={() => setTypeFilter(value)} className={`px-3 py-1 text-xs rounded-md transition-colors ${typeFilter === value ? 'bg-accent/10 text-accent font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}>
                     {label}
                   </button>
                 ))}
@@ -163,32 +147,16 @@ export default function DashboardPage() {
                 )}
               </div>
               <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showGroupTasks}
-                  onChange={() => setShowGroupTasks(!showGroupTasks)}
-                  className="rounded border-border accent-accent"
-                />
+                <input type="checkbox" checked={showGroupTasks} onChange={() => setShowGroupTasks(!showGroupTasks)} className="rounded border-border accent-accent" />
                 Show group tasks
               </label>
               <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showDone}
-                  onChange={() => setShowDone(!showDone)}
-                  className="rounded border-border accent-accent"
-                />
+                <input type="checkbox" checked={showDone} onChange={() => setShowDone(!showDone)} className="rounded border-border accent-accent" />
                 Show done
               </label>
             </div>
 
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 mb-3"
-            />
+            <input type="text" placeholder="Search tasks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full px-3 py-2 text-sm rounded-md border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors mb-3" />
 
             {error && <Alert message={error} />}
 
@@ -199,14 +167,7 @@ export default function DashboardPage() {
                 <EmptyState message="No tasks yet. Create one above!" />
               ) : (
                 tasks.filter(t => showGroupTasks || t.userId === user?.id).map(task => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    groups={groups}
-                    isOwner={task.userId === user?.id}
-                    onUpdate={handleUpdate}
-                    onDelete={handleDelete}
-                  />
+                  <TaskItem key={task.id} task={task} groups={groups} isOwner={task.userId === user?.id} onUpdate={handleUpdate} onDelete={handleDelete} />
                 ))
               )}
             </div>

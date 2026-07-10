@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import Spinner from '../components/Spinner';
 import type { ContextEntry } from '../types/context';
 import { inputCls } from '../constants/styles';
 import PageHeader from '../components/PageHeader';
 import ExpandableItem from '../components/ExpandableItem';
-import EmptyState from '../components/EmptyState';
-import Button from '../components/Button';
+import DataState from '../components/DataState';
+import FormActions from '../components/FormActions';
+import { useLoadData } from '../hooks/useLoadData';
 
 export default function ContextPage() {
-  const [entries, setEntries] = useState<ContextEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ key: '', value: '' });
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-
-  const load = () => { setLoading(true); api.getContextEntries().then(setEntries).finally(() => setLoading(false)); };
+  const { data: entries, loading, load } = useLoadData(() => api.getContextEntries());
   useEffect(() => { load(); }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -45,7 +42,7 @@ export default function ContextPage() {
       <PageHeader
         title="Context"
         backTo="/"
-        count={entries.length}
+        count={entries?.length ?? 0}
         countLabel="entries"
         actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>}
       />
@@ -55,16 +52,13 @@ export default function ContextPage() {
           <form onSubmit={handleCreate} className="border border-border rounded-lg p-4 bg-surface mb-4 space-y-3">
             <input placeholder="Key *" value={form.key} onChange={e => setForm({ ...form, key: e.target.value })} className={inputCls} />
             <textarea placeholder="Value" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })} rows={4} className={inputCls} />
-            <div className="flex gap-2">
-              <Button type="submit">Save</Button>
-              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
-            </div>
+            <FormActions submitLabel="Save" onCancel={() => setCreating(false)} />
           </form>
         )}
 
-        {loading ? <Spinner text="Loading context..." /> : (
+        <DataState loading={loading} items={entries ?? []} loadingText="Loading context..." emptyMessage="No context entries yet">
           <div className="space-y-2">
-            {entries.map(e => {
+            {(entries ?? []).map(e => {
               const isExpanded = expanded === e.key;
               const isEditing = editingKey === e.key;
               return (
@@ -82,10 +76,7 @@ export default function ContextPage() {
                   {isEditing ? (
                     <div className="space-y-2">
                       <textarea value={editValue} onChange={ev => setEditValue(ev.target.value)} rows={8} className={inputCls} />
-                      <div className="flex gap-2">
-                        <Button onClick={() => handleSave(e.key)}>Save</Button>
-                        <Button variant="secondary" onClick={() => setEditingKey(null)}>Cancel</Button>
-                      </div>
+                      <FormActions submitLabel="Save" onCancel={() => setEditingKey(null)} />
                     </div>
                   ) : (
                     <>
@@ -99,10 +90,13 @@ export default function ContextPage() {
                 </ExpandableItem>
               );
             })}
-            {entries.length === 0 && <EmptyState message="No context entries yet" />}
           </div>
-        )}
+        </DataState>
       </main>
     </div>
   );
+}
+
+function Button({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return <button className="px-4 py-2 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-colors" {...props}>{children}</button>;
 }

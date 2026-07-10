@@ -1,70 +1,49 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import Spinner from '../components/Spinner';
 import type { Database, BackupRecord, AccountRef as Account, SecretRef as Secret } from '../types/database';
 import { DB_TYPES } from '../constants/databases';
 import { inputCls } from '../constants/styles';
 import { formatSize, timeSince } from '../utils/format';
 import PageHeader from '../components/PageHeader';
-import EmptyState from '../components/EmptyState';
+import DataState from '../components/DataState';
+import FormActions from '../components/FormActions';
 import Button from '../components/Button';
+import { useLoadData } from '../hooks/useLoadData';
 
 export default function DatabasesPage() {
   const navigate = useNavigate();
-  const [databases, setDatabases] = useState<Database[]>([]);
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     name: '', type: 'mongodb', host: '', port: '', database: '',
-    secretId: '',
-    backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily',
+    secretId: '', backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily',
     accountId: '', notes: ''
   });
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
   const [allBackups, setAllBackups] = useState<BackupRecord[]>([]);
   const [backupsLoading, setBackupsLoading] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    Promise.all([
-      api.getDatabases(search || undefined).then(setDatabases),
-      api.getSecrets().then(setSecrets),
-      api.getAccounts().then(setAccounts)
-    ]).finally(() => setLoading(false));
-  };
+  const { data: databases, loading, load } = useLoadData(() => api.getDatabases(search || undefined));
+  useEffect(() => { load(); api.getSecrets().then(setSecrets); api.getAccounts().then(setAccounts); loadBackups(); }, []);
 
   const loadBackups = () => {
     setBackupsLoading(true);
     api.getAllBackupHistory(100).then(setAllBackups).finally(() => setBackupsLoading(false));
   };
 
-  useEffect(() => { load(); loadBackups(); }, []);
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.type) return;
     await api.createDatabase({
-      name: form.name,
-      type: form.type,
-      host: form.host,
-      port: form.port ? parseInt(form.port) : null,
-      database: form.database,
-      secretId: form.secretId || null,
-      backupEnabled: form.backupEnabled,
-      backupRetentionDays: form.backupRetentionDays,
-      backupFrequency: form.backupFrequency,
-      accountId: form.accountId || null,
-      notes: form.notes,
+      name: form.name, type: form.type, host: form.host,
+      port: form.port ? parseInt(form.port) : null, database: form.database,
+      secretId: form.secretId || null, backupEnabled: form.backupEnabled,
+      backupRetentionDays: form.backupRetentionDays, backupFrequency: form.backupFrequency,
+      accountId: form.accountId || null, notes: form.notes,
     });
-    setForm({
-      name: '', type: 'mongodb', host: '', port: '', database: '',
-      secretId: '',
-      backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily',
-      accountId: '', notes: ''
-    });
+    setForm({ name: '', type: 'mongodb', host: '', port: '', database: '', secretId: '', backupEnabled: false, backupRetentionDays: 30, backupFrequency: 'daily', accountId: '', notes: '' });
     setCreating(false);
     load();
   };
@@ -76,13 +55,7 @@ export default function DatabasesPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <PageHeader
-        title="Databases"
-        backTo="/"
-        count={databases.length}
-        countLabel="databases"
-        actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>}
-      />
+      <PageHeader title="Databases" backTo="/" count={databases?.length ?? 0} countLabel="databases" actions={<Button onClick={() => setCreating(!creating)}>+ New</Button>} />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {creating && (
@@ -133,34 +106,20 @@ export default function DatabasesPage() {
               )}
             </div>
             <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
-            <div className="flex gap-2">
-              <Button type="submit">Create</Button>
-              <Button variant="secondary" type="button" onClick={() => setCreating(false)}>Cancel</Button>
-            </div>
+            <FormActions submitLabel="Create" onCancel={() => setCreating(false)} />
           </form>
         )}
 
         <div className="flex gap-6">
           <div className="flex-1 min-w-0">
             <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Search databases..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className={inputCls}
-              />
+              <input type="text" placeholder="Search databases..." value={search} onChange={e => setSearch(e.target.value)} className={inputCls} />
             </div>
 
-            {loading ? (
-              <Spinner text="Loading databases..." />
-            ) : databases.length === 0 ? (
-              <EmptyState message="No databases found. Create one to get started." />
-            ) : (
+            <DataState loading={loading} items={databases ?? []} loadingText="Loading databases..." emptyMessage="No databases found. Create one to get started.">
               <div className="space-y-2">
-                {databases.map(db => {
+                {(databases ?? []).map(db => {
                   const dbType = DB_TYPES[db.type] || DB_TYPES.other;
-
                   return (
                     <div key={db.id} className="border border-border rounded-lg bg-surface overflow-hidden">
                       <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-hover" onClick={() => navigate(`/databases/${db.id}`)}>
@@ -168,9 +127,7 @@ export default function DatabasesPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-text-primary truncate">{db.name}</span>
-                            {db.backupEnabled && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-success/15 text-success">Backups ON</span>
-                            )}
+                            {db.backupEnabled && <span className="text-xs px-2 py-0.5 rounded-full bg-success/15 text-success">Backups ON</span>}
                           </div>
                           <div className="text-xs text-text-muted mt-0.5">
                             {dbType.label}
@@ -178,25 +135,15 @@ export default function DatabasesPage() {
                             {db.database && ` • ${db.database}`}
                           </div>
                         </div>
-                        {db.accountId && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${db.accountId?.id || ''}`); }}
-                            className="text-xs px-2 py-1 rounded-md border border-border text-text-secondary hover:text-accent hover:border-accent hover:bg-accent/5 transition-colors"
-                            title="View account details"
-                          >
-                            🔗 {db.accountId?.name}
-                          </button>
-                        )}
-                        {db.backupEnabled && (
-                          <span className="text-xs text-text-muted">Last backup: {timeSince(db.lastBackupAt)}</span>
-                        )}
+                        {db.accountId && <button onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${db.accountId?.id || ''}`); }} className="text-xs px-2 py-1 rounded-md border border-border text-text-secondary hover:text-accent hover:border-accent hover:bg-accent/5 transition-colors" title="View account details">🔗 {db.accountId?.name}</button>}
+                        {db.backupEnabled && <span className="text-xs text-text-muted">Last backup: {timeSince(db.lastBackupAt)}</span>}
                         <span className="text-xs text-accent">→</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            )}
+            </DataState>
           </div>
 
           <div className="w-[440px] shrink-0">
@@ -213,19 +160,8 @@ export default function DatabasesPage() {
                 ) : (
                   <div className="space-y-1.5 max-h-[calc(100vh-180px)] overflow-y-auto">
                     {allBackups.map(b => (
-                      <div
-                        key={b.id}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-hover cursor-pointer text-xs"
-                        onClick={() => {
-                          const dbId = typeof b.databaseId === 'object' ? b.databaseId.id : b.databaseId;
-                          navigate(`/databases/${dbId}`);
-                        }}
-                      >
-                        <span className={`shrink-0 font-medium px-1.5 py-0.5 rounded ${
-                          b.status === 'success' ? 'bg-success/20 text-success' :
-                          b.status === 'failed' ? 'bg-error/20 text-error' :
-                          'bg-warning/20 text-warning'
-                        }`}>
+                      <div key={b.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-hover cursor-pointer text-xs" onClick={() => { const dbId = typeof b.databaseId === 'object' ? b.databaseId.id : b.databaseId; navigate(`/databases/${dbId}`); }}>
+                        <span className={`shrink-0 font-medium px-1.5 py-0.5 rounded ${b.status === 'success' ? 'bg-success/20 text-success' : b.status === 'failed' ? 'bg-error/20 text-error' : 'bg-warning/20 text-warning'}`}>
                           {b.status === 'success' ? '✓' : b.status === 'failed' ? '✗' : '~'}
                         </span>
                         <span className="text-text-primary truncate flex-1">{getDbName(b.databaseId)}</span>

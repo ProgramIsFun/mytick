@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { inputClsFull as inputCls } from '../constants/styles';
+import { inputCls } from '../constants/styles';
 import type { Group } from '../types/group';
 import Modal from './Modal';
 import Button from './Button';
