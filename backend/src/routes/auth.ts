@@ -18,6 +18,47 @@ function userResponse(user: { id: string; email?: string; username: string; name
   return { id: user.id, email: user.email, username: user.username, name: user.name };
 }
 
+/**
+ * @openapi
+ * /auth/register:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Register a new user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, name, username]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *               name:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 100
+ *               username:
+ *                 type: string
+ *                 pattern: '^[a-z0-9](?:[a-z0-9]*-?[a-z0-9]+)*$'
+ *     responses:
+ *       201:
+ *         description: User created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       409:
+ *         description: Email or username already taken
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/register', validate(registerSchema), asyncHandler(async (req, res: Response) => {
   const { email, password, name, username } = req.body;
 
@@ -40,6 +81,38 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res:
   res.status(201).json({ token: signToken(user.id), user: userResponse(user) });
 }));
 
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Login with email and password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       401:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/login', validate(loginSchema), asyncHandler(async (req, res: Response) => {
   const { email, password } = req.body;
 
@@ -55,6 +128,38 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res: Respo
   res.json({ token: signToken(user.id), user: userResponse(user) });
 }));
 
+/**
+ * @openapi
+ * /auth/oauth:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Login or register via OAuth provider
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [provider, providerId]
+ *             properties:
+ *               provider:
+ *                 type: string
+ *                 enum: [google, github]
+ *               providerId:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OAuth login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ */
 router.post('/oauth', validate(oauthSchema), asyncHandler(async (req, res: Response) => {
   const { provider, providerId, email, name } = req.body;
 
@@ -81,12 +186,62 @@ router.post('/oauth', validate(oauthSchema), asyncHandler(async (req, res: Respo
   res.json({ token: signToken(user.id), user: userResponse(user) });
 }));
 
+/**
+ * @openapi
+ * /auth/me:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Get current user profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/me', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await userRepo.findById(req.userId!);
   if (!user) return notFound(res, 'User not found');
   res.json(userResponse(user));
 }));
 
+/**
+ * @openapi
+ * /auth/me:
+ *   patch:
+ *     tags: [Auth]
+ *     summary: Update current user profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ */
 router.patch('/me', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await userRepo.findById(req.userId!);
   if (!user) return notFound(res, 'User not found');
@@ -127,6 +282,33 @@ router.patch('/me', auth, asyncHandler(async (req: AuthRequest, res: Response) =
   res.json(userResponse(updated!));
 }));
 
+/**
+ * @openapi
+ * /auth/fcm-token:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Register a Firebase Cloud Messaging token
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fcmToken]
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *               provider:
+ *                 type: string
+ *                 default: fcm
+ *               device:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token registered
+ */
 router.post('/fcm-token', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { fcmToken, provider, device } = req.body;
   if (!fcmToken) return badRequest(res, 'fcmToken required');
@@ -139,6 +321,28 @@ router.post('/fcm-token', auth, asyncHandler(async (req: AuthRequest, res: Respo
   res.json({ message: 'Token registered' });
 }));
 
+/**
+ * @openapi
+ * /auth/fcm-token:
+ *   delete:
+ *     tags: [Auth]
+ *     summary: Remove a Firebase Cloud Messaging token
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fcmToken]
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token removed
+ */
 router.delete('/fcm-token', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { fcmToken } = req.body;
   if (!fcmToken) return badRequest(res, 'fcmToken required');
@@ -146,11 +350,54 @@ router.delete('/fcm-token', auth, asyncHandler(async (req: AuthRequest, res: Res
   res.json({ message: 'Token removed' });
 }));
 
+/**
+ * @openapi
+ * /auth/fcm-tokens:
+ *   get:
+ *     tags: [Auth]
+ *     summary: List all registered FCM tokens
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of tokens
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tokens:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ */
 router.get('/fcm-tokens', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const tokens = await userRepo.getPushTokens(req.userId!);
   res.json({ tokens });
 }));
 
+/**
+ * @openapi
+ * /auth/test-push:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Send a test push notification
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tokenIndex:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Push sent
+ *       400:
+ *         description: No push tokens registered
+ */
 router.post('/test-push', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await userRepo.findById(req.userId!);
   const allTokens = [
@@ -166,12 +413,55 @@ router.post('/test-push', auth, asyncHandler(async (req: AuthRequest, res: Respo
   res.json({ message: 'Sent', tokens: tokens.length });
 }));
 
+/**
+ * @openapi
+ * /auth/users:
+ *   get:
+ *     tags: [Auth]
+ *     summary: List all users (admin only)
+ *     security:
+ *       - adminKey: []
+ *     responses:
+ *       200:
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ */
 router.get('/users', asyncHandler(async (req, res: Response) => {
   if (!requireAdminKey(req, res)) return;
   const users = await userRepo.findAll();
   res.json(users.map(u => userResponse(u)));
 }));
 
+/**
+ * @openapi
+ * /auth/lookup:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Look up a user by email (admin only)
+ *     security:
+ *       - adminKey: []
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *     responses:
+ *       200:
+ *         description: User found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: User not found
+ */
 router.get('/lookup', asyncHandler(async (req, res: Response) => {
   if (!requireAdminKey(req, res)) return;
   const email = req.query.email as string;
@@ -181,6 +471,44 @@ router.get('/lookup', asyncHandler(async (req, res: Response) => {
   res.json(userResponse(user));
 }));
 
+/**
+ * @openapi
+ * /auth/service-token:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Create a service token for API access
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [service]
+ *             properties:
+ *               service:
+ *                 type: string
+ *               expiresIn:
+ *                 type: string
+ *                 default: 90d
+ *     responses:
+ *       200:
+ *         description: Service token created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                 service:
+ *                   type: string
+ *                 userId:
+ *                   type: string
+ *                 expiresIn:
+ *                   type: string
+ */
 router.post('/service-token', auth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const user = await userRepo.findById(req.userId!);
   if (!user) return notFound(res, 'User not found');

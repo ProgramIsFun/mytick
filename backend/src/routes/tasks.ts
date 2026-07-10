@@ -10,12 +10,63 @@ import { expandOccurrences } from '../utils/recurrence';
 
 const router = Router();
 
+/**
+ * @openapi
+ * /tasks/share/{shareToken}:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get a public task by share token
+ *     parameters:
+ *       - in: path
+ *         name: shareToken
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Public task info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 title:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *       404:
+ *         description: Task not found or not public
+ */
 router.get('/share/:shareToken', asyncHandler(async (req, res: Response) => {
   const task = await taskRepo.findByShareToken(req.params.shareToken as string);
   if (!task || task.visibility !== 'public') return notFound(res);
   res.json({ title: task.title, description: task.description, status: task.status });
 }));
 
+/**
+ * @openapi
+ * /tasks/user/{userId}:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get tasks by user ID (respects visibility)
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Task'
+ */
 router.get('/user/:userId', asyncHandler(async (req, res: Response) => {
   const viewerId = extractViewerId(req as AuthRequest);
   const targetUserId = req.params.userId as string;
@@ -36,6 +87,24 @@ router.get('/user/:userId', asyncHandler(async (req, res: Response) => {
   res.json(tasks.filter(t => t.visibility === 'public'));
 }));
 
+/**
+ * @openapi
+ * /tasks/u/{username}/profile:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get public profile and projects for a user
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User profile with public projects
+ *       404:
+ *         description: User not found
+ */
 router.get('/u/:username/profile', asyncHandler(async (req, res: Response) => {
   const user = await userRepo.findByUsername(req.params.username as string);
   if (!user) return notFound(res, 'User not found');
@@ -51,6 +120,30 @@ router.get('/u/:username/profile', asyncHandler(async (req, res: Response) => {
   });
 }));
 
+/**
+ * @openapi
+ * /tasks/u/{username}:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get tasks by username (respects visibility)
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Task'
+ *       404:
+ *         description: User not found
+ */
 router.get('/u/:username', asyncHandler(async (req, res: Response) => {
   const targetUser = await userRepo.findByUsername(req.params.username as string);
   if (!targetUser) return notFound(res, 'User not found');
@@ -76,6 +169,51 @@ router.get('/u/:username', asyncHandler(async (req, res: Response) => {
 
 router.use(auth);
 
+/**
+ * @openapi
+ * /tasks/calendar:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get calendar view with recurring task expansion
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *     responses:
+ *       200:
+ *         description: Calendar entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   taskId:
+ *                     type: string
+ *                   title:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                   recurring:
+ *                     type: boolean
+ *                   recurrence:
+ *                     type: object
+ */
 router.get('/calendar', asyncHandler(async (req: AuthRequest, res: Response) => {
   const from = new Date(req.query.from as string);
   const to = new Date(req.query.to as string);
@@ -119,6 +257,47 @@ router.get('/calendar', asyncHandler(async (req: AuthRequest, res: Response) => 
   res.json(results);
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}/occurrences:
+ *   post:
+ *     tags: [Tasks]
+ *     summary: Create or update an exception for a recurring task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date]
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *               status:
+ *                 type: string
+ *                 enum: [pending, done, skipped]
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               newDate:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Exception upserted
+ *       404:
+ *         description: Recurring task not found
+ */
 router.post('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Response) => {
   const task = await taskRepo.findById(req.params.id as string, req.userId);
   if (!task || !task.recurrence) return notFound(res, 'Recurring task not found');
@@ -136,6 +315,35 @@ router.post('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Respo
   res.json(exception);
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}/occurrences:
+ *   delete:
+ *     tags: [Tasks]
+ *     summary: Delete a recurrence exception
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date]
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Exception removed
+ */
 router.delete('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { date } = req.body;
   if (!date) return badRequest(res, 'date required');
@@ -143,6 +351,41 @@ router.delete('/:id/occurrences', asyncHandler(async (req: AuthRequest, res: Res
   res.json({ message: 'Exception removed' });
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}/end-series:
+ *   post:
+ *     tags: [Tasks]
+ *     summary: End a recurring task series at a given date
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date]
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Updated task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ *       404:
+ *         description: Recurring task not found
+ */
 router.post('/:id/end-series', asyncHandler(async (req: AuthRequest, res: Response) => {
   const task = await taskRepo.findById(req.params.id as string, req.userId);
   if (!task || !task.recurrence) return notFound(res, 'Recurring task not found');
@@ -160,6 +403,70 @@ router.post('/:id/end-series', asyncHandler(async (req: AuthRequest, res: Respon
   res.json(task);
 }));
 
+/**
+ * @openapi
+ * /tasks:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: List tasks for the authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, in_progress, on_hold, done, abandoned]
+ *       - in: query
+ *         name: excludeStatus
+ *         schema:
+ *           type: string
+ *         description: Comma-separated statuses to exclude
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [task, project]
+ *       - in: query
+ *         name: tag
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search query
+ *     responses:
+ *       200:
+ *         description: Paginated tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tasks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Task'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ */
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { page, limit } = parsePagination(req.query);
   const status = req.query.status as string;
@@ -179,12 +486,80 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
 }));
 
+/**
+ * @openapi
+ * /tasks/count:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get task counts by status
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Task counts per status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               additionalProperties:
+ *                 type: integer
+ */
 router.get('/count', asyncHandler(async (req: AuthRequest, res: Response) => {
   const groupIds = await groupRepo.getUserGroupIds(req.userId!);
   const counts = await taskRepo.countByStatus(req.userId!, groupIds);
   res.json(counts);
 }));
 
+/**
+ * @openapi
+ * /tasks/roots:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: List root tasks (no parent)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: tag
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Paginated root tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tasks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Task'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ */
 router.get('/roots', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { page, limit } = parsePagination(req.query);
   const status = req.query.status as string;
@@ -198,22 +573,116 @@ router.get('/roots', asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json({ tasks, total, page, limit, totalPages: Math.ceil(total / limit) });
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}/blocking:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get tasks that block this task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Blocking tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Task'
+ */
 router.get('/:id/blocking', asyncHandler(async (req: AuthRequest, res: Response) => {
   const tasks = await taskRepo.findBlocking(req.params.id as string);
   res.json(tasks);
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}/subtasks:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get subtasks of a task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Subtasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Task'
+ */
 router.get('/:id/subtasks', asyncHandler(async (req: AuthRequest, res: Response) => {
   const tasks = await taskRepo.findSubtasks(req.params.id as string);
   res.json(tasks);
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get a task by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Task details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ *       404:
+ *         description: Task not found
+ */
 router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const task = await taskRepo.findById(req.params.id as string, req.userId);
   if (!task) return notFound(res);
   res.json(task);
 }));
 
+/**
+ * @openapi
+ * /tasks:
+ *   post:
+ *     tags: [Tasks]
+ *     summary: Create a new task
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TaskCreate'
+ *     responses:
+ *       201:
+ *         description: Task created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ */
 router.post('/', validate(createTaskSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { title, description, visibility, groupIds, blockedBy, deadline, recurrence, type, metadata, tags, pinned, parentId } = req.body;
 
@@ -261,6 +730,37 @@ async function hasCycle(taskId: string, blockedBy: string[]): Promise<boolean> {
   return hasCycleInGraph(taskId, blockedBy, graph);
 }
 
+/**
+ * @openapi
+ * /tasks/{id}:
+ *   patch:
+ *     tags: [Tasks]
+ *     summary: Update a task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TaskUpdate'
+ *     responses:
+ *       200:
+ *         description: Updated task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ *       400:
+ *         description: Cannot mark done (incomplete subtasks/blockers) or circular dependency
+ *       404:
+ *         description: Task not found
+ */
 router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const task = await taskRepo.findById(req.params.id as string, req.userId);
   if (!task) return notFound(res);
@@ -310,6 +810,37 @@ router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRe
   res.json(updated);
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}/rollback/{index}:
+ *   post:
+ *     tags: [Tasks]
+ *     summary: Rollback task description to a previous version
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: index
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Updated task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ *       400:
+ *         description: Invalid history index
+ *       404:
+ *         description: Task not found
+ */
 router.post('/:id/rollback/:index', asyncHandler(async (req: AuthRequest, res: Response) => {
   const task = await taskRepo.findById(req.params.id as string, req.userId);
   if (!task) return notFound(res);
@@ -324,6 +855,33 @@ router.post('/:id/rollback/:index', asyncHandler(async (req: AuthRequest, res: R
   res.json(updated);
 }));
 
+/**
+ * @openapi
+ * /tasks/{id}:
+ *   delete:
+ *     tags: [Tasks]
+ *     summary: Delete a task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Task not found
+ */
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await taskRepo.delete(req.params.id as string, req.userId!);
   if (!deleted) return notFound(res);

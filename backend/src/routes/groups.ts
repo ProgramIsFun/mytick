@@ -8,6 +8,24 @@ import { notFound } from '../utils/routeHelpers';
 const router = Router();
 router.use(auth);
 
+/**
+ * @openapi
+ * /groups:
+ *   get:
+ *     tags: [Groups]
+ *     summary: List groups for the authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of groups with enriched member info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Group'
+ */
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const groups = await groupRepo.findByUser(req.userId!);
   const userIds = [...new Set(groups.flatMap(g => g.members.map(m => m.userId)))];
@@ -27,6 +45,34 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json(enriched);
 }));
 
+/**
+ * @openapi
+ * /groups:
+ *   post:
+ *     tags: [Groups]
+ *     summary: Create a new group
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 100
+ *     responses:
+ *       201:
+ *         description: Group created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Group'
+ */
 router.post('/', validate(createGroupSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name } = req.body;
   const group = await groupRepo.create({
@@ -37,6 +83,48 @@ router.post('/', validate(createGroupSchema), asyncHandler(async (req: AuthReque
   res.status(201).json(group);
 }));
 
+/**
+ * @openapi
+ * /groups/{id}/members:
+ *   post:
+ *     tags: [Groups]
+ *     summary: Add a member to a group (owner only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               role:
+ *                 type: string
+ *                 enum: [viewer, editor]
+ *                 default: viewer
+ *     responses:
+ *       200:
+ *         description: Updated group
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Group'
+ *       404:
+ *         description: Group or user not found
+ *       409:
+ *         description: Already a member
+ */
 router.post('/:id/members', validate(addMemberSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { userId, email, role } = req.body;
 
@@ -58,6 +146,35 @@ router.post('/:id/members', validate(addMemberSchema), asyncHandler(async (req: 
   res.json(updated);
 }));
 
+/**
+ * @openapi
+ * /groups/{id}/members/{userId}:
+ *   delete:
+ *     tags: [Groups]
+ *     summary: Remove a member from a group (owner only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Updated group
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Group'
+ *       404:
+ *         description: Group not found
+ */
 router.delete('/:id/members/:userId', asyncHandler(async (req: AuthRequest, res: Response) => {
   const group = await groupRepo.findById(req.params.id as string);
   if (!group || group.ownerId !== req.userId) return notFound(res);
@@ -66,6 +183,33 @@ router.delete('/:id/members/:userId', asyncHandler(async (req: AuthRequest, res:
   res.json(updated);
 }));
 
+/**
+ * @openapi
+ * /groups/{id}:
+ *   delete:
+ *     tags: [Groups]
+ *     summary: Delete a group (owner only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Group not found
+ */
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const group = await groupRepo.findById(req.params.id as string);
   if (!group || group.ownerId !== req.userId) return notFound(res);
