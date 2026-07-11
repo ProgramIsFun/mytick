@@ -8,4 +8,5 @@ export interface Account {
   id: string; name: string; provider: string; url: string;
   username: string; notes: string; tags: string[]; credentials: Credential[];
   parentAccountId: string | null;
+  accountId?: string;
 }

@@ -145,7 +145,8 @@ export default function AccountsPage() {
                         </div>
                       </div>
                     )}
-                    <div className="pt-2">
+                    <div className="pt-2 flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${a.id}`); }} className="text-xs px-3 py-1.5 rounded bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 font-medium">View Details</button>
                       <button onClick={() => handleDelete(a.id)} className="text-xs text-danger hover:underline">Delete account</button>
                     </div>
                   </div>

@@ -3,7 +3,7 @@ import { taskRepo, groupRepo, userRepo, recurrenceExceptionRepo } from '../repos
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { notFound, badRequest, parsePagination, extractViewerId } from '../utils/routeHelpers';
-import { validate, createTaskSchema, updateTaskSchema } from '../utils/validation';
+import { validate, createTaskSchema, updateTaskSchema, addRepoToTaskSchema } from '../utils/validation';
 import { notificationQueue } from '../queues';
 import { scheduleDeadlineAlerts } from '../queues/scheduleAlerts';
 import { expandOccurrences } from '../utils/recurrence';
@@ -888,6 +888,115 @@ router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   await notificationQueue.cancelByTask(req.params.id as string);
   await recurrenceExceptionRepo.deleteByTask(req.params.id as string);
   res.json({ message: 'Deleted' });
+}));
+
+// ─── Task-Repo Relationships ────────────────────────────────────────────────
+
+/**
+ * @openapi
+ * /tasks/{id}/repos:
+ *   get:
+ *     tags: [Tasks]
+ *     summary: Get repos linked to this task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of repo IDs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *       404:
+ *         description: Task not found
+ */
+router.get('/:id/repos', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const task = await taskRepo.findById(req.params.id as string);
+  if (!task) return notFound(res);
+  const { repoRepo } = await import('../repositories');
+  const repoIds = await repoRepo.getRepoIdsByTask(req.params.id as string);
+  res.json(repoIds);
+}));
+
+/**
+ * @openapi
+ * /tasks/{id}/repos:
+ *   post:
+ *     tags: [Tasks]
+ *     summary: Link a repo to a task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [repoId]
+ *             properties:
+ *               repoId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Repo linked to task
+ *       404:
+ *         description: Task or repo not found
+ */
+router.post('/:id/repos', validate(addRepoToTaskSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const task = await taskRepo.findById(req.params.id as string);
+  if (!task) return notFound(res);
+  const { repoRepo } = await import('../repositories');
+  const repo = await repoRepo.findById(req.body.repoId);
+  if (!repo) return notFound(res, 'Repo not found');
+  await repoRepo.addRepoToTask(req.params.id as string, req.body.repoId);
+  res.json({ message: 'Repo linked to task' });
+}));
+
+/**
+ * @openapi
+ * /tasks/{id}/repos/{repoId}:
+ *   delete:
+ *     tags: [Tasks]
+ *     summary: Unlink a repo from a task
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: repoId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Repo unlinked
+ *       404:
+ *         description: Relationship not found
+ */
+router.delete('/:id/repos/:repoId', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const task = await taskRepo.findById(req.params.id as string);
+  if (!task) return notFound(res);
+  const { repoRepo } = await import('../repositories');
+  await repoRepo.removeRepoFromTask(req.params.id as string, req.params.repoId as string);
+  res.json({ message: 'Repo unlinked from task' });
 }));
 
 export default router;

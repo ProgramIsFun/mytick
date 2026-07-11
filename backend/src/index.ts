@@ -14,7 +14,7 @@ initFCM();
 
 async function createNeo4jConstraints() {
   const session = getSession();
-  const labels = ['User', 'Task', 'Account', 'Group', 'Secret', 'Domain', 'Database', 'Subscription', 'Knowledge', 'Context', 'BackupHistory', 'RecurrenceException', 'PushToken', 'Provider', 'Credential', 'Member'];
+  const labels = ['User', 'Task', 'Account', 'Group', 'Secret', 'Domain', 'Database', 'Subscription', 'Knowledge', 'Context', 'BackupHistory', 'RecurrenceException', 'PushToken', 'Provider', 'Credential', 'Member', 'Repo'];
   for (const label of labels) {
     try {
       await session.run(`CREATE CONSTRAINT IF NOT EXISTS FOR (n:${label}) REQUIRE n.id IS UNIQUE`);

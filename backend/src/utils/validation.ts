@@ -281,3 +281,12 @@ export const updateSecretSchema = z.object({
 export const upsertContextSchema = z.object({
   value: z.string({ message: 'value is required' }),
 });
+
+// Repo schemas
+export const createRepoSchema = z.object({
+  url: z.string().url('Invalid URL').max(2000),
+});
+
+export const addRepoToTaskSchema = z.object({
+  repoId: z.string().min(1, 'repoId is required'),
+});

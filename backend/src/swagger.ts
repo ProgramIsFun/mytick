@@ -290,6 +290,16 @@ const spec = swaggerJsdoc({
             updatedAt: { type: 'string', format: 'date-time' },
           },
         },
+        Repo: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            userId: { type: 'string' },
+            url: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
       },
     },
   },

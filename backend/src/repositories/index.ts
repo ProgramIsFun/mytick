@@ -10,6 +10,7 @@ import { IKnowledgeRepository } from './interfaces/IKnowledgeRepository';
 import { IContextRepository } from './interfaces/IContextRepository';
 import { IBackupHistoryRepository } from './interfaces/IBackupHistoryRepository';
 import { IRecurrenceExceptionRepository } from './interfaces/IRecurrenceExceptionRepository';
+import { IRepoRepository } from './interfaces/IRepoRepository';
 
 import { Neo4jUserRepository } from './neo4j/Neo4jUserRepository';
 import { Neo4jTaskRepository } from './neo4j/Neo4jTaskRepository';
@@ -23,6 +24,7 @@ import { Neo4jKnowledgeRepository } from './neo4j/Neo4jKnowledgeRepository';
 import { Neo4jContextRepository } from './neo4j/Neo4jContextRepository';
 import { Neo4jBackupHistoryRepository } from './neo4j/Neo4jBackupHistoryRepository';
 import { Neo4jRecurrenceExceptionRepository } from './neo4j/Neo4jRecurrenceExceptionRepository';
+import { Neo4jRepoRepository } from './neo4j/Neo4jRepoRepository';
 
 // Using Neo4j exclusively
 export const userRepo: IUserRepository = new Neo4jUserRepository();
@@ -37,3 +39,4 @@ export const knowledgeRepo: IKnowledgeRepository = new Neo4jKnowledgeRepository(
 export const contextRepo: IContextRepository = new Neo4jContextRepository();
 export const backupHistoryRepo: IBackupHistoryRepository = new Neo4jBackupHistoryRepository();
 export const recurrenceExceptionRepo: IRecurrenceExceptionRepository = new Neo4jRecurrenceExceptionRepository();
+export const repoRepo: IRepoRepository = new Neo4jRepoRepository();

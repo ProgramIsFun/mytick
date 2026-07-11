@@ -12,6 +12,7 @@ import databaseRoutes from './routes/databases';
 import secretRoutes from './routes/secrets';
 import subscriptionRoutes from './routes/subscriptions';
 import knowledgeRoutes from './routes/knowledge';
+import repoRoutes from './routes/repos';
 
 const app = express();
 app.use(cors());
@@ -50,6 +51,7 @@ app.use('/api/databases', databaseRoutes);
 app.use('/api/secrets', secretRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/repos', repoRoutes);
 app.get('/api/version', (_req, res) => res.json({ version: '1.1.0' }));
 app.get('/api/health', async (_req, res) => {
   try {
