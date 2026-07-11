@@ -131,15 +131,16 @@ export class Neo4jRepoRepository implements IRepoRepository {
     }
   }
 
-  async getRepoIdsByTask(taskId: string): Promise<string[]> {
+  async getReposByTask(taskId: string): Promise<IRepo[]> {
     const session = getSession();
     try {
       const result = await session.run(
         `MATCH (t:Task {id: $taskId})-[:IN_REPO]->(r:Repo)
-         RETURN r.id AS repoId`,
+         MATCH (u:User)-[:OWNS]->(r)
+         RETURN r, u.id AS userId`,
         { taskId }
       );
-      return result.records.map(r => r.get('repoId'));
+      return result.records.map(recordToRepo);
     } finally {
       await session.close();
     }

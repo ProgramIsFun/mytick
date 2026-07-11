@@ -29,6 +29,9 @@ export default function TaskDetailPage() {
   const [showDoneSubtasks, setShowDoneSubtasks] = useState(false);
   const [subtaskLimit, setSubtaskLimit] = useState(10);
   const [accounts, setAccounts] = useState<{ id: string; name: string; provider: string }[]>([]);
+  const [repos, setRepos] = useState<{ id: string; url: string }[]>([]);
+  const [allRepos, setAllRepos] = useState<{ id: string; url: string }[]>([]);
+  const [repoUrl, setRepoUrl] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -36,6 +39,8 @@ export default function TaskDetailPage() {
     api.getBlocking(id).then(setBlocking).catch(() => setBlocking([]));
     api.getSubtasks(id).then(setSubtasks).catch(() => setSubtasks([]));
     api.getDomains(undefined, undefined, id).then(setDomains).catch(() => setDomains([]));
+    api.getTaskRepos(id).then(setRepos).catch(() => setRepos([]));
+    api.getRepos().then(setAllRepos).catch(() => setAllRepos([]));
   }, [id]);
 
   useEffect(() => {
@@ -96,6 +101,28 @@ export default function TaskDetailPage() {
 
   const removeTag = async (tag: string) => {
     setTask(await api.updateTask(task.id, { tags: (task.tags || []).filter(t => t !== tag) }));
+  };
+
+  const addRepo = async () => {
+    const url = repoUrl.trim();
+    if (!url) return;
+    const existing = allRepos.find(r => r.url === url);
+    let repoId = existing?.id;
+    if (!existing) {
+      const created = await api.createRepo(url);
+      repoId = created.id;
+      setAllRepos(prev => [...prev, created]);
+    }
+    if (repoId && !repos.find(r => r.id === repoId)) {
+      await api.linkRepoToTask(task.id, repoId);
+      setRepos(prev => [...prev, allRepos.find(r => r.id === repoId) || { id: repoId!, url }]);
+    }
+    setRepoUrl('');
+  };
+
+  const unlinkRepo = async (repoId: string) => {
+    await api.unlinkRepoFromTask(task.id, repoId);
+    setRepos(prev => prev.filter(r => r.id !== repoId));
   };
 
   const visIcon = { private: '🔒 Private', group: '👥 Group', public: '🌐 Public' }[task.visibility] || '';
@@ -220,6 +247,26 @@ export default function TaskDetailPage() {
                   {d.expiryDate && <span className="text-xs text-text-muted">expires {new Date(d.expiryDate).toLocaleDateString()}</span>}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Repos */}
+          {(repos.length > 0 || isOwner) && (
+            <div className="border border-border rounded-lg p-4 bg-surface">
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">📦 Repos</h3>
+              {repos.map(r => (
+                <div key={r.id} className="flex items-center gap-2 py-1.5 text-sm">
+                  <a href={r.url} target="_blank" rel="noreferrer" className="text-accent hover:underline flex-1 truncate">{r.url}</a>
+                  {isOwner && <button onClick={() => unlinkRepo(r.id)} className="text-xs text-danger hover:underline">✕</button>}
+                </div>
+              ))}
+              {repos.length === 0 && !isOwner && <p className="text-xs text-text-muted">None</p>}
+              {isOwner && (
+                <form onSubmit={e => { e.preventDefault(); addRepo(); }} className="flex gap-2 mt-3">
+                  <input placeholder="Add repo URL..." value={repoUrl} onChange={e => setRepoUrl(e.target.value)} className={`flex-1 ${inputCls}`} />
+                  <button type="submit" className="px-3 py-2 text-sm rounded-md bg-accent text-white hover:bg-accent-hover">+ Add</button>
+                </form>
+              )}
             </div>
           )}
 

@@ -922,8 +922,8 @@ router.get('/:id/repos', asyncHandler(async (req: AuthRequest, res: Response) =>
   const task = await taskRepo.findById(req.params.id as string);
   if (!task) return notFound(res);
   const { repoRepo } = await import('../repositories');
-  const repoIds = await repoRepo.getRepoIdsByTask(req.params.id as string);
-  res.json(repoIds);
+  const repos = await repoRepo.getReposByTask(req.params.id as string);
+  res.json(repos);
 }));
 
 /**

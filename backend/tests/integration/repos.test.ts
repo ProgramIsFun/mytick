@@ -89,7 +89,8 @@ describe('task-repo relationships', () => {
     const res = await request(app).get(`/api/tasks/${taskId}/repos`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(1);
-    expect(res.body[0]).toBe(repoAId);
+    expect(res.body[0].id).toBe(repoAId);
+    expect(res.body[0].url).toBe('https://github.com/test/repo-a');
   });
 
   it('should get tasks for repo', async () => {
@@ -120,7 +121,7 @@ describe('task-repo relationships', () => {
     const res = await request(app).get(`/api/tasks/${taskId}/repos`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.length).toBe(1);
-    expect(res.body[0]).toBe(repoBId);
+    expect(res.body[0].id).toBe(repoBId);
   });
 });
 

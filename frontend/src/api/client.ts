@@ -179,4 +179,15 @@ export const api = {
   updateKnowledge: (id: string, data: { content?: string }) =>
     request(`/knowledge/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteKnowledge: (id: string) => request(`/knowledge/${id}`, { method: 'DELETE' }),
+
+  // Repos
+  getRepos: () => request('/repos'),
+  createRepo: (url: string) =>
+    request('/repos', { method: 'POST', body: JSON.stringify({ url }) }),
+  deleteRepo: (id: string) => request(`/repos/${id}`, { method: 'DELETE' }),
+  getTaskRepos: (taskId: string) => request(`/tasks/${taskId}/repos`),
+  linkRepoToTask: (taskId: string, repoId: string) =>
+    request(`/tasks/${taskId}/repos`, { method: 'POST', body: JSON.stringify({ repoId }) }),
+  unlinkRepoFromTask: (taskId: string, repoId: string) =>
+    request(`/tasks/${taskId}/repos/${repoId}`, { method: 'DELETE' }),
 };

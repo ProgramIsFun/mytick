@@ -9,5 +9,5 @@ export interface IRepoRepository {
   findTasksByRepo(repoId: string, userId: string): Promise<any[]>;
   addRepoToTask(taskId: string, repoId: string): Promise<void>;
   removeRepoFromTask(taskId: string, repoId: string): Promise<void>;
-  getRepoIdsByTask(taskId: string): Promise<string[]>;
+  getReposByTask(taskId: string): Promise<IRepo[]>;
 }
