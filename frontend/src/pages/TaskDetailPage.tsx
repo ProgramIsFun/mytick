@@ -185,39 +185,7 @@ export default function TaskDetailPage() {
           {task.type === 'project' && task.metadata && (
             <div className="border border-border rounded-lg p-4 bg-surface">
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-3">📁 Project Details</h3>
-              <div className="space-y-3 text-sm">
-                {task.metadata.repoUrl && (
-                  <div><span className="text-text-muted">Repo:</span> <a href={task.metadata.repoUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">{task.metadata.repoUrl}</a></div>
-                )}
-                {task.metadata.localPath && (
-                  <div><span className="text-text-muted">Local:</span> <span className="font-mono text-xs text-text-secondary">{task.metadata.localPath}</span></div>
-                )}
-                {task.metadata.environments && task.metadata.environments.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-text-muted">Envs:</span>
-                    {task.metadata.environments.map(e => (
-                      <span key={e} className="text-xs px-2 py-0.5 rounded-full bg-surface-secondary border border-border-light text-text-secondary">{e}</span>
-                    ))}
-                  </div>
-                )}
-                {task.metadata.services && task.metadata.services.length > 0 && (
-                  <div>
-                    <div className="text-text-muted mb-2">Services:</div>
-                    {task.metadata.services.map((s, i) => (
-                      <div key={i} className="ml-2 mb-2 p-2 rounded bg-surface-secondary">
-                        <div className="text-text-primary font-medium">{s.role}{s.env ? ` (${s.env})` : ''}</div>
-                        {s.mappings && s.mappings.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {s.mappings.map((m, j) => (
-                              <span key={j} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border-light text-text-muted">{m.envVar}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <pre className="text-xs font-mono text-text-secondary whitespace-pre-wrap bg-surface-secondary rounded p-3 overflow-x-auto">{JSON.stringify(task.metadata, null, 2)}</pre>
             </div>
           )}
           {/* Accounts */}
