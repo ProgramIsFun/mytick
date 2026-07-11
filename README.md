@@ -6,12 +6,10 @@
 
 Manage tasks, track projects, organize credentials — across web, mobile, and API.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://typescriptlang.org)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ProgramIsFun/mytick/pulls)
 
-[Features](#-features) · [Getting Started](#-getting-started) · [Architecture](#-architecture) · [API Reference](#-api-reference) · [MCP Integration](#-mcp-integration)
+[Features](#-features) · [Getting Started](#-getting-started) · [Architecture](#-architecture) · [API Reference](#-api-reference)
 
 </div>
 
@@ -35,7 +33,6 @@ Manage tasks, track projects, organize credentials — across web, mobile, and A
 - 🏦 **Account registry** — track service providers (cloud, banking, email, etc.)
 
 ### AI-Native
-- 🤖 **MCP server** — 15+ tools for AI assistants to manage tasks, context, and more
 - 📡 **Context store** — key-value pairs for AI session memory
 - 🔐 **Vault integration** — Bitwarden-compatible credential references (provider-agnostic)
 
@@ -78,13 +75,6 @@ npm install
 npx expo start
 ```
 
-### MCP Server
-
-```bash
-cd backend
-npm run mcp:dev        # MCP on port 3100
-```
-
 ## 🏗️ Architecture
 
 ### Project Structure
@@ -97,7 +87,7 @@ mytick/
 ├── workers/           # Background workers & automation
 │   └── nexus-backup/  # Database backup service (AWS Lambda)
 ├── shared/            # Shared types and utilities
-└── scripts/           # Build and deployment scripts
+└── 
 ```
 
 ### Graph Schema
@@ -132,13 +122,13 @@ Run `npm run schema` to generate an up-to-date diagram from your running databas
 ### Data Flow
 
 ```
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│   React     │  │   Expo      │  │  AI Agent   │
-│   Web App   │  │  Mobile App │  │  (via MCP)  │
-└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-       │                │                │
-       └────────────────┼────────────────┘
-                        │ HTTP
+┌─────────────┐  ┌─────────────┐
+│   React     │  │   Expo      │
+│   Web App   │  │  Mobile App │
+└──────┬──────┘  └──────┬──────┘
+       │                │
+       └────────────────┘
+                │ HTTP
                         ▼
               ┌──────────────────┐
               │  Express API     │
@@ -198,29 +188,6 @@ Run `npm run schema` to generate an up-to-date diagram from your running databas
 | `PUT` | `/:key` | Set (upsert) |
 | `DELETE` | `/:key` | Delete |
 
-## 🤖 MCP Integration
-
-MyTick includes an MCP server with 15+ tools for AI assistants:
-
-**Tasks:** `list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`, `search_tasks`, `count_tasks`, `list_root_tasks`, `get_blocking`
-
-**Context:** `list_context`, `get_context`, `set_context`, `delete_context`
-
-**Groups:** `list_groups`, `create_group`
-
-### Setup
-
-Add to your MCP config:
-```json
-{
-  "mcpServers": {
-    "mytick": {
-      "url": "http://localhost:3100/mcp"
-    }
-  }
-}
-```
-
 ## 🔐 Credential Architecture
 
 MyTick tracks credentials without storing secrets:
@@ -252,7 +219,7 @@ MyTick (metadata)          Password Manager (secrets)
 
 ## 📄 License
 
-[MIT](LICENSE)
+MIT
 
 ---
 
