@@ -69,14 +69,15 @@ export class Neo4jAccountRepository implements IAccountRepository {
            CREATE (a:Account {
              id: $id, name: $name, provider: $provider,
              url: $url, username: $username, notes: $notes,
-             tags: $tags, createdAt: datetime(), updatedAt: datetime()
+             tags: $tags, accountId: $accountId,
+             createdAt: datetime(), updatedAt: datetime()
            })
            MERGE (u)-[:OWNS]->(a)
            RETURN a`,
           {
             userId: data.userId, id, name: data.name, provider: data.provider,
             url: data.url || '', username: data.username || '', notes: data.notes || '',
-            tags: data.tags || [],
+            tags: data.tags || [], accountId: data.accountId || null,
           }
         );
         if (data.parentAccountId) {
@@ -110,7 +111,7 @@ export class Neo4jAccountRepository implements IAccountRepository {
       await session.executeWrite(async tx => {
         const props: string[] = ['a.updatedAt = datetime()'];
         const params: any = { id };
-        const allowed = ['name', 'provider', 'url', 'username', 'notes', 'tags'];
+        const allowed = ['name', 'provider', 'url', 'username', 'notes', 'tags', 'accountId'];
         for (const key of allowed) {
           if ((data as any)[key] !== undefined) {
             props.push(`a.${key} = $${key}`);
@@ -167,6 +168,7 @@ function recordToAccount(record: any): IAccount {
     username: a.username || undefined,
     notes: a.notes || undefined,
     tags: a.tags || [],
+    accountId: a.accountId || undefined,
     credentials: record.get('secrets')?.filter((s: any) => s?.id).map((s: any) => ({ key: '', secretId: s.id })) || [],
     createdAt: new Date(a.createdAt),
     updatedAt: new Date(a.updatedAt),

@@ -131,6 +131,7 @@ export const createAccountSchema = z.object({
     key: z.string(),
     secretId: z.string(),
   })).optional(),
+  accountId: z.string().max(50).optional(),
 });
 
 export const updateAccountSchema = z.object({
@@ -145,6 +146,7 @@ export const updateAccountSchema = z.object({
     key: z.string(),
     secretId: z.string(),
   })).optional(),
+  accountId: z.string().max(50).optional(),
 });
 
 // Domain schemas

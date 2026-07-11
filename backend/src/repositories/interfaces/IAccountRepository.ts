@@ -9,6 +9,7 @@ export interface IAccount {
   notes?: string;
   tags?: string[];
   credentials?: { key: string; secretId: string }[];
+  accountId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

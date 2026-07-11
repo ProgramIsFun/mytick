@@ -131,6 +131,9 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *                       type: string
  *                     secretId:
  *                       type: string
+ *               accountId:
+ *                 type: string
+ *                 description: External account ID (e.g. AWS account ID)
  *     responses:
  *       201:
  *         description: Account created
@@ -140,12 +143,13 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *               $ref: '#/components/schemas/Account'
  */
 router.post('/', validate(createAccountSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, provider, parentAccountId, url, username, notes, tags, credentials } = req.body;
+  const { name, provider, parentAccountId, url, username, notes, tags, credentials, accountId } = req.body;
   const account = await accountRepo.create({
     userId: req.userId, name, provider,
     parentAccountId: parentAccountId || null,
     url: url || '', username: username || '', notes: notes || '',
     tags: tags || [], credentials: credentials || [],
+    accountId: accountId || null,
   });
   res.status(201).json(account);
 }));
@@ -184,6 +188,9 @@ router.post('/', validate(createAccountSchema), asyncHandler(async (req: AuthReq
  *                 type: array
  *                 items:
  *                   type: string
+ *               accountId:
+ *                 type: string
+ *                 description: External account ID (e.g. AWS account ID)
  *     responses:
  *       200:
  *         description: Updated account
