@@ -287,6 +287,10 @@ export const createRepoSchema = z.object({
   url: z.string().url('Invalid URL').max(2000),
 });
 
+export const updateRepoSchema = z.object({
+  url: z.string().url('Invalid URL').max(2000).optional(),
+});
+
 export const addRepoToTaskSchema = z.object({
   repoId: z.string().min(1, 'repoId is required'),
 });

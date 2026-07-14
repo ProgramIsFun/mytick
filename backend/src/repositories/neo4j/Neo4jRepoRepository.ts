@@ -73,6 +73,34 @@ export class Neo4jRepoRepository implements IRepoRepository {
     }
   }
 
+  async update(id: string, data: Partial<IRepo>): Promise<IRepo | null> {
+    const session = getSession();
+    try {
+      const sets: string[] = [];
+      const params: Record<string, any> = { id };
+
+      if (data.url !== undefined) {
+        sets.push('r.url = $url');
+        params.url = data.url;
+      }
+
+      if (sets.length === 0) return this.findById(id);
+
+      sets.push('r.updatedAt = datetime()');
+
+      await session.executeWrite(async tx => {
+        await tx.run(
+          `MATCH (r:Repo {id: $id})
+           SET ${sets.join(', ')}`,
+          params
+        );
+      });
+      return this.findById(id);
+    } finally {
+      await session.close();
+    }
+  }
+
   async delete(id: string, userId: string): Promise<boolean> {
     const session = getSession();
     try {

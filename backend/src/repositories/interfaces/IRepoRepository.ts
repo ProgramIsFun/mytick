@@ -5,6 +5,7 @@ export interface IRepoRepository {
   findByUser(userId: string): Promise<IRepo[]>;
   findByUrl(userId: string, url: string): Promise<IRepo | null>;
   create(data: Partial<IRepo>): Promise<IRepo>;
+  update(id: string, data: Partial<IRepo>): Promise<IRepo | null>;
   delete(id: string, userId: string): Promise<boolean>;
   findTasksByRepo(repoId: string, userId: string): Promise<any[]>;
   addRepoToTask(taskId: string, repoId: string): Promise<void>;

@@ -18,6 +18,8 @@ import ProfilePage from './pages/ProfilePage';
 import ContextPage from './pages/ContextPage';
 import KnowledgePage from './pages/KnowledgePage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
+import ReposPage from './pages/ReposPage';
+import RepoDetailPage from './pages/RepoDetailPage';
 import LandingPage from './pages/LandingPage';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import { PageSpinner } from './components/Spinner';
@@ -55,6 +57,8 @@ export default function App() {
             <Route path="/secrets" element={<PrivateRoute><SecretsPage /></PrivateRoute>} />
             <Route path="/secrets/:id" element={<PrivateRoute><SecretsPage /></PrivateRoute>} />
             <Route path="/subscriptions" element={<PrivateRoute><SubscriptionsPage /></PrivateRoute>} />
+            <Route path="/repos" element={<PrivateRoute><ReposPage /></PrivateRoute>} />
+            <Route path="/repos/:id" element={<PrivateRoute><RepoDetailPage /></PrivateRoute>} />
             <Route path="/context" element={<PrivateRoute><ContextPage /></PrivateRoute>} />
             <Route path="/knowledge" element={<PrivateRoute><KnowledgePage /></PrivateRoute>} />
             <Route path="/share/:token" element={<SharedTaskPage />} />

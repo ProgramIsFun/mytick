@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { route: '/accounts', label: 'Accounts', icon: '🔑' },
   { route: '/domains', label: 'Domains', icon: '🌐' },
   { route: '/databases', label: 'Databases', icon: '🗄️' },
+  { route: '/repos', label: 'Repos', icon: '📦' },
   { route: '/secrets', label: 'Secrets', icon: '🔐' },
   { route: '/context', label: 'Context', icon: '📋' },
   { route: '/knowledge', label: 'Knowledge', icon: '🧠' },

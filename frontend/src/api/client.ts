@@ -182,9 +182,13 @@ export const api = {
 
   // Repos
   getRepos: () => request('/repos'),
+  getRepo: (id: string) => request(`/repos/${id}`),
   createRepo: (url: string) =>
     request('/repos', { method: 'POST', body: JSON.stringify({ url }) }),
+  updateRepo: (id: string, data: Record<string, unknown>) =>
+    request(`/repos/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteRepo: (id: string) => request(`/repos/${id}`, { method: 'DELETE' }),
+  getRepoTasks: (id: string) => request(`/repos/${id}/tasks`),
   getTaskRepos: (taskId: string) => request(`/tasks/${taskId}/repos`),
   linkRepoToTask: (taskId: string, repoId: string) =>
     request(`/tasks/${taskId}/repos`, { method: 'POST', body: JSON.stringify({ repoId }) }),

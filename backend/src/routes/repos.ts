@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
-import { repoRepo, taskRepo } from '../repositories';
+import { repoRepo } from '../repositories';
 import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { notFound, forbidden } from '../utils/routeHelpers';
-import { validate, createRepoSchema, addRepoToTaskSchema } from '../utils/validation';
+import { validate, createRepoSchema, updateRepoSchema, addRepoToTaskSchema } from '../utils/validation';
 
 const router = Router();
 router.use(auth);
@@ -99,6 +99,44 @@ router.post('/', validate(createRepoSchema), asyncHandler(async (req: AuthReques
 /**
  * @openapi
  * /repos/{id}:
+ *   patch:
+ *     tags: [Repos]
+ *     summary: Update a repo
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Updated repo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Repo'
+ *       404:
+ *         description: Repo not found
+ */
+router.patch('/:id', validate(updateRepoSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const repo = await repoRepo.update(req.params.id as string, req.body);
+  if (!repo) return notFound(res);
+  res.json(repo);
+}));
+
+/**
+ * @openapi
+ * /repos/{id}:
  *   delete:
  *     tags: [Repos]
  *     summary: Delete a repo
@@ -148,83 +186,5 @@ router.get('/:id/tasks', asyncHandler(async (req: AuthRequest, res: Response) =>
   const tasks = await repoRepo.findTasksByRepo(req.params.id as string, req.userId!);
   res.json(tasks);
 }));
-
-/**
- * @openapi
- * /tasks/{id}/repos:
- *   get:
- *     tags: [Tasks]
- *     summary: Get repos linked to this task
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of repo IDs
- *       404:
- *         description: Task not found
- */
-
-/**
- * @openapi
- * /tasks/{id}/repos:
- *   post:
- *     tags: [Tasks]
- *     summary: Link a repo to a task
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [repoId]
- *             properties:
- *               repoId:
- *                 type: string
- *     responses:
- *       200:
- *         description: Repo linked to task
- *       404:
- *         description: Task or repo not found
- */
-
-/**
- * @openapi
- * /tasks/{id}/repos/{repoId}:
- *   delete:
- *     tags: [Tasks]
- *     summary: Unlink a repo from a task
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: repoId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Repo unlinked
- *       404:
- *         description: Relationship not found
- */
 
 export default router;
