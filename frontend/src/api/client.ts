@@ -194,4 +194,7 @@ export const api = {
     request(`/tasks/${taskId}/repos`, { method: 'POST', body: JSON.stringify({ repoId }) }),
   unlinkRepoFromTask: (taskId: string, repoId: string) =>
     request(`/tasks/${taskId}/repos/${repoId}`, { method: 'DELETE' }),
+
+  // Graph
+  getGraph: () => request('/graph/all'),
 };

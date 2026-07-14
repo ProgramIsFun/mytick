@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { route: '/secrets', label: 'Secrets', icon: '🔐' },
   { route: '/context', label: 'Context', icon: '📋' },
   { route: '/knowledge', label: 'Knowledge', icon: '🧠' },
+  { route: '/graph', label: 'Graph', icon: '🕸️' },
   { route: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
