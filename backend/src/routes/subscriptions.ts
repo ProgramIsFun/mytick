@@ -4,8 +4,6 @@ import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { notFound } from '../utils/routeHelpers';
 import { validate, createSubscriptionSchema, updateSubscriptionSchema } from '../utils/validation';
-import { notificationQueue } from '../queues';
-import { scheduleSubscriptionAlerts } from '../queues/scheduleSubscriptionAlerts';
 
 const router = Router();
 router.use(auth);
@@ -192,11 +190,6 @@ router.post('/', validate(createSubscriptionSchema), asyncHandler(async (req: Au
     url: url || '', notes: notes || '', tags: tags || [],
   });
 
-  const alertDate = sub.nextBillingDate || sub.expiryDate;
-  if (alertDate) {
-    await scheduleSubscriptionAlerts(notificationQueue, sub.id, req.userId!, alertDate ?? null);
-  }
-
   res.status(201).json(sub);
 }));
 
@@ -266,11 +259,6 @@ router.patch('/:id', validate(updateSubscriptionSchema), asyncHandler(async (req
   const sub = await subscriptionRepo.update(req.params.id as string, req.body);
   if (!sub) return notFound(res);
 
-  if (req.body.nextBillingDate !== undefined || req.body.expiryDate !== undefined || req.body.status !== undefined) {
-    const alertDate = sub.status === 'active' ? (sub.nextBillingDate || sub.expiryDate) : null;
-    await scheduleSubscriptionAlerts(notificationQueue, sub.id, req.userId!, alertDate ?? null);
-  }
-
   res.json(sub);
 }));
 
@@ -304,7 +292,6 @@ router.patch('/:id', validate(updateSubscriptionSchema), asyncHandler(async (req
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await subscriptionRepo.delete(req.params.id as string, req.userId!);
   if (!deleted) return notFound(res);
-  await notificationQueue.cancelByTask(req.params.id as string);
   res.json({ message: 'Deleted' });
 }));
 

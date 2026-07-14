@@ -4,8 +4,6 @@ import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { notFound, badRequest, parsePagination, extractViewerId } from '../utils/routeHelpers';
 import { validate, createTaskSchema, updateTaskSchema, addRepoToTaskSchema } from '../utils/validation';
-import { notificationQueue } from '../queues';
-import { scheduleDeadlineAlerts } from '../queues/scheduleAlerts';
 import { expandOccurrences } from '../utils/recurrence';
 
 const router = Router();
@@ -398,7 +396,6 @@ router.post('/:id/end-series', asyncHandler(async (req: AuthRequest, res: Respon
   await taskRepo.update(task.id, { recurrence: task.recurrence });
 
   await recurrenceExceptionRepo.deleteByTask(req.params.id as string, endDate);
-  await scheduleDeadlineAlerts(notificationQueue, task.id, req.userId!, task.deadline || null, task.recurrence || null);
 
   res.json(task);
 }));
@@ -713,10 +710,6 @@ router.post('/', validate(createTaskSchema), asyncHandler(async (req: AuthReques
     pinned: pinned || false,
   });
 
-  if (task.deadline) {
-  await scheduleDeadlineAlerts(notificationQueue, task.id, req.userId!, task.deadline || null, task.recurrence);
-  }
-
   res.status(201).json(task);
 }));
 
@@ -801,11 +794,6 @@ router.patch('/:id', validate(updateTaskSchema), asyncHandler(async (req: AuthRe
 
   await taskRepo.update(task.id, req.body);
 
-  if (req.body.deadline !== undefined || req.body.status === 'done' || req.body.recurrence !== undefined) {
-    const deadline = req.body.status === 'done' ? null : (req.body.deadline !== undefined ? req.body.deadline : task.deadline);
-    await scheduleDeadlineAlerts(notificationQueue, task.id, req.userId!, deadline, req.body.recurrence !== undefined ? req.body.recurrence : task.recurrence);
-  }
-
   const updated = await taskRepo.findById(task.id);
   res.json(updated);
 }));
@@ -885,7 +873,6 @@ router.post('/:id/rollback/:index', asyncHandler(async (req: AuthRequest, res: R
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await taskRepo.delete(req.params.id as string, req.userId!);
   if (!deleted) return notFound(res);
-  await notificationQueue.cancelByTask(req.params.id as string);
   await recurrenceExceptionRepo.deleteByTask(req.params.id as string);
   res.json({ message: 'Deleted' });
 }));

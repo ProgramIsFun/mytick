@@ -35,12 +35,6 @@ async function start() {
   logger.info('Neo4j connected');
 
   app.listen(PORT, () => logger.info({ port: PORT }, 'Server running'));
-
-  // Note: Notification queue disabled for now - needs Neo4j implementation
-  // const handler = (job: any) => processNotificationJob(job, notificationQueue);
-  // notificationQueue.startProcessing(handler);
-  // cron.schedule('* * * * *', () => { notificationQueue.processDue(handler); });
-  // logger.info('notification processing started');
 }
 
 start().catch(err => logger.fatal({ err }, 'Database connection error'));
