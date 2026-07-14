@@ -124,7 +124,7 @@ export default function AccountDetailPage() {
         ) : (
           <div className="flex items-center gap-2">
             {options?.link ? (
-              <button onClick={() => navigate(options.link)} className="text-sm text-accent hover:underline break-all">{displayValue}</button>
+              <button onClick={() => navigate(options.link!)} className="text-sm text-accent hover:underline break-all">{displayValue}</button>
             ) : (
               <div className={`text-sm text-text-primary ${options?.mono ? 'font-mono' : ''} break-all`}>{displayValue}</div>
             )}
