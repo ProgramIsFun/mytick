@@ -220,4 +220,7 @@ export const api = {
   // Env Reconstruction
   reconstructAll: () => request('/env-reconstruct'),
   reconstructFile: (envFileId: string) => request(`/env-reconstruct/${envFileId}`),
+
+  // Repo Env Files (raw)
+  getRepoEnvFilesRaw: (repoId: string) => request(`/repos/${repoId}/env-files/raw`),
 };

@@ -471,3 +471,85 @@ describe('Cascade delete', () => {
     expect(varsAfter.status).toBe(404);
   });
 });
+
+// ── Repo Env Files Raw ─────────────────────────────────────────────────────
+
+describe('GET /api/repos/:repoId/env-files/raw', () => {
+  let rawRepoId: string;
+  let rawEnvFileId: string;
+
+  beforeAll(async () => {
+    const repoRes = await request(app)
+      .post('/api/repos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: 'https://github.com/test/raw-test-repo' });
+    rawRepoId = repoRes.body.id;
+
+    const fileRes = await request(app)
+      .post('/api/env-files')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ repoId: rawRepoId, path: '.env' });
+    rawEnvFileId = fileRes.body.id;
+
+    await request(app)
+      .post(`/api/env-files/${rawEnvFileId}/vars`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ envFileId: rawEnvFileId, key: 'HOST', value: 'localhost', order: 0 });
+
+    await request(app)
+      .post(`/api/env-files/${rawEnvFileId}/vars`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ envFileId: rawEnvFileId, key: 'SECRET_KEY', isSecret: true, secretId: directSecretId, order: 1 });
+
+    await request(app)
+      .post(`/api/env-files/${rawEnvFileId}/vars`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ envFileId: rawEnvFileId, key: 'BW_SECRET', isSecret: true, secretId, order: 2 });
+  });
+
+  it('should return assembled env files for a repo', async () => {
+    const res = await request(app)
+      .get(`/api/repos/${rawRepoId}/env-files/raw`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.files).toBeDefined();
+    expect(res.body.files.length).toBeGreaterThanOrEqual(1);
+
+    const envFile = res.body.files.find((f: any) => f.envFileId === rawEnvFileId);
+    expect(envFile).toBeDefined();
+    expect(envFile.path).toBe('.env');
+    expect(envFile.content).toContain('HOST=localhost');
+    expect(envFile.content).toContain('my-super-secret-db-password');
+    expect(envFile.content).toContain('[bitwarden:BW DB Password]');
+  });
+
+  it('should return 404 for non-existent repo', async () => {
+    const res = await request(app)
+      .get('/api/repos/nonexistent_123/env-files/raw')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it('should return empty files array for repo with no env files', async () => {
+    const repoRes = await request(app)
+      .post('/api/repos')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: 'https://github.com/test/empty-repo' });
+
+    const res = await request(app)
+      .get(`/api/repos/${repoRes.body.id}/env-files/raw`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.files).toEqual([]);
+  });
+
+  it('should reject unauthenticated request', async () => {
+    const res = await request(app)
+      .get(`/api/repos/${rawRepoId}/env-files/raw`);
+
+    expect(res.status).toBe(401);
+  });
+});

@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { handleEnvWrite, handleEnvSelectDirectory, getSystemInfo } from './handlers';
+import { handleEnvWrite, handleEnvSelectDirectory, getSystemInfo, scanForGitRepos, readMapping, writeMapping } from './handlers';
 
 const isDev = !app.isPackaged;
 
@@ -31,6 +31,17 @@ function createWindow() {
 ipcMain.handle('env:write', (_event, args) => handleEnvWrite(args));
 ipcMain.handle('env:selectDirectory', () => handleEnvSelectDirectory(dialog as Parameters<typeof handleEnvSelectDirectory>[0]));
 ipcMain.handle('system:info', () => getSystemInfo());
+ipcMain.handle('computer:scan', (_event, dirPath: string) => scanForGitRepos(dirPath));
+ipcMain.handle('computer:readMapping', () => {
+  const { app: electronApp } = require('electron');
+  const mappingPath = path.join(electronApp.getPath('userData'), 'repo-mapping.json');
+  return readMapping(mappingPath);
+});
+ipcMain.handle('computer:writeMapping', (_event, mapping) => {
+  const { app: electronApp } = require('electron');
+  const mappingPath = path.join(electronApp.getPath('userData'), 'repo-mapping.json');
+  writeMapping(mappingPath, mapping);
+});
 
 app.whenReady().then(createWindow);
 

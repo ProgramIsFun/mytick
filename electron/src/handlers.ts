@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { machineIdSync } from 'node-machine-id';
+import { execFileSync } from 'child_process';
 
 export interface SystemInfo {
   machineId: string;
@@ -78,4 +79,68 @@ export async function handleEnvSelectDirectory(
     return null;
   }
   return { path: result.filePaths[0] };
+}
+
+export interface ScannedRepo {
+  name: string;
+  path: string;
+  remoteUrl: string;
+}
+
+export interface RepoMapping {
+  [folderPath: string]: { repoId: string; repoName: string };
+}
+
+export function scanForGitRepos(
+  directoryPath: string,
+  deps: { readdirSync: typeof fs.readdirSync; existsSync: typeof fs.existsSync; execFileSync: typeof execFileSync } = { readdirSync: fs.readdirSync, existsSync: fs.existsSync, execFileSync }
+): ScannedRepo[] {
+  if (!deps.existsSync(directoryPath)) return [];
+
+  const entries = deps.readdirSync(directoryPath, { withFileTypes: true });
+  const repos: ScannedRepo[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const folderPath = path.join(directoryPath, entry.name);
+    const gitDir = path.join(folderPath, '.git');
+    if (!deps.existsSync(gitDir)) continue;
+
+    try {
+      const remoteUrl = deps.execFileSync('git', ['remote', 'get-url', 'origin'], {
+        cwd: folderPath,
+        encoding: 'utf-8',
+        timeout: 5000,
+      }).trim();
+      repos.push({ name: entry.name, path: folderPath, remoteUrl });
+    } catch {
+      // git command failed, skip this folder
+    }
+  }
+
+  return repos;
+}
+
+export function readMapping(
+  mappingPath: string,
+  deps: { existsSync: typeof fs.existsSync; readFileSync: typeof fs.readFileSync } = fs
+): RepoMapping {
+  if (!deps.existsSync(mappingPath)) return {};
+  try {
+    return JSON.parse(deps.readFileSync(mappingPath, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+
+export function writeMapping(
+  mappingPath: string,
+  mapping: RepoMapping,
+  deps: { writeFileSync: typeof fs.writeFileSync } = fs
+): void {
+  const dir = path.dirname(mappingPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  deps.writeFileSync(mappingPath, JSON.stringify(mapping, null, 2), 'utf-8');
 }

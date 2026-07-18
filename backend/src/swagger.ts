@@ -372,6 +372,22 @@ const spec = swaggerJsdoc({
             content: { type: 'string', description: 'Assembled .env file content' },
           },
         },
+        RepoEnvFilesRaw: {
+          type: 'object',
+          properties: {
+            files: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  envFileId: { type: 'string' },
+                  path: { type: 'string' },
+                  content: { type: 'string', description: 'Assembled .env file content' },
+                },
+              },
+            },
+          },
+        },
       },
     },
   },
