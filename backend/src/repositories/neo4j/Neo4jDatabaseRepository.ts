@@ -47,7 +47,7 @@ export class Neo4jDatabaseRepository implements IDatabaseRepository {
       const result = await session.run(
         `MATCH (u:User {id: $userId})-[:OWNS]->(d:Database {backupEnabled: true})
          OPTIONAL MATCH (d)-[:USES_SECRET]->(s:Secret)
-         RETURN d, s {.id, .provider, .providerSecretId} AS secret`,
+         RETURN d, s {.id, .provider, .secretValue} AS secret`,
         { userId }
       );
       return result.records.map(r => recordToDatabaseSimple(r));

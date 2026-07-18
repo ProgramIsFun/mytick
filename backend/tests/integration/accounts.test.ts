@@ -14,7 +14,7 @@ beforeAll(async () => {
     userId,
     name: 'Test Secret',
     provider: 'bitwarden',
-    providerSecretId: 'test-cred',
+    secretValue: 'test-cred',
     type: 'api_key',
   });
   secretId = secret.id;

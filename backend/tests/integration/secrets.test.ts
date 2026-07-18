@@ -22,7 +22,7 @@ describe('Secrets API - /api/secrets', () => {
         name: 'MongoDB Production Connection',
         description: 'Connection string for production MongoDB',
         provider: 'bitwarden',
-        providerSecretId: 'bw-secret-abc123',
+        secretValue: 'bw-secret-abc123',
         type: 'connection_string',
         tags: ['production', 'critical'],
       };
@@ -36,7 +36,7 @@ describe('Secrets API - /api/secrets', () => {
       expect(res.body.name).toBe(secretData.name);
       expect(res.body.description).toBe(secretData.description);
       expect(res.body.provider).toBe(secretData.provider);
-      expect(res.body.providerSecretId).toBe(secretData.providerSecretId);
+      expect(res.body.secretValue).toBe(secretData.secretValue);
       expect(res.body.type).toBe(secretData.type);
       expect(res.body.tags).toEqual(secretData.tags);
       expect(res.body.id).toBeDefined();
@@ -51,7 +51,7 @@ describe('Secrets API - /api/secrets', () => {
         .send({
           name: 'AWS API Key',
           provider: 'custom',
-          providerSecretId: 'arn:aws:secretsmanager:us-east-1:123:secret:api-key',
+          secretValue: 'arn:aws:secretsmanager:us-east-1:123:secret:api-key',
           type: 'api_key',
         })
         .expect(201);
@@ -67,7 +67,7 @@ describe('Secrets API - /api/secrets', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           provider: 'bitwarden',
-          providerSecretId: 'test-id',
+          secretValue: 'test-id',
           type: 'password',
         })
         .expect(400);
@@ -79,7 +79,7 @@ describe('Secrets API - /api/secrets', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           name: 'Test',
-          providerSecretId: 'test-id',
+          secretValue: 'test-id',
           type: 'password',
         })
         .expect(400);
@@ -91,7 +91,7 @@ describe('Secrets API - /api/secrets', () => {
         .send({
           name: 'Test',
           provider: 'bitwarden',
-          providerSecretId: 'id',
+          secretValue: 'id',
           type: 'api_key',
         })
         .expect(401);
@@ -106,7 +106,7 @@ describe('Secrets API - /api/secrets', () => {
           userId,
           name: 'MongoDB Atlas Connection',
           provider: 'bitwarden',
-          providerSecretId: 'mongo-prod-123',
+          secretValue: 'mongo-prod-123',
           type: 'connection_string',
           tags: ['production', 'mongodb', 'atlas'],
         }),
@@ -114,7 +114,7 @@ describe('Secrets API - /api/secrets', () => {
           userId,
           name: 'AWS RDS Password',
           provider: 'aws_secrets',
-          providerSecretId: 'arn:aws:secretsmanager:us-east-1:123:secret:rds',
+          secretValue: 'arn:aws:secretsmanager:us-east-1:123:secret:rds',
           type: 'password',
           tags: ['aws', 'rds'],
         }),
@@ -122,7 +122,7 @@ describe('Secrets API - /api/secrets', () => {
           userId,
           name: 'GitHub Personal Token',
           provider: 'bitwarden',
-          providerSecretId: 'gh-token-789',
+          secretValue: 'gh-token-789',
           type: 'token',
           tags: ['github', 'ci'],
         }),
@@ -130,7 +130,7 @@ describe('Secrets API - /api/secrets', () => {
           userId,
           name: 'Stripe API Key',
           provider: '1password',
-          providerSecretId: '1pass-stripe-key',
+          secretValue: '1pass-stripe-key',
           type: 'api_key',
           tags: ['stripe', 'payment'],
         }),
@@ -231,7 +231,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Test Secret Details',
         provider: 'bitwarden',
-        providerSecretId: 'test-details-123',
+        secretValue: 'test-details-123',
         type: 'password',
         tags: ['test'],
         description: 'Detailed test secret',
@@ -264,7 +264,7 @@ describe('Secrets API - /api/secrets', () => {
         name: 'Original Name',
         description: 'Original description',
         provider: 'bitwarden',
-        providerSecretId: 'test-update-123',
+        secretValue: 'test-update-123',
         type: 'password',
         tags: ['old'],
       });
@@ -288,7 +288,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Tag Test',
         provider: 'bitwarden',
-        providerSecretId: 'test-tags-123',
+        secretValue: 'test-tags-123',
         type: 'api_key',
         tags: ['old', 'deprecated'],
       });
@@ -304,12 +304,12 @@ describe('Secrets API - /api/secrets', () => {
       expect(res.body.tags).toEqual(['new', 'active', 'production']);
     });
 
-    it('should update providerSecretId (for secret rotation)', async () => {
+    it('should update secretValue (for secret rotation)', async () => {
       const secret = await secretRepo.create({
         userId,
         name: 'Rotatable Secret',
         provider: 'bitwarden',
-        providerSecretId: 'old-secret-id',
+        secretValue: 'old-secret-id',
         type: 'api_key',
         tags: [],
       });
@@ -318,12 +318,12 @@ describe('Secrets API - /api/secrets', () => {
         .patch(`/api/secrets/${secret.id}`)
         .set('Authorization', `Bearer ${token}`)
         .send({
-          providerSecretId: 'new-rotated-secret-id',
+          secretValue: 'new-rotated-secret-id',
           lastRotatedAt: new Date().toISOString(),
         })
         .expect(200);
 
-      expect(res.body.providerSecretId).toBe('new-rotated-secret-id');
+      expect(res.body.secretValue).toBe('new-rotated-secret-id');
       expect(res.body.lastRotatedAt).toBeDefined();
     });
 
@@ -332,7 +332,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Immutable Test',
         provider: 'bitwarden',
-        providerSecretId: 'test-immutable-123',
+        secretValue: 'test-immutable-123',
         type: 'password',
         tags: [],
       });
@@ -358,7 +358,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Unused Secret',
         provider: 'bitwarden',
-        providerSecretId: 'test-delete-123',
+        secretValue: 'test-delete-123',
         type: 'password',
         tags: [],
       });
@@ -377,7 +377,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'In Use Secret',
         provider: 'bitwarden',
-        providerSecretId: 'test-in-use-123',
+        secretValue: 'test-in-use-123',
         type: 'connection_string',
         tags: [],
       });
@@ -408,7 +408,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Widely Used Secret',
         provider: 'bitwarden',
-        providerSecretId: 'test-widely-used-123',
+        secretValue: 'test-widely-used-123',
         type: 'api_key',
         tags: [],
       });
@@ -445,7 +445,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Touch Test',
         provider: 'bitwarden',
-        providerSecretId: 'test-touch-123',
+        secretValue: 'test-touch-123',
         type: 'password',
         tags: [],
         lastAccessedAt: undefined,
@@ -470,7 +470,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Multi Touch Test',
         provider: 'bitwarden',
-        providerSecretId: 'test-multi-touch-123',
+        secretValue: 'test-multi-touch-123',
         type: 'token',
         tags: [],
         lastAccessedAt: new Date('2020-01-01'),
@@ -501,7 +501,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Integration Test Secret',
         provider: 'bitwarden',
-        providerSecretId: 'bw-integration-123',
+        secretValue: 'bw-integration-123',
         type: 'connection_string',
         tags: [],
       });
@@ -525,7 +525,7 @@ describe('Secrets API - /api/secrets', () => {
         userId,
         name: 'Backupable Test Secret',
         provider: 'bitwarden',
-        providerSecretId: 'bw-backupable-123',
+        secretValue: 'bw-backupable-123',
         type: 'connection_string',
         tags: [],
       });

@@ -28,7 +28,7 @@ export default function SecretsPage() {
     name: '',
     description: '',
     provider: 'bitwarden' as SecretProvider,
-    providerSecretId: '',
+    secretValue: '',
     type: 'api_key' as SecretType,
     tags: [] as string[],
   });
@@ -51,7 +51,7 @@ export default function SecretsPage() {
   const resetForm = () => {
     setShowForm(false);
     setIsEditing(false);
-    setFormData({ name: '', description: '', provider: 'bitwarden', providerSecretId: '', type: 'api_key', tags: [] });
+    setFormData({ name: '', description: '', provider: 'bitwarden', secretValue: '', type: 'api_key', tags: [] });
     setTagInput('');
     setSecretValue('');
     setMasterPassword('');
@@ -65,7 +65,7 @@ export default function SecretsPage() {
       if (!isEditing && (!secretValue || !masterPassword)) { alert('Secret Value and Master Password are required'); return; }
       if (secretValue && !masterPassword) { alert('Master Password is required when providing a new value'); return; }
       if (!secretValue && masterPassword) { alert('Secret Value is required when providing a master password'); return; }
-    } else if (!formData.providerSecretId) {
+    } else if (!formData.secretValue) {
       alert('Provider Secret ID is required'); return;
     }
 
@@ -79,9 +79,9 @@ export default function SecretsPage() {
         tags: formData.tags,
       };
       if (isEncrypted && secretValue && masterPassword) {
-        payload.providerSecretId = await encrypt(secretValue, masterPassword);
+        payload.secretValue = await encrypt(secretValue, masterPassword);
       } else {
-        payload.providerSecretId = formData.providerSecretId;
+        payload.secretValue = formData.secretValue;
       }
 
       if (isEditing && secret) {
@@ -106,7 +106,7 @@ export default function SecretsPage() {
   const handleReveal = async () => {
     if (!secret || secret.provider !== 'client_encrypted') return;
     setRevealError(''); setRevealedValue(null); setRevealing(true);
-    try { setRevealedValue(await decrypt(secret.providerSecretId, revealPassword)); }
+    try { setRevealedValue(await decrypt(secret.secretValue, revealPassword)); }
     catch { setRevealError('Wrong password or corrupted data'); }
     finally { setRevealing(false); }
   };
@@ -118,7 +118,7 @@ export default function SecretsPage() {
   const startEdit = () => {
     if (!secret) return;
     setIsEditing(true);
-    setFormData({ name: secret.name, description: secret.description, provider: secret.provider, providerSecretId: secret.providerSecretId, type: secret.type, tags: secret.tags });
+    setFormData({ name: secret.name, description: secret.description, provider: secret.provider, secretValue: secret.secretValue, type: secret.type, tags: secret.tags });
     setShowForm(true);
   };
 
@@ -172,8 +172,8 @@ export default function SecretsPage() {
                   <div>
                     <label className="text-xs font-medium text-text-muted block mb-1">Encrypted (Stored)</label>
                     <div className="flex items-center gap-2">
-                      <code className="text-xs font-mono bg-surface-secondary px-2 py-1 rounded border border-border flex-1 break-all">{secret.providerSecretId}</code>
-                      <button onClick={() => navigator.clipboard.writeText(secret.providerSecretId)} className="text-xs px-2 py-1 rounded border border-border hover:bg-surface-hover shrink-0">📋 Copy</button>
+                      <code className="text-xs font-mono bg-surface-secondary px-2 py-1 rounded border border-border flex-1 break-all">{secret.secretValue}</code>
+                      <button onClick={() => navigator.clipboard.writeText(secret.secretValue)} className="text-xs px-2 py-1 rounded border border-border hover:bg-surface-hover shrink-0">📋 Copy</button>
                     </div>
                   </div>
                 </div>
@@ -181,10 +181,10 @@ export default function SecretsPage() {
             </div>
           ) : (
             <div>
-              <label className="text-xs font-medium text-text-muted block mb-1">Provider Secret ID</label>
+              <label className="text-xs font-medium text-text-muted block mb-1">Secret Value</label>
               <div className="flex items-center gap-2">
-                <code className="text-xs font-mono bg-surface-secondary px-2 py-1 rounded border border-border flex-1">{secret.providerSecretId}</code>
-                <button onClick={() => navigator.clipboard.writeText(secret.providerSecretId)} className="text-xs px-2 py-1 rounded border border-border hover:bg-surface-hover">📋 Copy</button>
+                <code className="text-xs font-mono bg-surface-secondary px-2 py-1 rounded border border-border flex-1">{secret.secretValue}</code>
+                <button onClick={() => navigator.clipboard.writeText(secret.secretValue)} className="text-xs px-2 py-1 rounded border border-border hover:bg-surface-hover">📋 Copy</button>
               </div>
             </div>
           )}
@@ -268,8 +268,8 @@ export default function SecretsPage() {
             </>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Provider Secret ID *</label>
-              <input type="text" value={formData.providerSecretId} onChange={e => setFormData(prev => ({ ...prev, providerSecretId: e.target.value }))} className={inputCls} placeholder="e.g., Bitwarden SM secret ID" />
+              <label className="block text-sm font-medium text-text-primary mb-1">Secret Value *</label>
+              <input type="text" value={formData.secretValue} onChange={e => setFormData(prev => ({ ...prev, secretValue: e.target.value }))} className={inputCls} placeholder="e.g., Bitwarden SM secret ID or AES-encrypted value" />
             </div>
           )}
 

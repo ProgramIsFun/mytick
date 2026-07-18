@@ -51,7 +51,7 @@ export class Neo4jSecretRepository implements ISecretRepository {
           `MATCH (u:User {id: $userId})
            CREATE (s:Secret {
              id: $id, name: $name, description: $description,
-             provider: $provider, providerSecretId: $providerSecretId,
+             provider: $provider, secretValue: $secretValue,
              type: $type, tags: $tags, expiresAt: $expiresAt,
              createdAt: datetime(), updatedAt: datetime()
            })
@@ -59,7 +59,7 @@ export class Neo4jSecretRepository implements ISecretRepository {
            RETURN s`,
           {
             userId: data.userId, id, name: data.name, description: data.description || '',
-            provider: data.provider, providerSecretId: data.providerSecretId,
+            provider: data.provider, secretValue: data.secretValue,
             type: data.type, tags: data.tags || [], expiresAt: data.expiresAt || null,
           }
         )
@@ -75,7 +75,7 @@ export class Neo4jSecretRepository implements ISecretRepository {
     try {
       const props: string[] = ['s.updatedAt = datetime()'];
       const params: any = { id };
-      const allowed = ['name', 'description', 'provider', 'providerSecretId', 'type', 'tags', 'expiresAt', 'lastRotatedAt'];
+      const allowed = ['name', 'description', 'provider', 'secretValue', 'type', 'tags', 'expiresAt', 'lastRotatedAt'];
       for (const key of allowed) {
         if ((data as any)[key] !== undefined) {
           props.push(`s.${key} = $${key}`);
@@ -156,7 +156,7 @@ function recordToSecret(record: any): ISecret {
     type: s.type,
     tags: s.tags || [],
     provider: s.provider,
-    providerSecretId: s.providerSecretId,
+    secretValue: s.secretValue,
     expiresAt: s.expiresAt ? new Date(s.expiresAt) : undefined,
     lastRotatedAt: s.lastRotatedAt ? new Date(s.lastRotatedAt) : undefined,
     lastAccessedAt: s.lastAccessedAt ? new Date(s.lastAccessedAt) : undefined,

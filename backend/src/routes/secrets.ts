@@ -100,7 +100,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, provider, providerSecretId, type]
+ *             required: [name, provider, secretValue, type]
  *             properties:
  *               name:
  *                 type: string
@@ -109,7 +109,7 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *               provider:
  *                 type: string
  *                 enum: [bitwarden, bitwarden_sm, aws_secrets, 1password, vault, lastpass, custom, client_encrypted]
- *               providerSecretId:
+ *               secretValue:
  *                 type: string
  *               type:
  *                 type: string
@@ -130,10 +130,10 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *               $ref: '#/components/schemas/Secret'
  */
 router.post('/', validate(createSecretSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, description, provider, providerSecretId, type, tags, expiresAt } = req.body;
+  const { name, description, provider, secretValue, type, tags, expiresAt } = req.body;
   const secret = await secretRepo.create({
     userId: req.userId, name, description: description || '',
-    provider, providerSecretId, type, tags: tags || [], expiresAt: expiresAt || null,
+    provider, secretValue, type, tags: tags || [], expiresAt: expiresAt || null,
   });
   res.status(201).json(secret);
 }));

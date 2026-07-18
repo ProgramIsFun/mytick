@@ -14,7 +14,7 @@ beforeAll(async () => {
     .send({
       name: 'Test Secret',
       provider: 'bitwarden',
-      providerSecretId: 'test-vault-id-123',
+      secretValue: 'test-vault-id-123',
       type: 'connection_string'
     });
   secretId = secretRes.body.id;

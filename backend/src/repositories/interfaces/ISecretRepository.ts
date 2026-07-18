@@ -6,7 +6,7 @@ export interface ISecret {
   type: string;
   tags?: string[];
   provider: string;
-  providerSecretId: string;
+  secretValue: string;
   expiresAt?: Date;
   lastRotatedAt?: Date;
   lastAccessedAt?: Date;

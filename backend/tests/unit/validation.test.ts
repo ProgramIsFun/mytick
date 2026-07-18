@@ -215,21 +215,21 @@ describe('createSecretSchema', () => {
     shouldPass(createSecretSchema, {
       name: 'DB Password',
       provider: 'bitwarden',
-      providerSecretId: 'bw-123',
+      secretValue: 'bw-123',
       type: 'password',
     });
   });
 
   it('rejects empty name', () =>
-    shouldFail(createSecretSchema, { name: '', provider: 'bitwarden', providerSecretId: 'x', type: 'password' }));
+    shouldFail(createSecretSchema, { name: '', provider: 'bitwarden', secretValue: 'x', type: 'password' }));
   it('rejects invalid provider', () =>
-    shouldFail(createSecretSchema, { name: 'X', provider: 'aws_ssm', providerSecretId: 'x', type: 'password' }));
+    shouldFail(createSecretSchema, { name: 'X', provider: 'aws_ssm', secretValue: 'x', type: 'password' }));
   it('rejects invalid type', () =>
-    shouldFail(createSecretSchema, { name: 'X', provider: 'bitwarden', providerSecretId: 'x', type: 'oauth_token' }));
-  it('rejects missing providerSecretId', () =>
+    shouldFail(createSecretSchema, { name: 'X', provider: 'bitwarden', secretValue: 'x', type: 'oauth_token' }));
+  it('rejects missing secretValue', () =>
     shouldFail(createSecretSchema, { name: 'X', provider: 'bitwarden', type: 'password' }));
   it('rejects invalid expiresAt', () =>
-    shouldFail(createSecretSchema, { name: 'X', provider: 'bitwarden', providerSecretId: 'x', type: 'password', expiresAt: 'not-date' }));
+    shouldFail(createSecretSchema, { name: 'X', provider: 'bitwarden', secretValue: 'x', type: 'password', expiresAt: 'not-date' }));
 });
 
 describe('updateSecretSchema', () => {
