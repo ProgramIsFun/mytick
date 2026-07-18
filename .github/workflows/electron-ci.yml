@@ -1,0 +1,29 @@
+name: Electron CI
+
+on:
+  push:
+    paths:
+      - 'electron/**'
+      - '.github/workflows/electron-ci.yml'
+  pull_request:
+    paths:
+      - 'electron/**'
+      - '.github/workflows/electron-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: electron/package-lock.json
+      - run: npm ci
+        working-directory: electron
+      - run: npm run typecheck
+        working-directory: electron
+      - run: npm test
+        working-directory: electron

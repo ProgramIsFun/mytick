@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import * as fs from 'fs';
+import { handleEnvWrite, handleEnvSelectDirectory } from './handlers';
 
 const isDev = !app.isPackaged;
 
@@ -28,28 +28,8 @@ function createWindow() {
   });
 }
 
-ipcMain.handle('env:write', async (_event, { filePath, content }: { filePath: string; content: string }) => {
-  try {
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(filePath, content, 'utf-8');
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: (error as Error).message };
-  }
-});
-
-ipcMain.handle('env:selectDirectory', async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory'],
-  });
-  if (result.canceled || result.filePaths.length === 0) {
-    return null;
-  }
-  return { path: result.filePaths[0] };
-});
+ipcMain.handle('env:write', (_event, args) => handleEnvWrite(args));
+ipcMain.handle('env:selectDirectory', () => handleEnvSelectDirectory(dialog as Parameters<typeof handleEnvSelectDirectory>[0]));
 
 app.whenReady().then(createWindow);
 

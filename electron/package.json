@@ -6,13 +6,17 @@
   "scripts": {
     "dev": "tsc && electron .",
     "build": "tsc && electron-builder",
-    "build:frontend": "cd ../frontend && npm run build"
+    "build:frontend": "cd ../frontend && npm run build",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.12.2",
     "electron": "^35.0.0",
     "electron-builder": "^26.0.0",
-    "typescript": "~6.0.2",
-    "@types/node": "^24.12.2"
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "typescript": "~6.0.2"
   }
 }
