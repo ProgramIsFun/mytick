@@ -1,8 +1,10 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { machineIdSync } from 'node-machine-id';
 
 export interface SystemInfo {
+  machineId: string;
   platform: string;
   arch: string;
   hostname: string;
@@ -31,9 +33,10 @@ interface OsDeps {
   tmpdir: () => string;
 }
 
-export function getSystemInfo(osDeps: OsDeps = os): SystemInfo {
+  export function getSystemInfo(osDeps: OsDeps = os, getMachineId: () => string = () => machineIdSync(true)): SystemInfo {
   const cpus = osDeps.cpus();
   return {
+    machineId: getMachineId(),
     platform: osDeps.platform(),
     arch: osDeps.arch(),
     hostname: osDeps.hostname(),

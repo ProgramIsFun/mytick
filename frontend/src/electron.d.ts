@@ -1,4 +1,5 @@
 interface SystemInfo {
+  machineId: string;
   platform: string;
   arch: string;
   hostname: string;

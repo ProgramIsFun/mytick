@@ -155,9 +155,11 @@ describe('getSystemInfo', () => {
   });
 
   it('should return correct system info', () => {
-    const info = getSystemInfo(mockOs as never);
+    const mockGetMachineId = jest.fn().mockReturnValue('test-machine-id-123');
+    const info = getSystemInfo(mockOs as never, mockGetMachineId);
 
     expect(info).toEqual({
+      machineId: 'test-machine-id-123',
       platform: 'win32',
       arch: 'x64',
       hostname: 'DESKTOP-ABC',
@@ -172,6 +174,7 @@ describe('getSystemInfo', () => {
       tmpDir: 'C:\\Users\\testuser\\AppData\\Local\\Temp',
     });
 
+    expect(mockGetMachineId).toHaveBeenCalled();
     expect(mockOs.platform).toHaveBeenCalled();
     expect(mockOs.arch).toHaveBeenCalled();
     expect(mockOs.hostname).toHaveBeenCalled();
@@ -187,21 +190,21 @@ describe('getSystemInfo', () => {
 
   it('should handle zero CPUs', () => {
     mockOs.cpus.mockReturnValue([]);
-    const info = getSystemInfo(mockOs as never);
+    const info = getSystemInfo(mockOs as never, () => 'test-id');
     expect(info.cpuModel).toBe('unknown');
     expect(info.cpuCores).toBe(0);
   });
 
   it('should round uptime to one decimal', () => {
     mockOs.uptime.mockReturnValue(3661); // 1 hour 1 minute
-    const info = getSystemInfo(mockOs as never);
+    const info = getSystemInfo(mockOs as never, () => 'test-id');
     expect(info.uptimeHours).toBe(1.0);
   });
 
   it('should round memory to nearest MB', () => {
     mockOs.totalmem.mockReturnValue(8589934592); // exactly 8 GB
     mockOs.freemem.mockReturnValue(4294967296); // exactly 4 GB
-    const info = getSystemInfo(mockOs as never);
+    const info = getSystemInfo(mockOs as never, () => 'test-id');
     expect(info.totalMemoryMB).toBe(8192);
     expect(info.freeMemoryMB).toBe(4096);
   });

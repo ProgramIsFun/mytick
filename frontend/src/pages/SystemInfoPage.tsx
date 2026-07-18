@@ -51,6 +51,12 @@ export default function SystemInfoPage() {
 
   const sections = [
     {
+      title: 'Machine',
+      rows: [
+        { label: 'Machine ID', value: info.machineId },
+      ],
+    },
+    {
       title: 'Operating System',
       rows: [
         { label: 'Type', value: info.osType },
