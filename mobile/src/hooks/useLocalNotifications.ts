@@ -37,7 +37,7 @@ export async function scheduleDeadlineReminders() {
           content: {
             title: `⏰ Due in ${alert.label}`,
             body: task.title,
-            data: { taskId: task._id, type: 'deadline' },
+            data: { taskId: task.id, type: 'deadline' },
             sound: true,
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(triggerMs) },

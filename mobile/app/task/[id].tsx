@@ -33,33 +33,33 @@ export default function TaskDetail() {
 
   const saveTitle = async () => {
     if (!titleDraft.trim() || titleDraft === task.title) { setEditingTitle(false); return; }
-    const updated = await api.updateTask(task._id, { title: titleDraft.trim() });
+    const updated = await api.updateTask(task.id, { title: titleDraft.trim() });
     setTask(updated);
     setEditingTitle(false);
   };
 
   const saveDesc = async () => {
     if (descDraft === task.description) { setEditingDesc(false); return; }
-    const updated = await api.updateTask(task._id, { description: descDraft });
+    const updated = await api.updateTask(task.id, { description: descDraft });
     setTask(updated);
     setEditingDesc(false);
   };
 
   const rollback = async (index: number) => {
-    const updated = await api.rollbackDescription(task._id, index);
+    const updated = await api.rollbackDescription(task.id, index);
     setTask(updated);
   };
 
   const addSubtask = async () => {
     if (!subtaskTitle.trim()) return;
     const sub = await api.createTask({ title: subtaskTitle.trim() });
-    const updated = await api.updateTask(task._id, { blockedBy: [...(task.blockedBy || []), sub._id] });
+    const updated = await api.updateTask(task.id, { blockedBy: [...(task.blockedBy || []), sub.id] });
     setTask(updated);
     setSubtaskTitle('');
   };
 
   const removeBlocker = async (blockerId: string) => {
-    const updated = await api.updateTask(task._id, { blockedBy: task.blockedBy.filter((id: string) => id !== blockerId) });
+    const updated = await api.updateTask(task.id, { blockedBy: task.blockedBy.filter((id: string) => id !== blockerId) });
     setTask(updated);
   };
 
@@ -92,12 +92,12 @@ export default function TaskDetail() {
         <View style={s.section}>
           <Text style={[s.label, { color: c.text }]}>Blocked by:</Text>
           {blockers.map(b => (
-            <View key={b._id} style={s.blockerRow}>
+            <View key={b.id} style={s.blockerRow}>
               <Text>{b.status === 'done' ? '✅' : '🔴'}</Text>
-              <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push(`/task/${b._id}`)}>
+              <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push(`/task/${b.id}`)}>
                 <Text style={[s.link, b.status === 'done' && s.done, { color: c.link }]}>{b.title}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => removeBlocker(b._id)}>
+              <TouchableOpacity onPress={() => removeBlocker(b.id)}>
                 <Text style={{ color: c.danger }}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -117,7 +117,7 @@ export default function TaskDetail() {
         <View style={s.section}>
           <Text style={[s.label, { color: c.text }]}>Blocking:</Text>
           {blocking.map(b => (
-            <TouchableOpacity key={b._id} onPress={() => router.push(`/task/${b._id}`)}>
+            <TouchableOpacity key={b.id} onPress={() => router.push(`/task/${b.id}`)}>
               <Text style={[s.link, { color: c.link }]}>{b.status === 'done' ? '✅' : '⏳'} {b.title}</Text>
             </TouchableOpacity>
           ))}

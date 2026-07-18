@@ -9,7 +9,7 @@ import CalendarView from '../src/components/CalendarView';
 import { scheduleDeadlineReminders } from '../src/hooks/useLocalNotifications';
 
 interface Task {
-  _id: string;
+  id: string;
   title: string;
   status: string;
   visibility: string;
@@ -58,13 +58,13 @@ export default function Tasks() {
   };
 
   const toggleDone = async (task: Task) => {
-    await api.updateTask(task._id, { status: task.status === 'done' ? 'pending' : 'done' });
+    await api.updateTask(task.id, { status: task.status === 'done' ? 'pending' : 'done' });
     loadTasks(page);
   };
 
   const cycleVisibility = async (task: Task) => {
     const next = task.visibility === 'private' ? 'group' : task.visibility === 'group' ? 'public' : 'private';
-    await api.updateTask(task._id, { visibility: next });
+    await api.updateTask(task.id, { visibility: next });
     loadTasks(page);
   };
 
@@ -113,13 +113,13 @@ export default function Tasks() {
 
           <FlatList
             data={filtered}
-            keyExtractor={t => t._id}
+            keyExtractor={t => t.id}
             renderItem={({ item }) => (
               <View style={[s.task, { borderBottomColor: c.border }]}>
                 <TouchableOpacity onPress={() => toggleDone(item)} style={s.check}>
                   <Text>{item.status === 'done' ? '✅' : '⬜'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.taskBody} onPress={() => router.push(`/task/${item._id}`)}>
+                <TouchableOpacity style={s.taskBody} onPress={() => router.push(`/task/${item.id}`)}>
                   <Text style={[s.taskTitle, item.status === 'done' && s.done, { color: item.status === 'done' ? c.textMuted : c.text }]}>{item.title}</Text>
                   {item.deadline && <Text style={s.deadline}>📅 {new Date(item.deadline).toLocaleDateString()}</Text>}
                 </TouchableOpacity>
@@ -128,7 +128,7 @@ export default function Tasks() {
                     <TouchableOpacity onPress={() => cycleVisibility(item)} style={s.visBtn}>
                       <Text>{visIcon(item.visibility)}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDelete(item._id)}>
+                    <TouchableOpacity onPress={() => handleDelete(item.id)}>
                       <Text style={s.deleteBtn}>✕</Text>
                     </TouchableOpacity>
                   </>

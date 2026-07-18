@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
 interface Task {
-  _id: string;
+  id: string;
   title: string;
   status: string;
   deadline: string | null;
@@ -63,7 +63,7 @@ export default function CalendarView({ tasks }: { tasks: Task[] }) {
             <View key={key} style={[s.cell, isToday(day) && s.todayCell]}>
               <Text style={[s.dayNum, isToday(day) && s.todayNum]}>{day}</Text>
               {dayTasks.slice(0, 2).map(t => (
-                <TouchableOpacity key={t._id} onPress={() => router.push(`/task/${t._id}`)}>
+                <TouchableOpacity key={t.id} onPress={() => router.push(`/task/${t.id}`)}>
                   <Text numberOfLines={1} style={[s.taskDot, t.status === 'done' ? s.taskDone : s.taskPending]}>
                     {t.title}
                   </Text>

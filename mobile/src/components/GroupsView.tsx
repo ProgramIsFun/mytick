@@ -11,7 +11,7 @@ interface Member {
 }
 
 interface Group {
-  _id: string;
+  id: string;
   name: string;
   ownerId: string;
   members: Member[];
@@ -67,12 +67,12 @@ export default function GroupsView({ colors: c }: Props) {
     Alert.alert('Delete Group', `Delete "${group.name}"?`, [
       { text: 'Cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        try { await api.deleteGroup(group._id); load(); } catch (e: any) { Alert.alert('Error', e.message); }
+        try { await api.deleteGroup(group.id); load(); } catch (e: any) { Alert.alert('Error', e.message); }
       }},
     ]);
   };
 
-  const isOwner = (g: Group) => g.ownerId === user?._id;
+  const isOwner = (g: Group) => g.ownerId === user?.id;
 
   return (
     <View style={{ flex: 1 }}>
@@ -91,10 +91,10 @@ export default function GroupsView({ colors: c }: Props) {
 
       <FlatList
         data={groups}
-        keyExtractor={g => g._id}
+        keyExtractor={g => g.id}
         renderItem={({ item: g }) => (
           <View style={[s.card, { backgroundColor: c.card, borderColor: c.border }]}>
-            <TouchableOpacity onPress={() => setExpandedId(expandedId === g._id ? null : g._id)}>
+            <TouchableOpacity onPress={() => setExpandedId(expandedId === g.id ? null : g.id)}>
               <View style={s.cardHeader}>
                 <Text style={[s.groupName, { color: c.text }]}>{g.name}</Text>
                 <Text style={s.memberCount}>{g.members.length} 👥</Text>
@@ -102,7 +102,7 @@ export default function GroupsView({ colors: c }: Props) {
               {isOwner(g) && <Text style={s.ownerBadge}>Owner</Text>}
             </TouchableOpacity>
 
-            {expandedId === g._id && (
+            {expandedId === g.id && (
               <View style={s.expanded}>
                 {g.members.map(m => (
                   <View key={m.userId} style={s.memberRow}>
@@ -110,8 +110,8 @@ export default function GroupsView({ colors: c }: Props) {
                       {m.username || m.name || m.userId.slice(0, 8)}
                     </Text>
                     <Text style={s.memberRole}>{m.role}</Text>
-                    {isOwner(g) && m.userId !== user?._id && (
-                      <TouchableOpacity onPress={() => handleRemoveMember(g._id, m.userId, m.username)}>
+                    {isOwner(g) && m.userId !== user?.id && (
+                      <TouchableOpacity onPress={() => handleRemoveMember(g.id, m.userId, m.username)}>
                         <Text style={s.removeBtn}>✕</Text>
                       </TouchableOpacity>
                     )}
@@ -129,7 +129,7 @@ export default function GroupsView({ colors: c }: Props) {
                       autoCapitalize="none"
                       keyboardType="email-address"
                     />
-                    <TouchableOpacity style={[s.addBtn, { backgroundColor: c.accent }]} onPress={() => handleAddMember(g._id)}>
+                    <TouchableOpacity style={[s.addBtn, { backgroundColor: c.accent }]} onPress={() => handleAddMember(g.id)}>
                       <Text style={s.addBtnText}>Add</Text>
                     </TouchableOpacity>
                   </View>
