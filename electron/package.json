@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "main": "dist/src/main.js",
   "scripts": {
-    "dev": "tsc && electron .",
-    "dev:watch": "nodemon",
+    "dev": "nodemon",
+    "start": "tsc && electron .",
     "build": "tsc && electron-builder",
     "build:frontend": "cd ../frontend && npm run build",
     "test": "jest",
