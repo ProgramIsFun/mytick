@@ -1,4 +1,4 @@
-import { handleEnvWrite, handleEnvSelectDirectory } from '../src/handlers';
+import { handleEnvWrite, handleEnvSelectDirectory, getSystemInfo } from '../src/handlers';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -127,5 +127,82 @@ describe('handleEnvSelectDirectory', () => {
     const result = await handleEnvSelectDirectory(mockDialog);
 
     expect(result).toBeNull();
+  });
+});
+
+describe('getSystemInfo', () => {
+  const mockOs = {
+    platform: jest.fn().mockReturnValue('win32'),
+    arch: jest.fn().mockReturnValue('x64'),
+    hostname: jest.fn().mockReturnValue('DESKTOP-ABC'),
+    type: jest.fn().mockReturnValue('Windows_NT'),
+    release: jest.fn().mockReturnValue('10.0.26200'),
+    cpus: jest.fn().mockReturnValue([
+      { model: 'Intel Core i7-12700K' },
+      { model: 'Intel Core i7-12700K' },
+      { model: 'Intel Core i7-12700K' },
+      { model: 'Intel Core i7-12700K' },
+    ]),
+    totalmem: jest.fn().mockReturnValue(34359738368), // 32 GB
+    freemem: jest.fn().mockReturnValue(17179869184), // 16 GB
+    uptime: jest.fn().mockReturnValue(36000), // 10 hours
+    homedir: jest.fn().mockReturnValue('C:\\Users\\testuser'),
+    tmpdir: jest.fn().mockReturnValue('C:\\Users\\testuser\\AppData\\Local\\Temp'),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return correct system info', () => {
+    const info = getSystemInfo(mockOs as never);
+
+    expect(info).toEqual({
+      platform: 'win32',
+      arch: 'x64',
+      hostname: 'DESKTOP-ABC',
+      osType: 'Windows_NT',
+      osRelease: '10.0.26200',
+      cpuModel: 'Intel Core i7-12700K',
+      cpuCores: 4,
+      totalMemoryMB: 32768,
+      freeMemoryMB: 16384,
+      uptimeHours: 10,
+      homeDir: 'C:\\Users\\testuser',
+      tmpDir: 'C:\\Users\\testuser\\AppData\\Local\\Temp',
+    });
+
+    expect(mockOs.platform).toHaveBeenCalled();
+    expect(mockOs.arch).toHaveBeenCalled();
+    expect(mockOs.hostname).toHaveBeenCalled();
+    expect(mockOs.type).toHaveBeenCalled();
+    expect(mockOs.release).toHaveBeenCalled();
+    expect(mockOs.cpus).toHaveBeenCalled();
+    expect(mockOs.totalmem).toHaveBeenCalled();
+    expect(mockOs.freemem).toHaveBeenCalled();
+    expect(mockOs.uptime).toHaveBeenCalled();
+    expect(mockOs.homedir).toHaveBeenCalled();
+    expect(mockOs.tmpdir).toHaveBeenCalled();
+  });
+
+  it('should handle zero CPUs', () => {
+    mockOs.cpus.mockReturnValue([]);
+    const info = getSystemInfo(mockOs as never);
+    expect(info.cpuModel).toBe('unknown');
+    expect(info.cpuCores).toBe(0);
+  });
+
+  it('should round uptime to one decimal', () => {
+    mockOs.uptime.mockReturnValue(3661); // 1 hour 1 minute
+    const info = getSystemInfo(mockOs as never);
+    expect(info.uptimeHours).toBe(1.0);
+  });
+
+  it('should round memory to nearest MB', () => {
+    mockOs.totalmem.mockReturnValue(8589934592); // exactly 8 GB
+    mockOs.freemem.mockReturnValue(4294967296); // exactly 4 GB
+    const info = getSystemInfo(mockOs as never);
+    expect(info.totalMemoryMB).toBe(8192);
+    expect(info.freeMemoryMB).toBe(4096);
   });
 });

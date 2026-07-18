@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { handleEnvWrite, handleEnvSelectDirectory } from './handlers';
+import { handleEnvWrite, handleEnvSelectDirectory, getSystemInfo } from './handlers';
 
 const isDev = !app.isPackaged;
 
@@ -30,6 +30,7 @@ function createWindow() {
 
 ipcMain.handle('env:write', (_event, args) => handleEnvWrite(args));
 ipcMain.handle('env:selectDirectory', () => handleEnvSelectDirectory(dialog as Parameters<typeof handleEnvSelectDirectory>[0]));
+ipcMain.handle('system:info', () => getSystemInfo());
 
 app.whenReady().then(createWindow);
 

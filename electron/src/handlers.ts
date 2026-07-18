@@ -1,5 +1,53 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
+
+export interface SystemInfo {
+  platform: string;
+  arch: string;
+  hostname: string;
+  osType: string;
+  osRelease: string;
+  cpuModel: string;
+  cpuCores: number;
+  totalMemoryMB: number;
+  freeMemoryMB: number;
+  uptimeHours: number;
+  homeDir: string;
+  tmpDir: string;
+}
+
+interface OsDeps {
+  platform: () => string;
+  arch: () => string;
+  hostname: () => string;
+  type: () => string;
+  release: () => string;
+  cpus: () => Array<{ model: string }>;
+  totalmem: () => number;
+  freemem: () => number;
+  uptime: () => number;
+  homedir: () => string;
+  tmpdir: () => string;
+}
+
+export function getSystemInfo(osDeps: OsDeps = os): SystemInfo {
+  const cpus = osDeps.cpus();
+  return {
+    platform: osDeps.platform(),
+    arch: osDeps.arch(),
+    hostname: osDeps.hostname(),
+    osType: osDeps.type(),
+    osRelease: osDeps.release(),
+    cpuModel: cpus.length > 0 ? cpus[0].model : 'unknown',
+    cpuCores: cpus.length,
+    totalMemoryMB: Math.round(osDeps.totalmem() / 1024 / 1024),
+    freeMemoryMB: Math.round(osDeps.freemem() / 1024 / 1024),
+    uptimeHours: Math.round(osDeps.uptime() / 3600 * 10) / 10,
+    homeDir: osDeps.homedir(),
+    tmpDir: osDeps.tmpdir(),
+  };
+}
 
 export async function handleEnvWrite(
   { filePath, content }: { filePath: string; content: string },
