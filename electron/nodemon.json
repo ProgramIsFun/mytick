@@ -1,0 +1,6 @@
+{
+  "watch": ["src"],
+  "ext": "ts",
+  "exec": "tsc && electron .",
+  "ignore": ["dist/**", "tests/**", "node_modules/**"]
+}
