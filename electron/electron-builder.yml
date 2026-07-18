@@ -1,0 +1,13 @@
+appId: com.mytick.app
+productName: Mytick
+directories:
+  output: dist-electron
+files:
+  - dist/**/*
+  - ../frontend/dist/**/*
+win:
+  target: nsis
+mac:
+  target: dmg
+linux:
+  target: AppImage
