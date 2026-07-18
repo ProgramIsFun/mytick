@@ -136,11 +136,11 @@ export function readMapping(
 export function writeMapping(
   mappingPath: string,
   mapping: RepoMapping,
-  deps: { writeFileSync: typeof fs.writeFileSync } = fs
+  deps: { existsSync: typeof fs.existsSync; mkdirSync: typeof fs.mkdirSync; writeFileSync: typeof fs.writeFileSync } = fs
 ): void {
   const dir = path.dirname(mappingPath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!deps.existsSync(dir)) {
+    deps.mkdirSync(dir, { recursive: true });
   }
   deps.writeFileSync(mappingPath, JSON.stringify(mapping, null, 2), 'utf-8');
 }

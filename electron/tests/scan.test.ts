@@ -137,16 +137,36 @@ describe('writeMapping', () => {
   it('should write mapping to file', () => {
     const mapping = { '/home/user/projects/mytick': { repoId: 'abc', repoName: 'mytick' } };
     const mockExistsSync = jest.fn().mockReturnValue(true);
+    const mockMkdirSync = jest.fn();
     const mockWriteFileSync = jest.fn();
 
     writeMapping('/config/repo-mapping.json', mapping, {
+      existsSync: mockExistsSync,
+      mkdirSync: mockMkdirSync,
       writeFileSync: mockWriteFileSync,
     });
 
+    expect(mockMkdirSync).not.toHaveBeenCalled();
     expect(mockWriteFileSync).toHaveBeenCalledWith(
       '/config/repo-mapping.json',
       JSON.stringify(mapping, null, 2),
       'utf-8'
     );
+  });
+
+  it('should create directory if it does not exist', () => {
+    const mapping = { '/new/path': { repoId: 'abc', repoName: 'test' } };
+    const mockExistsSync = jest.fn().mockReturnValue(false);
+    const mockMkdirSync = jest.fn();
+    const mockWriteFileSync = jest.fn();
+
+    writeMapping('/new/path/mapping.json', mapping, {
+      existsSync: mockExistsSync,
+      mkdirSync: mockMkdirSync,
+      writeFileSync: mockWriteFileSync,
+    });
+
+    expect(mockMkdirSync).toHaveBeenCalledWith('/new/path', { recursive: true });
+    expect(mockWriteFileSync).toHaveBeenCalled();
   });
 });
