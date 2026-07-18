@@ -12,6 +12,10 @@ import {
   createSecretSchema,
   updateSecretSchema,
   upsertContextSchema,
+  createEnvFileSchema,
+  updateEnvFileSchema,
+  createEnvVarSchema,
+  updateEnvVarSchema,
 } from '../../src/utils/validation';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -248,4 +252,94 @@ describe('upsertContextSchema', () => {
   it('rejects number value', () => shouldFail(upsertContextSchema, { value: 123 }));
   it('rejects object value', () => shouldFail(upsertContextSchema, { value: {} }));
   it('rejects null value', () => shouldFail(upsertContextSchema, { value: null }));
+});
+
+// ── EnvFile ─────────────────────────────────────────────────────────────────
+
+describe('createEnvFileSchema', () => {
+  it('accepts valid payload', () =>
+    shouldPass(createEnvFileSchema, { repoId: 'repo1', path: '.env' }));
+
+  it('accepts nested path', () =>
+    shouldPass(createEnvFileSchema, { repoId: 'repo1', path: 'backend/.env.local' }));
+
+  it('rejects missing repoId', () =>
+    shouldFail(createEnvFileSchema, { path: '.env' }));
+
+  it('rejects empty repoId', () =>
+    shouldFail(createEnvFileSchema, { repoId: '', path: '.env' }));
+
+  it('rejects missing path', () =>
+    shouldFail(createEnvFileSchema, { repoId: 'repo1' }));
+
+  it('rejects empty path', () =>
+    shouldFail(createEnvFileSchema, { repoId: 'repo1', path: '' }));
+
+  it('rejects path > 500 chars', () =>
+    shouldFail(createEnvFileSchema, { repoId: 'repo1', path: 'x'.repeat(501) }));
+});
+
+describe('updateEnvFileSchema', () => {
+  it('accepts partial update', () => shouldPass(updateEnvFileSchema, { path: 'new/.env' }));
+  it('accepts empty body', () => shouldPass(updateEnvFileSchema, {}));
+  it('rejects empty path', () => shouldFail(updateEnvFileSchema, { path: '' }));
+  it('rejects path > 500 chars', () => shouldFail(updateEnvFileSchema, { path: 'x'.repeat(501) }));
+});
+
+// ── EnvVar ──────────────────────────────────────────────────────────────────
+
+describe('createEnvVarSchema', () => {
+  it('accepts minimal payload', () =>
+    shouldPass(createEnvVarSchema, { envFileId: 'ef1', key: 'DATABASE_URL' }));
+
+  it('accepts full payload', () =>
+    shouldPass(createEnvVarSchema, {
+      envFileId: 'ef1',
+      key: 'API_SECRET',
+      value: 'abc123',
+      isSecret: true,
+      secretId: 'sec1',
+      comment: 'Main API secret',
+      order: 3,
+    }));
+
+  it('accepts isSecret without secretId (inline value)', () =>
+    shouldPass(createEnvVarSchema, { envFileId: 'ef1', key: 'PORT', value: '3000', isSecret: false }));
+
+  it('rejects missing envFileId', () =>
+    shouldFail(createEnvVarSchema, { key: 'PORT' }));
+
+  it('rejects empty envFileId', () =>
+    shouldFail(createEnvVarSchema, { envFileId: '', key: 'PORT' }));
+
+  it('rejects missing key', () =>
+    shouldFail(createEnvVarSchema, { envFileId: 'ef1' }));
+
+  it('rejects empty key', () =>
+    shouldFail(createEnvVarSchema, { envFileId: 'ef1', key: '' }));
+
+  it('rejects key > 200 chars', () =>
+    shouldFail(createEnvVarSchema, { envFileId: 'ef1', key: 'x'.repeat(201) }));
+
+  it('rejects value > 5000 chars', () =>
+    shouldFail(createEnvVarSchema, { envFileId: 'ef1', key: 'K', value: 'x'.repeat(5001) }));
+
+  it('rejects negative order', () =>
+    shouldFail(createEnvVarSchema, { envFileId: 'ef1', key: 'K', order: -1 }));
+
+  it('rejects non-integer order', () =>
+    shouldFail(createEnvVarSchema, { envFileId: 'ef1', key: 'K', order: 1.5 }));
+
+  it('rejects comment > 500 chars', () =>
+    shouldFail(createEnvVarSchema, { envFileId: 'ef1', key: 'K', comment: 'x'.repeat(501) }));
+});
+
+describe('updateEnvVarSchema', () => {
+  it('accepts partial update', () => shouldPass(updateEnvVarSchema, { key: 'NEW_KEY' }));
+  it('accepts empty body', () => shouldPass(updateEnvVarSchema, {}));
+  it('accepts null value', () => shouldPass(updateEnvVarSchema, { value: null }));
+  it('accepts null secretId', () => shouldPass(updateEnvVarSchema, { secretId: null }));
+  it('accepts null comment', () => shouldPass(updateEnvVarSchema, { comment: null }));
+  it('rejects empty key', () => shouldFail(updateEnvVarSchema, { key: '' }));
+  it('rejects negative order', () => shouldFail(updateEnvVarSchema, { order: -1 }));
 });

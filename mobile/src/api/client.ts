@@ -81,4 +81,27 @@ export const api = {
     request(`/groups/${groupId}`, { method: 'DELETE' }),
   testPush: () =>
     request('/auth/test-push', { method: 'POST' }),
+
+  // Env Files
+  getEnvFiles: () => request('/env-files'),
+  getEnvFile: (id: string) => request(`/env-files/${id}`),
+  createEnvFile: (data: { repoId: string; path: string }) =>
+    request('/env-files', { method: 'POST', body: JSON.stringify(data) }),
+  updateEnvFile: (id: string, data: { path?: string }) =>
+    request(`/env-files/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteEnvFile: (id: string) =>
+    request(`/env-files/${id}`, { method: 'DELETE' }),
+
+  // Env Vars
+  getEnvVars: (envFileId: string) => request(`/env-files/${envFileId}/vars`),
+  createEnvVar: (envFileId: string, data: { key: string; value?: string; isSecret?: boolean; secretId?: string | null; comment?: string; order?: number }) =>
+    request(`/env-files/${envFileId}/vars`, { method: 'POST', body: JSON.stringify({ envFileId, ...data }) }),
+  updateEnvVar: (envFileId: string, varId: string, data: Record<string, unknown>) =>
+    request(`/env-files/${envFileId}/vars/${varId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteEnvVar: (envFileId: string, varId: string) =>
+    request(`/env-files/${envFileId}/vars/${varId}`, { method: 'DELETE' }),
+
+  // Env Reconstruction
+  reconstructAll: () => request('/env-reconstruct'),
+  reconstructFile: (envFileId: string) => request(`/env-reconstruct/${envFileId}`),
 };

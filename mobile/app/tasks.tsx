@@ -6,6 +6,7 @@ import { api } from '../src/api/client';
 import { Redirect, useRouter } from 'expo-router';
 import GroupsView from '../src/components/GroupsView';
 import CalendarView from '../src/components/CalendarView';
+import EnvFilesView from '../src/components/EnvFilesView';
 import { scheduleDeadlineReminders } from '../src/hooks/useLocalNotifications';
 
 interface Task {
@@ -27,7 +28,7 @@ export default function Tasks() {
   const [showGroupTasks, setShowGroupTasks] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [tab, setTab] = useState<'tasks' | 'calendar' | 'groups' | 'settings'>('tasks');
+  const [tab, setTab] = useState<'tasks' | 'calendar' | 'groups' | 'env' | 'settings'>('tasks');
 
   const loadTasks = useCallback(async (p = 1) => {
     try {
@@ -90,7 +91,7 @@ export default function Tasks() {
       <Text style={[s.subtitle, { color: c.textMuted }]}>@{user.username}</Text>
 
       <View style={s.tabs}>
-        {(['tasks', 'calendar', 'groups', 'settings'] as const).map(t => (
+        {(['tasks', 'calendar', 'groups', 'env', 'settings'] as const).map(t => (
           <TouchableOpacity key={t} onPress={() => setTab(t)} style={[s.tab, tab === t && s.tabActive]}>
             <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t[0].toUpperCase() + t.slice(1)}</Text>
           </TouchableOpacity>
@@ -155,6 +156,7 @@ export default function Tasks() {
       {tab === 'settings' && <SettingsTab />}
       {tab === 'groups' && <GroupsView colors={c} />}
       {tab === 'calendar' && <CalendarView tasks={tasks} />}
+      {tab === 'env' && <EnvFilesView />}
     </View>
   );
 }

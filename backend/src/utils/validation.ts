@@ -294,3 +294,33 @@ export const updateRepoSchema = z.object({
 export const addRepoToTaskSchema = z.object({
   repoId: z.string().min(1, 'repoId is required'),
 });
+
+// EnvFile schemas
+export const createEnvFileSchema = z.object({
+  repoId: z.string().min(1, 'repoId is required'),
+  path: z.string().min(1, 'path is required').max(500),
+});
+
+export const updateEnvFileSchema = z.object({
+  path: z.string().min(1).max(500).optional(),
+});
+
+// EnvVar schemas
+export const createEnvVarSchema = z.object({
+  envFileId: z.string().min(1, 'envFileId is required'),
+  key: z.string().min(1, 'key is required').max(200),
+  value: z.string().max(5000).optional(),
+  isSecret: z.boolean().optional(),
+  secretId: z.string().nullable().optional(),
+  comment: z.string().max(500).optional(),
+  order: z.number().int().min(0).optional(),
+});
+
+export const updateEnvVarSchema = z.object({
+  key: z.string().min(1).max(200).optional(),
+  value: z.string().max(5000).nullable().optional(),
+  isSecret: z.boolean().optional(),
+  secretId: z.string().nullable().optional(),
+  comment: z.string().max(500).nullable().optional(),
+  order: z.number().int().min(0).optional(),
+});
