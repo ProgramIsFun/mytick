@@ -2,7 +2,7 @@
   "name": "mytick-electron",
   "private": true,
   "version": "1.0.0",
-  "main": "dist/main.js",
+  "main": "dist/src/main.js",
   "scripts": {
     "dev": "tsc && electron .",
     "build": "tsc && electron-builder",

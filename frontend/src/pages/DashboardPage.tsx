@@ -114,6 +114,11 @@ export default function DashboardPage() {
                         {item.icon} {item.label}
                       </button>
                     ))}
+                    {window.electronAPI && (
+                      <button onClick={() => { navigate('/system'); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary">
+                        💻 System
+                      </button>
+                    )}
                     <hr className="my-1 border-border-light" />
                     <button onClick={logout} className="w-full text-left px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-danger">🚪 Logout</button>
                   </div>

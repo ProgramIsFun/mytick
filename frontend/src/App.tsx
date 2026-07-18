@@ -21,6 +21,7 @@ import SubscriptionsPage from './pages/SubscriptionsPage';
 import ReposPage from './pages/ReposPage';
 import RepoDetailPage from './pages/RepoDetailPage';
 import GraphEditorPage from './pages/GraphEditorPage';
+import SystemInfoPage from './pages/SystemInfoPage';
 import LandingPage from './pages/LandingPage';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import { PageSpinner } from './components/Spinner';
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="/graph" element={<PrivateRoute><GraphEditorPage /></PrivateRoute>} />
             <Route path="/context" element={<PrivateRoute><ContextPage /></PrivateRoute>} />
             <Route path="/knowledge" element={<PrivateRoute><KnowledgePage /></PrivateRoute>} />
+            <Route path="/system" element={<PrivateRoute><SystemInfoPage /></PrivateRoute>} />
             <Route path="/share/:token" element={<SharedTaskPage />} />
             <Route path="/u/:username" element={<ProfilePage />} />
             <Route path="/u/:username/tasks" element={<PublicTasksPage />} />
