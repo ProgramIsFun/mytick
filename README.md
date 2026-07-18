@@ -48,6 +48,15 @@ Manage tasks, track projects, organize credentials — across web, mobile, and A
 - Node.js 20+
 - Neo4j 5+ (local or AuraDB)
 
+### Development Environment
+
+| Tool | Version |
+|------|---------|
+| OS | Windows 11 Pro (Build 26200) |
+| nvm | 1.2.2 |
+| Node.js | v22.20.0 |
+| npm | 10.9.3 |
+
 ### Backend
 
 ```bash
