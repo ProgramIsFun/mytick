@@ -51,10 +51,23 @@ describe('account CRUD', () => {
     expect(res.body.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('should get account by id', async () => {
+  it('should get account by id with credentials', async () => {
     const res = await request(app).get(`/api/accounts/${accountId}`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Firebase Main');
+    expect(res.body.credentials).toHaveLength(1);
+    expect(res.body.credentials[0].secretId).toBe(secretId);
+    expect(res.body.credentials[0].key).toBe('API_KEY');
+  });
+
+  it('should list accounts with credentials', async () => {
+    const res = await request(app).get('/api/accounts').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const acct = res.body.find((a: any) => a.id === accountId);
+    expect(acct).toBeDefined();
+    expect(acct.credentials).toHaveLength(1);
+    expect(acct.credentials[0].secretId).toBe(secretId);
+    expect(acct.credentials[0].key).toBe('API_KEY');
   });
 
   it('should update account', async () => {
