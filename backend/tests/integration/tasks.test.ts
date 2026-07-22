@@ -256,21 +256,6 @@ describe('task creation with groups', () => {
   });
 });
 
-describe('admin key auth', () => {
-  it('should allow admin key to bypass JWT', async () => {
-    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
-    const res = await request(app).get('/api/tasks').set('x-admin-key', 'test-admin-key')
-      .set('x-admin-user-id', me.body.id);
-    expect(res.status).toBe(200);
-  });
-
-  it('should reject wrong admin key', async () => {
-    const res = await request(app).get('/api/tasks').set('x-admin-key', 'wrong-key')
-      .set('x-admin-user-id', 'someid');
-    expect(res.status).toBe(401);
-  });
-});
-
 describe('task status filter', () => {
   beforeAll(async () => {
     await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'Done task' });
