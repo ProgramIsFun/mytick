@@ -437,7 +437,67 @@ describe('Secrets API - /api/secrets', () => {
     });
   });
 
+  describe('direct provider encryption', () => {
+    it('should encrypt secretValue on create when provider=direct', async () => {
+      const res = await request(app)
+        .post('/api/secrets')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          name: 'Direct Encrypted Secret',
+          provider: 'direct',
+          secretValue: 'my-plaintext-password',
+          type: 'password',
+        })
+        .expect(201);
 
+      expect(res.body.provider).toBe('direct');
+      expect(res.body.secretValue).not.toBe('my-plaintext-password');
+      expect(res.body.secretValue).not.toBe('');
+
+      const { decrypt } = require('../../src/services/encryption');
+      const decrypted = decrypt(res.body.secretValue);
+      expect(decrypted).toBe('my-plaintext-password');
+    });
+
+    it('should encrypt secretValue on update when provider=direct', async () => {
+      const secret = await secretRepo.create({
+        userId,
+        name: 'Direct Update Test',
+        provider: 'bitwarden',
+        secretValue: 'bw-old-ref',
+        type: 'api_key',
+        tags: [],
+      });
+
+      const res = await request(app)
+        .patch(`/api/secrets/${secret.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ provider: 'direct', secretValue: 'new-plaintext-value' })
+        .expect(200);
+
+      expect(res.body.provider).toBe('direct');
+      expect(res.body.secretValue).not.toBe('new-plaintext-value');
+
+      const { decrypt } = require('../../src/services/encryption');
+      const decrypted = decrypt(res.body.secretValue);
+      expect(decrypted).toBe('new-plaintext-value');
+    });
+
+    it('should not encrypt when provider is not direct', async () => {
+      const res = await request(app)
+        .post('/api/secrets')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          name: 'Vault Reference',
+          provider: 'bitwarden',
+          secretValue: 'bw-item-id-abc',
+          type: 'api_key',
+        })
+        .expect(201);
+
+      expect(res.body.secretValue).toBe('bw-item-id-abc');
+    });
+  });
 
   describe('POST /api/secrets/:id/touch', () => {
     it('should update lastAccessedAt timestamp', async () => {

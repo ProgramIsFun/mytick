@@ -6,6 +6,7 @@ process.env.NEO4J_USER = process.env.NEO4J_TEST_USER || 'neo4j';
 process.env.NEO4J_PASSWORD = process.env.NEO4J_TEST_PASSWORD || 'mytick123';
 process.env.JWT_SECRET = 'test-secret';
 process.env.ADMIN_API_KEY = 'test-admin-key';
+process.env.ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
 import neo4j, { Driver } from 'neo4j-driver';
 import request from 'supertest';

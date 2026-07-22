@@ -31,20 +31,19 @@ beforeAll(async () => {
   });
   secretId = sec.id;
 
-  // Create a direct (client_encrypted) secret — encrypt via the API is tricky,
-  // so we create directly with the repo. The encryption key must be set in env.
+  // Create a direct secret — server encrypts it automatically when provider=direct
   process.env.ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-  const { encrypt } = require('../../src/services/encryption');
-  const encryptedValue = encrypt('my-super-secret-db-password');
-  const directSec = await secretRepo.create({
-    userId,
-    name: 'Direct API Key',
-    provider: 'direct',
-    secretValue: encryptedValue,
-    type: 'api_key',
-    tags: ['direct'],
-  });
-  directSecretId = directSec.id;
+  const directSec = await request(app)
+    .post('/api/secrets')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: 'Direct API Key',
+      provider: 'direct',
+      secretValue: 'my-super-secret-db-password',
+      type: 'api_key',
+      tags: ['direct'],
+    });
+  directSecretId = directSec.body.id;
 }, 120000);
 
 afterAll(async () => {

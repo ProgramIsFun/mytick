@@ -4,6 +4,7 @@ import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { notFound } from '../utils/routeHelpers';
 import { validate, createSecretSchema, updateSecretSchema } from '../utils/validation';
+import { encrypt } from '../services/encryption';
 
 const router = Router();
 router.use(auth);
@@ -131,9 +132,10 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  */
 router.post('/', validate(createSecretSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, description, provider, secretValue, type, tags, expiresAt } = req.body;
+  const storedValue = provider === 'direct' ? encrypt(secretValue) : secretValue;
   const secret = await secretRepo.create({
     userId: req.userId, name, description: description || '',
-    provider, secretValue, type, tags: tags || [], expiresAt: expiresAt || null,
+    provider, secretValue: storedValue, type, tags: tags || [], expiresAt: expiresAt || null,
   });
   res.status(201).json(secret);
 }));
@@ -184,6 +186,9 @@ router.post('/', validate(createSecretSchema), asyncHandler(async (req: AuthRequ
  *         description: Secret not found
  */
 router.patch('/:id', validate(updateSecretSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (req.body.provider === 'direct' && req.body.secretValue) {
+    req.body.secretValue = encrypt(req.body.secretValue);
+  }
   const secret = await secretRepo.update(req.params.id as string, req.body);
   if (!secret) return notFound(res);
   res.json(secret);
