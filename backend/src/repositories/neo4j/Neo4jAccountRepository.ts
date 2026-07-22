@@ -12,10 +12,10 @@ export class Neo4jAccountRepository implements IAccountRepository {
          WHERE 1=1 ${where}
          OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(a)
          OPTIONAL MATCH (a)-[:PARENT_OF]->(sub:Account)
-         OPTIONAL MATCH (a)-[:HAS_CREDENTIAL]->(s:Secret)
+         OPTIONAL MATCH (a)-[cred:HAS_CREDENTIAL]->(s:Secret)
          RETURN u.id AS userId, a, parent.id AS parentAccountId,
                 collect(DISTINCT sub.id) AS subAccounts,
-                collect(DISTINCT s {.id, .name}) AS secrets`,
+                collect(DISTINCT {key: cred.key, secretId: s.id}) AS credentials`,
         { id, userId }
       );
       if (!result.records.length) return null;
@@ -31,9 +31,9 @@ export class Neo4jAccountRepository implements IAccountRepository {
       const result = await session.run(
         `MATCH (u:User {id: $userId})-[:OWNS]->(a:Account)
          OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(a)
-         OPTIONAL MATCH (a)-[:HAS_CREDENTIAL]->(s:Secret)
+         OPTIONAL MATCH (a)-[cred:HAS_CREDENTIAL]->(s:Secret)
          RETURN u.id AS userId, a, parent.id AS parentAccountId,
-                collect(s {.id, .name}) AS secrets
+                collect({key: cred.key, secretId: s.id}) AS credentials
          ORDER BY a.createdAt DESC`,
         { userId }
       );
@@ -92,8 +92,9 @@ export class Neo4jAccountRepository implements IAccountRepository {
             if (cred.secretId) {
               await tx.run(
                 `MATCH (a:Account {id: $aid}), (s:Secret {id: $sid})
-                 MERGE (a)-[:HAS_CREDENTIAL]->(s)`,
-                { aid: id, sid: cred.secretId }
+                 MERGE (a)-[r:HAS_CREDENTIAL]->(s)
+                 SET r.key = $key`,
+                { aid: id, sid: cred.secretId, key: cred.key || '' }
               );
             }
           }
@@ -158,6 +159,9 @@ export class Neo4jAccountRepository implements IAccountRepository {
 
 function recordToAccount(record: any): IAccount {
   const a = record.get('a').properties || record.get('a');
+  const credentials = (record.get('credentials') || [])
+    .filter((c: any) => c?.secretId)
+    .map((c: any) => ({ key: c.key || '', secretId: c.secretId }));
   return {
     id: a.id,
     userId: record.get('userId') || '',
@@ -169,7 +173,7 @@ function recordToAccount(record: any): IAccount {
     notes: a.notes || undefined,
     tags: a.tags || [],
     accountId: a.accountId || undefined,
-    credentials: record.get('secrets')?.filter((s: any) => s?.id).map((s: any) => ({ key: '', secretId: s.id })) || [],
+    credentials,
     createdAt: new Date(a.createdAt),
     updatedAt: new Date(a.updatedAt),
   };

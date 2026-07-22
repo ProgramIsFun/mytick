@@ -35,6 +35,7 @@ describe('account CRUD', () => {
     expect(res.body.provider).toBe('firebase');
     expect(res.body.credentials).toHaveLength(1);
     expect(res.body.credentials[0].secretId).toBe(secretId);
+    expect(res.body.credentials[0].key).toBe('API_KEY');
     accountId = res.body.id;
   });
 
