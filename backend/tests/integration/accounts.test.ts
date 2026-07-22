@@ -226,3 +226,55 @@ describe('account with multiple credentials', () => {
   });
 });
 
+describe('OAUTH_FROM relationship', () => {
+  let myAppAccountId: string;
+  let externalAccountId: string;
+
+  it('should create an external account', async () => {
+    const res = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Google OAuth', provider: 'google', username: 'user@gmail.com' });
+    expect(res.status).toBe(201);
+    expect(res.body.name).toBe('Google OAuth');
+    externalAccountId = res.body.id;
+  });
+
+  it('should create a MyApp account linked to external account', async () => {
+    const res = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
+      .send({ name: 'MyApp via Google', provider: 'myapp', linkedAccountId: externalAccountId });
+    expect(res.status).toBe(201);
+    expect(res.body.linkedAccountId).toBe(externalAccountId);
+    myAppAccountId = res.body.id;
+  });
+
+  it('should return linkedAccountId on GET by id', async () => {
+    const res = await request(app).get(`/api/accounts/${myAppAccountId}`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.linkedAccountId).toBe(externalAccountId);
+  });
+
+  it('should return linkedAccountId on list', async () => {
+    const res = await request(app).get('/api/accounts').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const acct = res.body.find((a: any) => a.id === myAppAccountId);
+    expect(acct.linkedAccountId).toBe(externalAccountId);
+  });
+
+  it('should update linkedAccountId via PATCH', async () => {
+    const newExt = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
+      .send({ name: 'GitHub OAuth', provider: 'github', username: 'user@github.com' });
+    expect(newExt.status).toBe(201);
+
+    const res = await request(app).patch(`/api/accounts/${myAppAccountId}`).set('Authorization', `Bearer ${token}`)
+      .send({ linkedAccountId: newExt.body.id });
+    expect(res.status).toBe(200);
+    expect(res.body.linkedAccountId).toBe(newExt.body.id);
+  });
+
+  it('should unlink via PATCH with null', async () => {
+    const res = await request(app).patch(`/api/accounts/${myAppAccountId}`).set('Authorization', `Bearer ${token}`)
+      .send({ linkedAccountId: null });
+    expect(res.status).toBe(200);
+    expect(res.body.linkedAccountId).toBeNull();
+  });
+});
+

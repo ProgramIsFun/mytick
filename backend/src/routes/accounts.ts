@@ -112,6 +112,10 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *                 type: string
  *               parentAccountId:
  *                 type: string
+ *               linkedAccountId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Link to external account via OAUTH_FROM relationship
  *               url:
  *                 type: string
  *               username:
@@ -143,10 +147,11 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *               $ref: '#/components/schemas/Account'
  */
 router.post('/', validate(createAccountSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, provider, parentAccountId, url, username, notes, tags, credentials, accountId } = req.body;
+  const { name, provider, parentAccountId, linkedAccountId, url, username, notes, tags, credentials, accountId } = req.body;
   const account = await accountRepo.create({
     userId: req.userId, name, provider,
     parentAccountId: parentAccountId || null,
+    linkedAccountId: linkedAccountId || null,
     url: url || '', username: username || '', notes: notes || '',
     tags: tags || [], credentials: credentials || [],
     accountId: accountId || null,
@@ -188,6 +193,10 @@ router.post('/', validate(createAccountSchema), asyncHandler(async (req: AuthReq
  *                 type: array
  *                 items:
  *                   type: string
+ *               linkedAccountId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Link to external account via OAUTH_FROM relationship
  *               accountId:
  *                 type: string
  *                 description: External account ID (e.g. AWS account ID)

@@ -13,7 +13,9 @@ export class Neo4jAccountRepository implements IAccountRepository {
          OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(a)
          OPTIONAL MATCH (a)-[:PARENT_OF]->(sub:Account)
          OPTIONAL MATCH (a)-[cred:HAS_CREDENTIAL]->(s:Secret)
+         OPTIONAL MATCH (a)-[:OAUTH_FROM]->(linked:Account)
          RETURN u.id AS userId, a, parent.id AS parentAccountId,
+                linked.id AS linkedAccountId,
                 collect(DISTINCT sub.id) AS subAccounts,
                 collect(DISTINCT {key: cred.key, secretId: s.id}) AS credentials`,
         { id, userId }
@@ -32,7 +34,9 @@ export class Neo4jAccountRepository implements IAccountRepository {
         `MATCH (u:User {id: $userId})-[:OWNS]->(a:Account)
          OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(a)
          OPTIONAL MATCH (a)-[cred:HAS_CREDENTIAL]->(s:Secret)
+         OPTIONAL MATCH (a)-[:OAUTH_FROM]->(linked:Account)
          RETURN u.id AS userId, a, parent.id AS parentAccountId,
+                linked.id AS linkedAccountId,
                 collect({key: cred.key, secretId: s.id}) AS credentials
          ORDER BY a.createdAt DESC`,
         { userId }
@@ -49,7 +53,9 @@ export class Neo4jAccountRepository implements IAccountRepository {
       const result = await session.run(
         `MATCH (a:Account {id: $parentId})-[:PARENT_OF]->(sub:Account)
          OPTIONAL MATCH (parent:Account)-[:PARENT_OF]->(sub)
-         RETURN '' AS userId, sub, parent.id AS parentAccountId
+         OPTIONAL MATCH (sub)-[:OAUTH_FROM]->(linked:Account)
+         RETURN '' AS userId, sub, parent.id AS parentAccountId,
+                linked.id AS linkedAccountId
          ORDER BY sub.createdAt DESC`,
         { parentId }
       );
@@ -99,6 +105,13 @@ export class Neo4jAccountRepository implements IAccountRepository {
             }
           }
         }
+        if (data.linkedAccountId) {
+          await tx.run(
+            `MATCH (a:Account {id: $id}), (linked:Account {id: $linkedId})
+             MERGE (a)-[:OAUTH_FROM]->(linked)`,
+            { id, linkedId: data.linkedAccountId }
+          );
+        }
       });
       return (await this.findById(id))!;
     } finally {
@@ -135,6 +148,19 @@ export class Neo4jAccountRepository implements IAccountRepository {
             );
           }
         }
+        if (data.linkedAccountId !== undefined) {
+          await tx.run(
+            `MATCH (a:Account {id: $id})-[r:OAUTH_FROM]-() DELETE r`,
+            { id }
+          );
+          if (data.linkedAccountId) {
+            await tx.run(
+              `MATCH (a:Account {id: $id}), (linked:Account {id: $linkedId})
+               MERGE (a)-[:OAUTH_FROM]->(linked)`,
+              { id, linkedId: data.linkedAccountId }
+            );
+          }
+        }
       });
       return this.findById(id);
     } finally {
@@ -166,6 +192,7 @@ function recordToAccount(record: any): IAccount {
     id: a.id,
     userId: record.get('userId') || '',
     parentAccountId: record.get('parentAccountId') ?? null,
+    linkedAccountId: record.get('linkedAccountId') ?? null,
     name: a.name,
     provider: a.provider,
     url: a.url || undefined,
@@ -185,6 +212,7 @@ function recordToAccountSimple(record: any, key = 'a'): IAccount {
     id: props.id,
     userId: record.get('userId') || '',
     parentAccountId: record.get('parentAccountId') ?? null,
+    linkedAccountId: record.get('linkedAccountId') ?? null,
     name: props.name,
     provider: props.provider,
     url: props.url || undefined,

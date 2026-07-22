@@ -4,6 +4,7 @@ export interface IAccount {
   name: string;
   provider: string;
   parentAccountId?: string;
+  linkedAccountId?: string;
   url?: string;
   username?: string;
   notes?: string;

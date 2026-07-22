@@ -149,6 +149,7 @@ const spec = swaggerJsdoc({
             name: { type: 'string' },
             provider: { type: 'string' },
             parentAccountId: { type: 'string', nullable: true },
+            linkedAccountId: { type: 'string', nullable: true },
             url: { type: 'string' },
             username: { type: 'string' },
             notes: { type: 'string' },
