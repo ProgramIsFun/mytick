@@ -5,11 +5,14 @@ import { secretRepo } from '../../src/repositories';
 
 let token: string;
 let secretId: string;
+let userId: string;
+let extraSecretIds: string[] = [];
 
 beforeAll(async () => {
   await setupTestDB();
-  const { token: t, userId } = await createTestUser();
+  const { token: t, userId: uid } = await createTestUser();
   token = t;
+  userId = uid;
   const secret = await secretRepo.create({
     userId,
     name: 'Test Secret',
@@ -18,6 +21,18 @@ beforeAll(async () => {
     type: 'api_key',
   });
   secretId = secret.id;
+
+  const secretNames = ['AWS Access Key', 'GitHub Token', 'Stripe Key', 'SendGrid Key', 'Slack Bot Token'];
+  for (const name of secretNames) {
+    const s = await secretRepo.create({
+      userId,
+      name,
+      provider: 'bitwarden',
+      secretValue: `val-${name.toLowerCase().replace(/\s+/g, '-')}`,
+      type: 'api_key',
+    });
+    extraSecretIds.push(s.id);
+  }
 }, 30000);
 
 afterAll(async () => {
@@ -161,6 +176,53 @@ describe('account hierarchy', () => {
     const res = await request(app).get(`/api/accounts/${subAccount2Id}`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(subAccount2Id);
+  });
+});
+
+describe('account with multiple credentials', () => {
+  let multiCredAccountId: string;
+  const credKeys = ['API_KEY', 'ACCESS_KEY', 'SECRET_TOKEN', 'OAUTH_TOKEN', 'WEBHOOK_SECRET'];
+
+  it('should create account with 5 credentials', async () => {
+    const allSecretIds = [secretId, ...extraSecretIds];
+    const credentials = credKeys.map((key, i) => ({ key, secretId: allSecretIds[i] }));
+    const res = await request(app).post('/api/accounts').set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Multi Cred Account', provider: 'aws', credentials });
+    expect(res.status).toBe(201);
+    expect(res.body.credentials).toHaveLength(5);
+    multiCredAccountId = res.body.id;
+  });
+
+  it('should return all 5 credentials on GET by id', async () => {
+    const res = await request(app).get(`/api/accounts/${multiCredAccountId}`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.credentials).toHaveLength(5);
+    const returnedKeys = res.body.credentials.map((c: any) => c.key).sort();
+    expect(returnedKeys).toEqual([...credKeys].sort());
+    res.body.credentials.forEach((c: any) => {
+      expect(c.secretId).toBeDefined();
+      expect(typeof c.key).toBe('string');
+    });
+  });
+
+  it('should return all 5 credentials on list', async () => {
+    const res = await request(app).get('/api/accounts').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const acct = res.body.find((a: any) => a.id === multiCredAccountId);
+    expect(acct).toBeDefined();
+    expect(acct.credentials).toHaveLength(5);
+    const returnedKeys = acct.credentials.map((c: any) => c.key).sort();
+    expect(returnedKeys).toEqual([...credKeys].sort());
+  });
+
+  it('should not change credentials on scalar-only PATCH', async () => {
+    const res = await request(app).patch(`/api/accounts/${multiCredAccountId}`).set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Renamed Multi Cred' });
+    expect(res.status).toBe(200);
+    expect(res.body.name).toBe('Renamed Multi Cred');
+    expect(res.body.credentials).toHaveLength(5);
+    const returnedKeys = res.body.credentials.map((c: any) => c.key).sort();
+    expect(returnedKeys).toEqual([...credKeys].sort());
   });
 });
 
