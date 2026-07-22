@@ -257,6 +257,55 @@ describe('Secrets API - /api/secrets', () => {
     });
   });
 
+  describe('GET /api/secrets/:id/decrypt', () => {
+    it('should return decrypted value for direct secret', async () => {
+      const { encrypt } = require('../../src/services/encryption');
+      const secret = await secretRepo.create({
+        userId,
+        name: 'Decrypt Test Direct',
+        provider: 'direct',
+        secretValue: encrypt('my-plaintext-api-key'),
+        type: 'api_key',
+        tags: [],
+      });
+
+      const res = await request(app)
+        .get(`/api/secrets/${secret.id}/decrypt`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.id).toBe(secret.id);
+      expect(res.body.name).toBe('Decrypt Test Direct');
+      expect(res.body.provider).toBe('direct');
+      expect(res.body.secretValue).toBe('my-plaintext-api-key');
+    });
+
+    it('should return vault reference for non-direct secret', async () => {
+      const secret = await secretRepo.create({
+        userId,
+        name: 'Decrypt Test Vault',
+        provider: 'bitwarden',
+        secretValue: 'bw-item-id-xyz',
+        type: 'password',
+        tags: [],
+      });
+
+      const res = await request(app)
+        .get(`/api/secrets/${secret.id}/decrypt`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.secretValue).toBe('bw-item-id-xyz');
+    });
+
+    it('should return 404 for non-existent secret', async () => {
+      await request(app)
+        .get('/api/secrets/nonexistent_123/decrypt')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(404);
+    });
+  });
+
   describe('PATCH /api/secrets/:id', () => {
     it('should update secret name and description', async () => {
       const secret = await secretRepo.create({

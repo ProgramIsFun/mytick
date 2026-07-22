@@ -4,7 +4,7 @@ import { auth, AuthRequest } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { notFound } from '../utils/routeHelpers';
 import { validate, createSecretSchema, updateSecretSchema } from '../utils/validation';
-import { encrypt } from '../services/encryption';
+import { encrypt, decrypt } from '../services/encryption';
 
 const router = Router();
 router.use(auth);
@@ -85,6 +85,47 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const secret = await secretRepo.findById(req.params.id as string, req.userId);
   if (!secret) return notFound(res);
   res.json(secret);
+}));
+
+/**
+ * @openapi
+ * /secrets/{id}/decrypt:
+ *   get:
+ *     tags: [Secrets]
+ *     summary: Get a secret with decrypted value (direct provider only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Secret with decrypted secretValue
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 provider:
+ *                   type: string
+ *                 secretValue:
+ *                   type: string
+ *                   description: Decrypted plaintext for direct provider, vault reference for others
+ *       404:
+ *         description: Secret not found
+ */
+router.get('/:id/decrypt', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const secret = await secretRepo.findById(req.params.id as string, req.userId);
+  if (!secret) return notFound(res);
+  const value = secret.provider === 'direct' ? decrypt(secret.secretValue) : secret.secretValue;
+  res.json({ id: secret.id, name: secret.name, provider: secret.provider, secretValue: value });
 }));
 
 /**
