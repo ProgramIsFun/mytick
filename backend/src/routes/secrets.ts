@@ -26,7 +26,7 @@ router.use(auth);
  *         name: provider
  *         schema:
  *           type: string
- *           enum: [bitwarden, bitwarden_sm, aws_secrets, 1password, vault, lastpass, custom, client_encrypted]
+ *           enum: [bitwarden, bitwarden_sm, aws_secrets, 1password, vault, lastpass, custom, client_encrypted, direct]
  *       - in: query
  *         name: type
  *         schema:
@@ -109,9 +109,10 @@ router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
  *                 type: string
  *               provider:
  *                 type: string
- *                 enum: [bitwarden, bitwarden_sm, aws_secrets, 1password, vault, lastpass, custom, client_encrypted]
+ *                 enum: [bitwarden, bitwarden_sm, aws_secrets, 1password, vault, lastpass, custom, client_encrypted, direct]
  *               secretValue:
  *                 type: string
+ *                 description: The secret value. For provider=direct, plaintext is auto-encrypted server-side before storage.
  *               type:
  *                 type: string
  *                 enum: [connection_string, password, api_key, token, certificate, ssh_key, other]

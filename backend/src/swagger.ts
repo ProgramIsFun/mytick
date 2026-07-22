@@ -239,7 +239,7 @@ const spec = swaggerJsdoc({
             description: { type: 'string' },
             type: { type: 'string', enum: ['connection_string', 'password', 'api_key', 'token', 'certificate', 'ssh_key', 'other'] },
             provider: { type: 'string', enum: ['bitwarden', 'bitwarden_sm', 'aws_secrets', '1password', 'vault', 'lastpass', 'custom', 'client_encrypted', 'direct'] },
-            secretValue: { type: 'string' },
+            secretValue: { type: 'string', description: 'For provider=direct, this is AES-256-GCM encrypted server-side. For other providers, this is the vault reference ID.' },
             tags: { type: 'array', items: { type: 'string' } },
             expiresAt: { type: 'string', format: 'date-time', nullable: true },
             lastRotatedAt: { type: 'string', format: 'date-time' },
